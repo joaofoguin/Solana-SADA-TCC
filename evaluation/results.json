@@ -1,0 +1,243 @@
+{
+  "summary": {
+    "contracts_evaluated": 10,
+    "contracts_total": 11,
+    "overall_precision": 0.314,
+    "overall_recall": 0.733,
+    "overall_f1": 0.44
+  },
+  "per_contract": [
+    {
+      "contract_id": "Contract 1",
+      "address": "0xe061D86497767e1b9eC2f9a38290b7EACcE28d19",
+      "status": "ok",
+      "true_labels": [
+        "unchecked-calls",
+        "other"
+      ],
+      "predicted_labels": [
+        "unchecked-calls",
+        "reentrancy",
+        "access-control",
+        "arithmetic"
+      ],
+      "metrics": {
+        "tp": 1,
+        "fp": 3,
+        "fn": 1,
+        "precision": 0.25,
+        "recall": 0.5,
+        "f1": 0.333
+      },
+      "report_path": "reports/NFT_0xe061D8_20260715_030905.md"
+    },
+    {
+      "contract_id": "Contract 2",
+      "address": "0x5F65805294092c222E6262B46d156a23285fA9B2",
+      "status": "ok",
+      "true_labels": [
+        "unchecked-calls",
+        "reentrancy",
+        "access-control"
+      ],
+      "predicted_labels": [
+        "unchecked-calls",
+        "reentrancy",
+        "access-control",
+        "arithmetic"
+      ],
+      "metrics": {
+        "tp": 3,
+        "fp": 1,
+        "fn": 0,
+        "precision": 0.75,
+        "recall": 1.0,
+        "f1": 0.857
+      },
+      "report_path": "reports/UkFloki_0x5F6580_20260715_031002.md"
+    },
+    {
+      "contract_id": "Contract 3",
+      "address": "0x0854dcbdcd026C0b534B09608ADb3f2bf6baaCd0",
+      "status": "ok",
+      "true_labels": [
+        "unchecked-calls",
+        "other"
+      ],
+      "predicted_labels": [
+        "reentrancy",
+        "access-control",
+        "arithmetic"
+      ],
+      "metrics": {
+        "tp": 0,
+        "fp": 3,
+        "fn": 2,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+      },
+      "report_path": "reports/HadePayToken_0x0854dc_20260715_031052.md"
+    },
+    {
+      "contract_id": "Contract 4",
+      "address": "0x6ACc0eD0271279308FBDF37832C241030b04757C",
+      "status": "ok",
+      "true_labels": [
+        "unchecked-calls",
+        "other",
+        "access-control"
+      ],
+      "predicted_labels": [
+        "unchecked-calls",
+        "reentrancy",
+        "access-control",
+        "arithmetic"
+      ],
+      "metrics": {
+        "tp": 2,
+        "fp": 2,
+        "fn": 1,
+        "precision": 0.5,
+        "recall": 0.667,
+        "f1": 0.571
+      },
+      "report_path": "reports/UniswapExchange_0x6ACc0e_20260715_031140.md"
+    },
+    {
+      "contract_id": "Contract 5",
+      "address": "0x223F9B31C7A65eF9f2d7b6E1497346227Ab05170",
+      "status": "ok",
+      "true_labels": [],
+      "predicted_labels": [],
+      "metrics": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "report_path": "reports/SimpleERC20_0x223F9B_20260715_031232.md"
+    },
+    {
+      "contract_id": "Contract 6",
+      "address": "0xCa7e925bA8938A1b587172658b6C24054329aeF8",
+      "status": "ok",
+      "true_labels": [],
+      "predicted_labels": [
+        "unchecked-calls",
+        "reentrancy",
+        "access-control",
+        "arithmetic"
+      ],
+      "metrics": {
+        "tp": 0,
+        "fp": 4,
+        "fn": 0,
+        "precision": 0.0,
+        "recall": 1.0,
+        "f1": 0.0
+      },
+      "report_path": "reports/bulldogeToken_0xCa7e92_20260715_031317.md"
+    },
+    {
+      "contract_id": "Contract 7",
+      "address": "0x3604583dC212e55E3e93C70B2de0C0CE954De35E",
+      "status": "ok",
+      "true_labels": [
+        "unchecked-calls",
+        "reentrancy"
+      ],
+      "predicted_labels": [
+        "unchecked-calls",
+        "reentrancy",
+        "access-control",
+        "arithmetic"
+      ],
+      "metrics": {
+        "tp": 2,
+        "fp": 2,
+        "fn": 0,
+        "precision": 0.5,
+        "recall": 1.0,
+        "f1": 0.667
+      },
+      "report_path": "reports/VenusaurInu_0x360458_20260715_031410.md"
+    },
+    {
+      "contract_id": "Contract 8",
+      "address": "0xc8327D8E1094a94466e05a2CC1f10fA70a1dF119",
+      "status": "ok",
+      "true_labels": [
+        "unchecked-calls"
+      ],
+      "predicted_labels": [
+        "unchecked-calls",
+        "reentrancy",
+        "access-control",
+        "arithmetic"
+      ],
+      "metrics": {
+        "tp": 1,
+        "fp": 3,
+        "fn": 0,
+        "precision": 0.25,
+        "recall": 1.0,
+        "f1": 0.4
+      },
+      "report_path": "reports/StrategyCurveGUSDProxy_0xc8327D_20260715_031521.md"
+    },
+    {
+      "contract_id": "Contract 9",
+      "address": "0x57d75244c98e7B73632F01860c0F06D3D3C4dc15",
+      "status": "ok",
+      "true_labels": [
+        "reentrancy"
+      ],
+      "predicted_labels": [
+        "unchecked-calls",
+        "reentrancy",
+        "access-control",
+        "arithmetic"
+      ],
+      "metrics": {
+        "tp": 1,
+        "fp": 3,
+        "fn": 0,
+        "precision": 0.25,
+        "recall": 1.0,
+        "f1": 0.4
+      },
+      "report_path": "reports/SpiderInu_0x57d752_20260715_125651.md"
+    },
+    {
+      "contract_id": "Contract 10",
+      "address": "0x2B0Edd293958E5D19Db0003556632Add510833b4",
+      "status": "ok",
+      "true_labels": [
+        "unchecked-calls"
+      ],
+      "predicted_labels": [
+        "unchecked-calls",
+        "reentrancy",
+        "access-control",
+        "arithmetic"
+      ],
+      "metrics": {
+        "tp": 1,
+        "fp": 3,
+        "fn": 0,
+        "precision": 0.25,
+        "recall": 1.0,
+        "f1": 0.4
+      },
+      "report_path": "reports/LiquidityLock_0x2B0Edd_20260715_125727.md"
+    },
+    {
+      "contract_id": "Contract 11",
+      "address": "0xDf10ae14bA051cA03dd47Cd2828Cddf3973fB967",
+      "status": "pipeline_error"
+    }
+  ]
+}
