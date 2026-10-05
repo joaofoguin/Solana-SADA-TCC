@@ -1,0 +1,222 @@
+{
+  "schema_version": "0.1",
+  "status": "initial-source-inventory",
+  "categories": [
+    "Missing Signer Check",
+    "Improper Owner Check",
+    "Arbitrary CPI",
+    "Improper PDA Validation / Canonicalization",
+    "Sysvar Account Check",
+    "Integer Overflow / Underflow",
+    "Type Cosplay",
+    "Reinitialization Attacks"
+  ],
+  "sources": [
+    {
+      "source_id": "security-pattern",
+      "name": "Solana Security Patterns",
+      "repository": "https://github.com/justFiveDev/solana-security-pattern",
+      "commit": "a128ce9c9acadda7bb8ed686ce6a694439277dc5",
+      "source_role": "primary-pattern-source"
+    },
+    {
+      "source_id": "solana-hacks",
+      "name": "Solana Hacks",
+      "repository": "https://github.com/El-Merovingio/solana-hacks",
+      "commit": "7a0bebc9f40591eeb7e273ce57d166c759ec0d7f",
+      "source_role": "complementary-hack-source"
+    },
+    {
+      "source_id": "trail-of-bits",
+      "name": "Building Secure Smart Contracts - Solana Not So Smart Contracts",
+      "repository": "https://github.com/crytic/building-secure-contracts",
+      "commit": "2de122e3a6b63bc450a1ec41215f0c44d72fb96b",
+      "source_path": "not-so-smart-contracts/solana",
+      "source_role": "security-reference-source"
+    }
+  ],
+  "cases": [
+    {
+      "case_id": "SSP-01",
+      "source_id": "security-pattern",
+      "path": "patterns/01-missing-signer-check",
+      "category": "Missing Signer Check",
+      "status": "candidate",
+      "vulnerable": true,
+      "secure_variant_available": true,
+      "exploit_test_available": true,
+      "mollusk_executable": true,
+      "ground_truth_evidence": "Vulnerable and secure Anchor implementations with Mollusk exploit tests.",
+      "development_or_evaluation": null
+    },
+    {
+      "case_id": "SSP-02",
+      "source_id": "security-pattern",
+      "path": "patterns/02-missing-owner-check",
+      "category": "Improper Owner Check",
+      "status": "candidate",
+      "vulnerable": true,
+      "secure_variant_available": true,
+      "exploit_test_available": true,
+      "mollusk_executable": true,
+      "ground_truth_evidence": "Vulnerable and secure Anchor implementations with Mollusk exploit tests.",
+      "development_or_evaluation": null
+    },
+    {
+      "case_id": "SSP-03",
+      "source_id": "security-pattern",
+      "path": "patterns/03-integer-overflow",
+      "category": "Integer Overflow / Underflow",
+      "status": "candidate",
+      "vulnerable": true,
+      "secure_variant_available": true,
+      "exploit_test_available": true,
+      "mollusk_executable": true,
+      "ground_truth_evidence": "Vulnerable and secure implementations with exploit tests.",
+      "development_or_evaluation": null
+    },
+    {
+      "case_id": "SSP-04",
+      "source_id": "security-pattern",
+      "path": "patterns/04-reinitialization-attack",
+      "category": "Reinitialization Attacks",
+      "status": "candidate",
+      "vulnerable": true,
+      "secure_variant_available": true,
+      "exploit_test_available": true,
+      "mollusk_executable": true,
+      "ground_truth_evidence": "Vulnerable and secure implementations with exploit tests.",
+      "development_or_evaluation": null
+    },
+    {
+      "case_id": "SSP-05",
+      "source_id": "security-pattern",
+      "path": "patterns/05-pda-bump-canonicalization",
+      "category": "Improper PDA Validation / Canonicalization",
+      "status": "candidate",
+      "vulnerable": true,
+      "secure_variant_available": true,
+      "exploit_test_available": true,
+      "mollusk_executable": true,
+      "ground_truth_evidence": "Vulnerable and secure implementations with exploit tests.",
+      "development_or_evaluation": null
+    },
+    {
+      "case_id": "SSP-06",
+      "source_id": "security-pattern",
+      "path": "patterns/06-type-cosplay",
+      "category": "Type Cosplay",
+      "status": "candidate",
+      "vulnerable": true,
+      "secure_variant_available": true,
+      "exploit_test_available": true,
+      "mollusk_executable": true,
+      "ground_truth_evidence": "Vulnerable and secure implementations with exploit tests.",
+      "development_or_evaluation": null
+    },
+    {
+      "case_id": "SH-01",
+      "source_id": "solana-hacks",
+      "path": "bump-seed-canonicalization",
+      "category": "Improper PDA Validation / Canonicalization",
+      "status": "candidate",
+      "vulnerable": true,
+      "secure_variant_available": null,
+      "exploit_test_available": null,
+      "mollusk_executable": null,
+      "ground_truth_evidence": "Repository contains a dedicated bump-seed-canonicalization vulnerability example.",
+      "development_or_evaluation": null
+    },
+    {
+      "case_id": "SH-02",
+      "source_id": "solana-hacks",
+      "path": "cosplay",
+      "category": "Type Cosplay",
+      "status": "candidate",
+      "vulnerable": true,
+      "secure_variant_available": null,
+      "exploit_test_available": null,
+      "mollusk_executable": null,
+      "ground_truth_evidence": "Repository contains a dedicated Type Cosplay vulnerability example.",
+      "development_or_evaluation": null
+    },
+    {
+      "case_id": "SH-03",
+      "source_id": "solana-hacks",
+      "path": "reinitialization",
+      "category": "Reinitialization Attacks",
+      "status": "candidate",
+      "vulnerable": true,
+      "secure_variant_available": null,
+      "exploit_test_available": null,
+      "mollusk_executable": null,
+      "ground_truth_evidence": "Repository contains a dedicated reinitialization vulnerability example.",
+      "development_or_evaluation": null
+    },
+    {
+      "case_id": "TOB-01",
+      "source_id": "trail-of-bits",
+      "path": "not-so-smart-contracts/solana/arbitrary_cpi",
+      "category": "Arbitrary CPI",
+      "status": "candidate",
+      "vulnerable": true,
+      "secure_variant_available": null,
+      "exploit_test_available": null,
+      "mollusk_executable": null,
+      "ground_truth_evidence": "Trail of Bits documents the missing program-ID validation and provides an exploit scenario and mitigation.",
+      "development_or_evaluation": null
+    },
+    {
+      "case_id": "TOB-02",
+      "source_id": "trail-of-bits",
+      "path": "not-so-smart-contracts/solana/ownership_check",
+      "category": "Improper Owner Check",
+      "status": "candidate",
+      "vulnerable": true,
+      "secure_variant_available": null,
+      "exploit_test_available": null,
+      "mollusk_executable": null,
+      "ground_truth_evidence": "Trail of Bits lists Ownership Check as a Solana vulnerability class.",
+      "development_or_evaluation": null
+    },
+    {
+      "case_id": "TOB-03",
+      "source_id": "trail-of-bits",
+      "path": "not-so-smart-contracts/solana/signer_check",
+      "category": "Missing Signer Check",
+      "status": "candidate",
+      "vulnerable": true,
+      "secure_variant_available": null,
+      "exploit_test_available": null,
+      "mollusk_executable": null,
+      "ground_truth_evidence": "Trail of Bits lists Signer Check as a Solana vulnerability class.",
+      "development_or_evaluation": null
+    },
+    {
+      "case_id": "TOB-04",
+      "source_id": "trail-of-bits",
+      "path": "not-so-smart-contracts/solana/improper_pda_validation",
+      "category": "Improper PDA Validation / Canonicalization",
+      "status": "candidate",
+      "vulnerable": true,
+      "secure_variant_available": null,
+      "exploit_test_available": null,
+      "mollusk_executable": null,
+      "ground_truth_evidence": "Trail of Bits documents improper PDA validation as a Solana vulnerability class.",
+      "development_or_evaluation": null
+    },
+    {
+      "case_id": "TOB-05",
+      "source_id": "trail-of-bits",
+      "path": "not-so-smart-contracts/solana/sysvar_account_check",
+      "category": "Sysvar Account Check",
+      "status": "candidate",
+      "vulnerable": true,
+      "secure_variant_available": null,
+      "exploit_test_available": null,
+      "mollusk_executable": null,
+      "ground_truth_evidence": "Trail of Bits documents Sysvar Account Check as a Solana vulnerability class.",
+      "development_or_evaluation": null
+    }
+  ]
+}
