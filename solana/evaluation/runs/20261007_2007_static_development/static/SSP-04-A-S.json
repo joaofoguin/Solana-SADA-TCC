@@ -1,0 +1,17 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2465,
+    "completion_tokens": 52,
+    "latency_s": 1.33,
+    "attempts": 1
+  },
+  "raw": "{\"instruction\": \"init\", \"findings\": [], \"summary\": \"A instrução init valida a flag is_initialized antes de gravar o estado e exige assinatura da autoridade, sem achados de segurança relevantes.\"}",
+  "instruction": "init",
+  "findings": [],
+  "dropped": [],
+  "summary": "A instrução init valida a flag is_initialized antes de gravar o estado e exige assinatura da autoridade, sem achados de segurança relevantes.",
+  "predicted": [],
+  "parse_error": null,
+  "case_id": "SSP-04-A-S"
+}

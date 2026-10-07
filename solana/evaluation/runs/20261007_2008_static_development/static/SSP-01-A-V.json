@@ -1,0 +1,36 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2959,
+    "completion_tokens": 511,
+    "latency_s": 2.89,
+    "attempts": 1
+  },
+  "raw": "{\n  \"instruction\": \"withdraw\",\n  \"findings\": [\n    {\n      \"category\": \"SIGNER\",\n      \"confidence\": \"high\",\n      \"evidence\": \"pub authority: AccountInfo<'info>,\",\n      \"explanation\": \"A conta `authority` e declarada como `AccountInfo` (nao `Signer`), portanto o Anchor nao exige que ela assine a transacao. A constraint `has_one = authority` apenas compara a chave publica da conta com o campo `vault.authority`, mas nao verifica `is_signer`. Assim, qualquer pessoa pode passar a conta de autoridade correta sem assinar a transacao e executar o saque.\",\n      \"attack_hypothesis\": \"Um atacante fornece a conta `authority` correta (cuja chave publica coincide com `vault.authority`) sem assinar a transacao, juntamente com uma conta `recipient` controlada por ele, e chama `withdraw` para drenar os lamports do vault para si mesmo.\",\n      \"attack_hypothesis_extra\": \"\"\n    },\n    {\n      \"category\": \"OWNER\",\n      \"confidence\": \"medium\",\n      \"evidence\": \"pub recipient: AccountInfo<'info>,\",\n      \"explanation\": \"A conta `recipient` e recebida como `AccountInfo` sem verificacao de proprietario. Embora o Anchor nao exija owner para contas de destino de lamports, a ausencia de qualquer validacao permite que o atacante forneca uma conta arbitraria (incluindo contas de sistema ou de outros programas) para receber os lamports, sem que o programa valide se e uma conta valida/esperada.\",\n      \"attack_hypothesis\": \"Um atacante fornece uma conta `recipient` arbitraria (por exemplo, uma conta de programa ou uma conta de sistema controlada) para receber os lamports drenados do vault, sem que o programa verifique a propriedade ou legitimidade da conta de destino.\"\n    }\n  ],\n  \"summary\": \"A instrucao `withdraw` nao exige que a autoridade assine a transacao (falta de `Signer`), permitindo que qualquer pessoa saque os fundos do vault fornecendo a conta de autoridade correta sem assinatura.\"\n}",
+  "instruction": "withdraw",
+  "findings": [
+    {
+      "category": "SIGNER",
+      "confidence": "high",
+      "evidence": "pub authority: AccountInfo<'info>,",
+      "explanation": "A conta `authority` e declarada como `AccountInfo` (nao `Signer`), portanto o Anchor nao exige que ela assine a transacao. A constraint `has_one = authority` apenas compara a chave publica da conta com o campo `vault.authority`, mas nao verifica `is_signer`. Assim, qualquer pessoa pode passar a conta de autoridade correta sem assinar a transacao e executar o saque.",
+      "attack_hypothesis": "Um atacante fornece a conta `authority` correta (cuja chave publica coincide com `vault.authority`) sem assinar a transacao, juntamente com uma conta `recipient` controlada por ele, e chama `withdraw` para drenar os lamports do vault para si mesmo.",
+      "attack_hypothesis_extra": ""
+    },
+    {
+      "category": "OWNER",
+      "confidence": "medium",
+      "evidence": "pub recipient: AccountInfo<'info>,",
+      "explanation": "A conta `recipient` e recebida como `AccountInfo` sem verificacao de proprietario. Embora o Anchor nao exija owner para contas de destino de lamports, a ausencia de qualquer validacao permite que o atacante forneca uma conta arbitraria (incluindo contas de sistema ou de outros programas) para receber os lamports, sem que o programa valide se e uma conta valida/esperada.",
+      "attack_hypothesis": "Um atacante fornece uma conta `recipient` arbitraria (por exemplo, uma conta de programa ou uma conta de sistema controlada) para receber os lamports drenados do vault, sem que o programa verifique a propriedade ou legitimidade da conta de destino."
+    }
+  ],
+  "dropped": [],
+  "summary": "A instrucao `withdraw` nao exige que a autoridade assine a transacao (falta de `Signer`), permitindo que qualquer pessoa saque os fundos do vault fornecendo a conta de autoridade correta sem assinatura.",
+  "predicted": [
+    "OWNER",
+    "SIGNER"
+  ],
+  "parse_error": null,
+  "case_id": "SSP-01-A-V"
+}

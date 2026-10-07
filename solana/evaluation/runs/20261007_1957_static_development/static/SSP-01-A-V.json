@@ -1,0 +1,37 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2959,
+    "completion_tokens": 444,
+    "latency_s": 2.77,
+    "attempts": 1
+  },
+  "raw": "{\n  \"instruction\": \"withdraw\",\n  \"findings\": [\n    {\n      \"category\": \"SIGNER\",\n      \"confidence\": \"high\",\n      \"evidence\": \"pub authority: AccountInfo<'info>,\",\n      \"explanation\": \"A conta `authority` e declarada como `AccountInfo` (nao `Signer`), portanto o Anchor nao exige assinatura. A constraint `has_one = authority` apenas compara a chave publica armazenada em `vault.authority` com `authority.key()`, sem verificar `is_signer`. Assim, qualquer pessoa pode passar a pubkey da autoridade como `AccountInfo` sem assinar a transacao e autorizar o saque.\",\n      \"attack_hypothesis\": \"Um atacante fornece a pubkey da autoridade legitima como `authority` (sem assinar) e uma conta `recipient` propria, drenando os lamports do vault para si mesmo.\",\n      \"attack_hypothesis_note\": \"\"\n    },\n    {\n      \"category\": \"OWNER\",\n      \"confidence\": \"medium\",\n      \"evidence\": \"pub recipient: AccountInfo<'info>,\",\n      \"explanation\": \"A conta `recipient` e recebida como `AccountInfo` sem verificacao de proprietario. Embora o impacto principal seja o desvio de fundos, a ausencia de checagem de owner permite que contas arbitrarias (inclusive contas de outros programas) sejam usadas como destino, sem validacao de que sejam contas de sistema validas para receber lamports.\",\n      \"attack_hypothesis\": \"Um atacante fornece uma conta arbitraria como `recipient` para receber os lamports do vault sem qualquer validacao de propriedade.\",\n      \"attack_hypothesis_note\": \"\"\n    }\n  ],\n  \"summary\": \"A instrucao `withdraw` nao exige assinatura da autoridade (authority e AccountInfo sem is_signer), permitindo que qualquer um saque os fundos do vault.\"\n}",
+  "instruction": "withdraw",
+  "findings": [
+    {
+      "category": "SIGNER",
+      "confidence": "high",
+      "evidence": "pub authority: AccountInfo<'info>,",
+      "explanation": "A conta `authority` e declarada como `AccountInfo` (nao `Signer`), portanto o Anchor nao exige assinatura. A constraint `has_one = authority` apenas compara a chave publica armazenada em `vault.authority` com `authority.key()`, sem verificar `is_signer`. Assim, qualquer pessoa pode passar a pubkey da autoridade como `AccountInfo` sem assinar a transacao e autorizar o saque.",
+      "attack_hypothesis": "Um atacante fornece a pubkey da autoridade legitima como `authority` (sem assinar) e uma conta `recipient` propria, drenando os lamports do vault para si mesmo.",
+      "attack_hypothesis_note": ""
+    },
+    {
+      "category": "OWNER",
+      "confidence": "medium",
+      "evidence": "pub recipient: AccountInfo<'info>,",
+      "explanation": "A conta `recipient` e recebida como `AccountInfo` sem verificacao de proprietario. Embora o impacto principal seja o desvio de fundos, a ausencia de checagem de owner permite que contas arbitrarias (inclusive contas de outros programas) sejam usadas como destino, sem validacao de que sejam contas de sistema validas para receber lamports.",
+      "attack_hypothesis": "Um atacante fornece uma conta arbitraria como `recipient` para receber os lamports do vault sem qualquer validacao de propriedade.",
+      "attack_hypothesis_note": ""
+    }
+  ],
+  "dropped": [],
+  "summary": "A instrucao `withdraw` nao exige assinatura da autoridade (authority e AccountInfo sem is_signer), permitindo que qualquer um saque os fundos do vault.",
+  "predicted": [
+    "OWNER",
+    "SIGNER"
+  ],
+  "parse_error": null,
+  "case_id": "SSP-01-A-V"
+}

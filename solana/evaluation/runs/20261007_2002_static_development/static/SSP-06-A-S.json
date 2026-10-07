@@ -1,0 +1,17 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2518,
+    "completion_tokens": 66,
+    "latency_s": 1.24,
+    "attempts": 1
+  },
+  "raw": "{\n  \"instruction\": \"update_fee\",\n  \"findings\": [],\n  \"summary\": \"A instrucao update_fee valida corretamente a assinatura via Signer<'info> e a autoridade via require_keys_eq!, sem apresentar vulnerabilidades das categorias analisadas.\"\n}",
+  "instruction": "update_fee",
+  "findings": [],
+  "dropped": [],
+  "summary": "A instrucao update_fee valida corretamente a assinatura via Signer<'info> e a autoridade via require_keys_eq!, sem apresentar vulnerabilidades das categorias analisadas.",
+  "predicted": [],
+  "parse_error": null,
+  "case_id": "SSP-06-A-S"
+}

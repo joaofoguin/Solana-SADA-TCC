@@ -1,0 +1,17 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2591,
+    "completion_tokens": 82,
+    "latency_s": 1.21,
+    "attempts": 1
+  },
+  "raw": "{\"instruction\": \"process\", \"findings\": [], \"summary\": \"A instrucao process apenas le o estado da treasury usando Account<'info, Treasury> com constraint has_one = authority e um Signer, sem operacoes aritmeticas, CPIs, PDAs ou desserializacao manual, portanto nao apresenta nenhuma das vulnerabilidades da base de conhecimento.\"}",
+  "instruction": "process",
+  "findings": [],
+  "dropped": [],
+  "summary": "A instrucao process apenas le o estado da treasury usando Account<'info, Treasury> com constraint has_one = authority e um Signer, sem operacoes aritmeticas, CPIs, PDAs ou desserializacao manual, portanto nao apresenta nenhuma das vulnerabilidades da base de conhecimento.",
+  "predicted": [],
+  "parse_error": null,
+  "case_id": "SSP-02-A-S"
+}

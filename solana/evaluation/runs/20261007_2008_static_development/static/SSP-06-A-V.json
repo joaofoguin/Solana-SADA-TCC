@@ -1,0 +1,35 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2600,
+    "completion_tokens": 568,
+    "latency_s": 3.63,
+    "attempts": 1
+  },
+  "raw": "{\n  \"instruction\": \"update_fee\",\n  \"findings\": [\n    {\n      \"category\": \"OWNER\",\n      \"confidence\": \"high\",\n      \"evidence\": \"#[account(mut)]\\npub config: UncheckedAccount<'info>,\",\n      \"explanation\": \"A conta `config` e recebida como `UncheckedAccount`, portanto o Anchor nao valida seu proprietario. O handler le e escreve diretamente nos bytes da conta (`try_borrow_data`/`try_borrow_mut_data`) sem verificar `config.owner == program_id`, permitindo que qualquer conta com layout semelhante seja usada.\",\n      \"attack_hypothesis\": \"Um atacante fornece uma conta cujo owner nao e o programa, mas cujos bytes nas posicoes 8..40 contem a pubkey do proprio atacante (ou de um cúmplice). Como nao ha checagem de owner, a comparacao `require_keys_eq!(admin, authority.key())` passa e o atacante sobrescreve o campo de fee (bytes 40..48) de uma conta arbitraria.\"\n    },\n    {\n      \"category\": \"COSPLAY\",\n      \"confidence\": \"high\",\n      \"evidence\": \"let data = ctx.accounts.config.try_borrow_data()?;\\nlet admin_bytes: [u8; 32] = data[8..40].try_into()...\",\n      \"explanation\": \"Os dados da conta sao desserializados manualmente a partir de `UncheckedAccount` sem validar o discriminador de 8 bytes do Anchor. O codigo assume que os bytes 8..40 sao o campo `admin` de `AdminConfig`, mas qualquer conta com layout compativel (por exemplo `UserData`, cujo campo `authority` tambem ocupa 8..40) pode ser passada.\",\n      \"attack_hypothesis\": \"Um atacante passa uma conta `UserData` (ou qualquer conta com 8 bytes de discriminador seguidos de uma pubkey controlada) no lugar de `AdminConfig`. O codigo le os bytes 8..40 como se fossem o admin, e se essa pubkey for a do atacante, a verificacao passa e o campo de fee e sobrescrito indevidamente.\"\n    }\n  ],\n  \"summary\": \"A instrucao `update_fee` usa `UncheckedAccount` sem validar owner nem discriminador de tipo, permitindo que contas forjadas ou de outro tipo sejam lidas/escritas como se fossem `AdminConfig`.\"\n}",
+  "instruction": "update_fee",
+  "findings": [
+    {
+      "category": "OWNER",
+      "confidence": "high",
+      "evidence": "#[account(mut)]\npub config: UncheckedAccount<'info>,",
+      "explanation": "A conta `config` e recebida como `UncheckedAccount`, portanto o Anchor nao valida seu proprietario. O handler le e escreve diretamente nos bytes da conta (`try_borrow_data`/`try_borrow_mut_data`) sem verificar `config.owner == program_id`, permitindo que qualquer conta com layout semelhante seja usada.",
+      "attack_hypothesis": "Um atacante fornece uma conta cujo owner nao e o programa, mas cujos bytes nas posicoes 8..40 contem a pubkey do proprio atacante (ou de um cúmplice). Como nao ha checagem de owner, a comparacao `require_keys_eq!(admin, authority.key())` passa e o atacante sobrescreve o campo de fee (bytes 40..48) de uma conta arbitraria."
+    },
+    {
+      "category": "COSPLAY",
+      "confidence": "high",
+      "evidence": "let data = ctx.accounts.config.try_borrow_data()?;\nlet admin_bytes: [u8; 32] = data[8..40].try_into()...",
+      "explanation": "Os dados da conta sao desserializados manualmente a partir de `UncheckedAccount` sem validar o discriminador de 8 bytes do Anchor. O codigo assume que os bytes 8..40 sao o campo `admin` de `AdminConfig`, mas qualquer conta com layout compativel (por exemplo `UserData`, cujo campo `authority` tambem ocupa 8..40) pode ser passada.",
+      "attack_hypothesis": "Um atacante passa uma conta `UserData` (ou qualquer conta com 8 bytes de discriminador seguidos de uma pubkey controlada) no lugar de `AdminConfig`. O codigo le os bytes 8..40 como se fossem o admin, e se essa pubkey for a do atacante, a verificacao passa e o campo de fee e sobrescrito indevidamente."
+    }
+  ],
+  "dropped": [],
+  "summary": "A instrucao `update_fee` usa `UncheckedAccount` sem validar owner nem discriminador de tipo, permitindo que contas forjadas ou de outro tipo sejam lidas/escritas como se fossem `AdminConfig`.",
+  "predicted": [
+    "COSPLAY",
+    "OWNER"
+  ],
+  "parse_error": null,
+  "case_id": "SSP-06-A-V"
+}

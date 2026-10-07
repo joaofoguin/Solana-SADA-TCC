@@ -1,0 +1,16 @@
+{
+  "prompt_version": "static-v1",
+  "prompt_sha256": "29c3d0e4c72954d7",
+  "llm_base_url": "https://api.deepseek.com",
+  "llm_model": "deepseek-flash",
+  "llm_json_mode": true,
+  "llm_extra_body": {
+    "thinking": {
+      "type": "disabled"
+    }
+  },
+  "temperature": 0.0,
+  "split": "development",
+  "started": "2026-10-07T19:58:40.277011",
+  "ground_truth_version": "1.3"
+}

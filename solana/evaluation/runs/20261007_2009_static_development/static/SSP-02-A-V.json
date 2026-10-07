@@ -1,0 +1,35 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2663,
+    "completion_tokens": 599,
+    "latency_s": 3.26,
+    "attempts": 1
+  },
+  "raw": "{\n  \"instruction\": \"process\",\n  \"findings\": [\n    {\n      \"category\": \"OWNER\",\n      \"confidence\": \"high\",\n      \"evidence\": \"pub treasury: AccountInfo<'info>,\\n...\\nlet data = ctx.accounts.treasury.try_borrow_data()?;\",\n      \"explanation\": \"A conta `treasury` e recebida como `AccountInfo` e seus dados sao lidos diretamente via `try_borrow_data()` sem qualquer verificacao de que `treasury.owner` seja o programa atual. Diferente do tipo `Account<'info, T>`, o `AccountInfo` nao valida o proprietario, permitindo que uma conta forjada, pertencente a outro programa, seja passada com dados arbitrarios.\",\n      \"attack_hypothesis\": \"Um atacante cria uma conta cujo proprietario e um programa malicioso (ou qualquer programa que ele controle) e grava bytes que imitam o layout de `Treasury` (authority, balance, is_active = true). Ao passar essa conta como `treasury` na instrucao `process`, o programa le os dados forjados sem perceber que a conta nao pertence ao programa, contornando a validacao de estado.\"\n    },\n    {\n      \"category\": \"COSPLAY\",\n      \"confidence\": \"high\",\n      \"evidence\": \"let authority = Pubkey::try_from(&data[8..40])...;\\nlet balance = u64::from_le_bytes(data[40..48]...);\\nlet is_active = data[48] != 0;\",\n      \"explanation\": \"Os dados da conta sao desserializados manualmente a partir de offsets fixos (8..40, 40..48, 48) sem verificar o discriminador de 8 bytes do Anchor no inicio do buffer. Como `treasury` e um `AccountInfo` e nao `Account<'info, Treasury>`, o discriminador de tipo nao e validado, permitindo que uma conta com layout de outro tipo (ou dados arbitrarios) seja interpretada como `Treasury`.\",\n      \"attack_hypothesis\": \"Um atacante fornece uma conta cujo layout de memoria coincide parcialmente com `Treasury` (por exemplo, uma conta de outro tipo com os mesmos offsets), fazendo com que os campos lidos (authority, balance, is_active) sejam interpretados incorretamente e burlando a logica de negocio que depende desses valores.\"\n    }\n  ],\n  \"summary\": \"A instrucao `process` le dados de uma conta `AccountInfo` sem validar o proprietario nem o discriminador de tipo, configurando falhas de OWNER e COSPLAY.\"\n}",
+  "instruction": "process",
+  "findings": [
+    {
+      "category": "OWNER",
+      "confidence": "high",
+      "evidence": "pub treasury: AccountInfo<'info>,\n...\nlet data = ctx.accounts.treasury.try_borrow_data()?;",
+      "explanation": "A conta `treasury` e recebida como `AccountInfo` e seus dados sao lidos diretamente via `try_borrow_data()` sem qualquer verificacao de que `treasury.owner` seja o programa atual. Diferente do tipo `Account<'info, T>`, o `AccountInfo` nao valida o proprietario, permitindo que uma conta forjada, pertencente a outro programa, seja passada com dados arbitrarios.",
+      "attack_hypothesis": "Um atacante cria uma conta cujo proprietario e um programa malicioso (ou qualquer programa que ele controle) e grava bytes que imitam o layout de `Treasury` (authority, balance, is_active = true). Ao passar essa conta como `treasury` na instrucao `process`, o programa le os dados forjados sem perceber que a conta nao pertence ao programa, contornando a validacao de estado."
+    },
+    {
+      "category": "COSPLAY",
+      "confidence": "high",
+      "evidence": "let authority = Pubkey::try_from(&data[8..40])...;\nlet balance = u64::from_le_bytes(data[40..48]...);\nlet is_active = data[48] != 0;",
+      "explanation": "Os dados da conta sao desserializados manualmente a partir de offsets fixos (8..40, 40..48, 48) sem verificar o discriminador de 8 bytes do Anchor no inicio do buffer. Como `treasury` e um `AccountInfo` e nao `Account<'info, Treasury>`, o discriminador de tipo nao e validado, permitindo que uma conta com layout de outro tipo (ou dados arbitrarios) seja interpretada como `Treasury`.",
+      "attack_hypothesis": "Um atacante fornece uma conta cujo layout de memoria coincide parcialmente com `Treasury` (por exemplo, uma conta de outro tipo com os mesmos offsets), fazendo com que os campos lidos (authority, balance, is_active) sejam interpretados incorretamente e burlando a logica de negocio que depende desses valores."
+    }
+  ],
+  "dropped": [],
+  "summary": "A instrucao `process` le dados de uma conta `AccountInfo` sem validar o proprietario nem o discriminador de tipo, configurando falhas de OWNER e COSPLAY.",
+  "predicted": [
+    "COSPLAY",
+    "OWNER"
+  ],
+  "parse_error": null,
+  "case_id": "SSP-02-A-V"
+}

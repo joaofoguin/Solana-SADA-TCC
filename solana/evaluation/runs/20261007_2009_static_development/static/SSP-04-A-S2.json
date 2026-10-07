@@ -1,0 +1,17 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2488,
+    "completion_tokens": 69,
+    "latency_s": 1.42,
+    "attempts": 1
+  },
+  "raw": "{\n  \"instruction\": \"init\",\n  \"findings\": [],\n  \"summary\": \"A instrucao init usa a constraint #[account(init, ...)] do Anchor com payer e space definidos, garantindo criacao unica da conta e prevenindo reinicializacao, sem outras categorias de vulnerabilidade presentes.\"\n}",
+  "instruction": "init",
+  "findings": [],
+  "dropped": [],
+  "summary": "A instrucao init usa a constraint #[account(init, ...)] do Anchor com payer e space definidos, garantindo criacao unica da conta e prevenindo reinicializacao, sem outras categorias de vulnerabilidade presentes.",
+  "predicted": [],
+  "parse_error": null,
+  "case_id": "SSP-04-A-S2"
+}

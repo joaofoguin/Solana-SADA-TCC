@@ -1,0 +1,28 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2639,
+    "completion_tokens": 349,
+    "latency_s": 2.3,
+    "attempts": 1
+  },
+  "raw": "{\n  \"instruction\": \"mint\",\n  \"findings\": [\n    {\n      \"category\": \"MATH\",\n      \"confidence\": \"high\",\n      \"evidence\": \"ledger.total_supply = ledger.total_supply.wrapping_add(amount);\\nledger.user_balance = ledger.user_balance.wrapping_add(amount);\",\n      \"explanation\": \"A instrucao usa wrapping_add para somar ao total_supply e ao user_balance. wrapping_add descarta silenciosamente o overflow, permitindo que os valores 'deem a volta' (wrap around) em vez de falhar. Isso permite manipulacao indevida dos saldos/valores de contexto, exatamente o padrao de Integer Overflow/Underflow. A mitigacao esperada seria checked_add (ou saturating_add) com tratamento de erro.\",\n      \"attack_hypothesis\": \"Um atacante chama mint com um amount proximo de u64::MAX. A soma com o total_supply/user_balance existente estoura u64 e faz wrap-around, resultando em um valor pequeno (ou zero) em vez de rejeitar a operacao. Isso permite inflar/zerar saldos de forma inconsistente com a logica pretendida, quebrando a contabilidade do ledger.\",\n      \"confidence_note\": \"\"\n    }\n  ],\n  \"summary\": \"A instrucao mint usa wrapping_add em total_supply e user_balance, permitindo overflow silencioso (MATH); as demais categorias estao mitigadas por Signer, Account<Ledger> e has_one = authority.\"\n}",
+  "instruction": "mint",
+  "findings": [
+    {
+      "category": "MATH",
+      "confidence": "high",
+      "evidence": "ledger.total_supply = ledger.total_supply.wrapping_add(amount);\nledger.user_balance = ledger.user_balance.wrapping_add(amount);",
+      "explanation": "A instrucao usa wrapping_add para somar ao total_supply e ao user_balance. wrapping_add descarta silenciosamente o overflow, permitindo que os valores 'deem a volta' (wrap around) em vez de falhar. Isso permite manipulacao indevida dos saldos/valores de contexto, exatamente o padrao de Integer Overflow/Underflow. A mitigacao esperada seria checked_add (ou saturating_add) com tratamento de erro.",
+      "attack_hypothesis": "Um atacante chama mint com um amount proximo de u64::MAX. A soma com o total_supply/user_balance existente estoura u64 e faz wrap-around, resultando em um valor pequeno (ou zero) em vez de rejeitar a operacao. Isso permite inflar/zerar saldos de forma inconsistente com a logica pretendida, quebrando a contabilidade do ledger.",
+      "confidence_note": ""
+    }
+  ],
+  "dropped": [],
+  "summary": "A instrucao mint usa wrapping_add em total_supply e user_balance, permitindo overflow silencioso (MATH); as demais categorias estao mitigadas por Signer, Account<Ledger> e has_one = authority.",
+  "predicted": [
+    "MATH"
+  ],
+  "parse_error": null,
+  "case_id": "SSP-03-A-V1"
+}

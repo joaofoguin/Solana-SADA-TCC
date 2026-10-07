@@ -1,0 +1,27 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2959,
+    "completion_tokens": 268,
+    "latency_s": 1.97,
+    "attempts": 1
+  },
+  "raw": "{\n  \"instruction\": \"withdraw\",\n  \"findings\": [\n    {\n      \"category\": \"SIGNER\",\n      \"confidence\": \"high\",\n      \"evidence\": \"pub authority: AccountInfo<'info>,\",\n      \"explanation\": \"A conta `authority` e declarada como `AccountInfo` (nao `Signer`), portanto o Anchor nao exige que ela assine a transacao. A constraint `has_one = authority` apenas compara a chave publica da conta com o campo `vault.authority`, mas nao verifica `is_signer`. Assim, qualquer pessoa pode passar a conta de autoridade correta sem assinar e drenar o vault.\",\n      \"attack_hypothesis\": \"Um atacante fornece a conta `authority` legitima (chave publica conhecida) como `AccountInfo` sem assinar a transacao, juntamente com um `recipient` controlado por ele, e chama `withdraw` para transferir os lamports do vault para si mesmo.\"\n    }\n  ],\n  \"summary\": \"A instrucao `withdraw` nao exige que a autoridade assine a transacao, permitindo que qualquer um retire fundos do vault.\"\n}",
+  "instruction": "withdraw",
+  "findings": [
+    {
+      "category": "SIGNER",
+      "confidence": "high",
+      "evidence": "pub authority: AccountInfo<'info>,",
+      "explanation": "A conta `authority` e declarada como `AccountInfo` (nao `Signer`), portanto o Anchor nao exige que ela assine a transacao. A constraint `has_one = authority` apenas compara a chave publica da conta com o campo `vault.authority`, mas nao verifica `is_signer`. Assim, qualquer pessoa pode passar a conta de autoridade correta sem assinar e drenar o vault.",
+      "attack_hypothesis": "Um atacante fornece a conta `authority` legitima (chave publica conhecida) como `AccountInfo` sem assinar a transacao, juntamente com um `recipient` controlado por ele, e chama `withdraw` para transferir os lamports do vault para si mesmo."
+    }
+  ],
+  "dropped": [],
+  "summary": "A instrucao `withdraw` nao exige que a autoridade assine a transacao, permitindo que qualquer um retire fundos do vault.",
+  "predicted": [
+    "SIGNER"
+  ],
+  "parse_error": null,
+  "case_id": "SSP-01-A-V"
+}

@@ -1,0 +1,17 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2547,
+    "completion_tokens": 78,
+    "latency_s": 1.19,
+    "attempts": 1
+  },
+  "raw": "{\n  \"instruction\": \"set_value\",\n  \"findings\": [],\n  \"summary\": \"A instrucao set_value valida corretamente o PDA canonico via find_program_address e require_keys_eq, usa Signer para o usuario e Account<DataAccount> para validacao de owner e discriminador, sem vulnerabilidades das categorias analisadas.\"\n}",
+  "instruction": "set_value",
+  "findings": [],
+  "dropped": [],
+  "summary": "A instrucao set_value valida corretamente o PDA canonico via find_program_address e require_keys_eq, usa Signer para o usuario e Account<DataAccount> para validacao de owner e discriminador, sem vulnerabilidades das categorias analisadas.",
+  "predicted": [],
+  "parse_error": null,
+  "case_id": "SSP-05-A-S"
+}

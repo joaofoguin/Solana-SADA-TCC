@@ -1,0 +1,35 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2663,
+    "completion_tokens": 577,
+    "latency_s": 3.0,
+    "attempts": 1
+  },
+  "raw": "{\n  \"instruction\": \"process\",\n  \"findings\": [\n    {\n      \"category\": \"OWNER\",\n      \"confidence\": \"high\",\n      \"evidence\": \"pub treasury: AccountInfo<'info>,\\n...\\nlet data = ctx.accounts.treasury.try_borrow_data()?;\",\n      \"explanation\": \"A conta `treasury` e recebida como `AccountInfo` (nao `Account<'info, Treasury>`), portanto o Anchor nao valida automaticamente o proprietario da conta. O handler le diretamente os bytes da conta (`try_borrow_data`) sem verificar `ctx.accounts.treasury.owner == crate::ID`, permitindo que qualquer conta com layout de bytes compativel seja passada.\",\n      \"attack_hypothesis\": \"Um atacante fornece uma conta cujo owner e um programa malicioso (ou qualquer conta controlada por ele) com bytes forjados nas posicoes 8..40 (authority), 40..48 (balance) e 48 (is_active=1). O programa aceita os dados forjados como se fossem de uma Treasury legitima, contornando a validacao de estado.\"\n    },\n    {\n      \"category\": \"COSPLAY\",\n      \"confidence\": \"high\",\n      \"evidence\": \"let data = ctx.accounts.treasury.try_borrow_data()?;\\nlet authority = Pubkey::try_from(&data[8..40])...;\\nlet balance = u64::from_le_bytes(data[40..48]...);\\nlet is_active = data[48] != 0;\",\n      \"explanation\": \"O handler desserializa manualmente os dados da conta a partir de `AccountInfo` sem verificar o discriminador de 8 bytes do Anchor (que seria injetado/validado por `Account<'info, Treasury>`). Nao ha checagem de que os primeiros 8 bytes correspondem ao discriminador de `Treasury`, permitindo type cosplay com qualquer conta cujo layout coincida.\",\n      \"attack_hypothesis\": \"Um atacante passa uma conta de outro tipo (por exemplo, outra conta do mesmo programa ou de outro programa) cujo layout de bytes nas posicoes 8..48 imite os campos de `Treasury`. Como o discriminador nao e validado, o programa interpreta os dados como uma Treasury valida.\"\n    }\n  ],\n  \"summary\": \"A instrucao `process` le dados de uma conta `AccountInfo` sem validar o proprietario nem o discriminador de tipo, permitindo contas forjadas (OWNER e COSPLAY).\"\n}",
+  "instruction": "process",
+  "findings": [
+    {
+      "category": "OWNER",
+      "confidence": "high",
+      "evidence": "pub treasury: AccountInfo<'info>,\n...\nlet data = ctx.accounts.treasury.try_borrow_data()?;",
+      "explanation": "A conta `treasury` e recebida como `AccountInfo` (nao `Account<'info, Treasury>`), portanto o Anchor nao valida automaticamente o proprietario da conta. O handler le diretamente os bytes da conta (`try_borrow_data`) sem verificar `ctx.accounts.treasury.owner == crate::ID`, permitindo que qualquer conta com layout de bytes compativel seja passada.",
+      "attack_hypothesis": "Um atacante fornece uma conta cujo owner e um programa malicioso (ou qualquer conta controlada por ele) com bytes forjados nas posicoes 8..40 (authority), 40..48 (balance) e 48 (is_active=1). O programa aceita os dados forjados como se fossem de uma Treasury legitima, contornando a validacao de estado."
+    },
+    {
+      "category": "COSPLAY",
+      "confidence": "high",
+      "evidence": "let data = ctx.accounts.treasury.try_borrow_data()?;\nlet authority = Pubkey::try_from(&data[8..40])...;\nlet balance = u64::from_le_bytes(data[40..48]...);\nlet is_active = data[48] != 0;",
+      "explanation": "O handler desserializa manualmente os dados da conta a partir de `AccountInfo` sem verificar o discriminador de 8 bytes do Anchor (que seria injetado/validado por `Account<'info, Treasury>`). Nao ha checagem de que os primeiros 8 bytes correspondem ao discriminador de `Treasury`, permitindo type cosplay com qualquer conta cujo layout coincida.",
+      "attack_hypothesis": "Um atacante passa uma conta de outro tipo (por exemplo, outra conta do mesmo programa ou de outro programa) cujo layout de bytes nas posicoes 8..48 imite os campos de `Treasury`. Como o discriminador nao e validado, o programa interpreta os dados como uma Treasury valida."
+    }
+  ],
+  "dropped": [],
+  "summary": "A instrucao `process` le dados de uma conta `AccountInfo` sem validar o proprietario nem o discriminador de tipo, permitindo contas forjadas (OWNER e COSPLAY).",
+  "predicted": [
+    "COSPLAY",
+    "OWNER"
+  ],
+  "parse_error": null,
+  "case_id": "SSP-02-A-V"
+}

@@ -1,0 +1,17 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2677,
+    "completion_tokens": 59,
+    "latency_s": 1.08,
+    "attempts": 1
+  },
+  "raw": "{\n  \"instruction\": \"mint\",\n  \"findings\": [],\n  \"summary\": \"A instrucao mint usa Account<Ledger> com has_one = authority e Signer, aritmetica checked_add, sem vulnerabilidades das categorias analisadas.\"\n}",
+  "instruction": "mint",
+  "findings": [],
+  "dropped": [],
+  "summary": "A instrucao mint usa Account<Ledger> com has_one = authority e Signer, aritmetica checked_add, sem vulnerabilidades das categorias analisadas.",
+  "predicted": [],
+  "parse_error": null,
+  "case_id": "SSP-03-A-S1"
+}

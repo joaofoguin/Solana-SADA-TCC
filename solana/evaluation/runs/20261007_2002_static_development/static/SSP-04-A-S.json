@@ -1,0 +1,17 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2465,
+    "completion_tokens": 62,
+    "latency_s": 1.12,
+    "attempts": 1
+  },
+  "raw": "{\"instruction\": \"init\", \"findings\": [], \"summary\": \"A instrucao init valida a assinatura via Signer, o proprietario via Account<Config>, e previne reinicializacao com a flag is_initialized, sem achados de seguranca.\"}",
+  "instruction": "init",
+  "findings": [],
+  "dropped": [],
+  "summary": "A instrucao init valida a assinatura via Signer, o proprietario via Account<Config>, e previne reinicializacao com a flag is_initialized, sem achados de seguranca.",
+  "predicted": [],
+  "parse_error": null,
+  "case_id": "SSP-04-A-S"
+}

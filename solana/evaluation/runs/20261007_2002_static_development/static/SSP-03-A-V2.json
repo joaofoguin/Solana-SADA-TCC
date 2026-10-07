@@ -1,0 +1,28 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2638,
+    "completion_tokens": 302,
+    "latency_s": 2.3,
+    "attempts": 1
+  },
+  "raw": "{\n  \"instruction\": \"burn\",\n  \"findings\": [\n    {\n      \"category\": \"MATH\",\n      \"confidence\": \"high\",\n      \"evidence\": \"ledger.user_balance = ledger.user_balance.wrapping_sub(amount);\\nledger.total_supply = ledger.total_supply.wrapping_sub(amount);\",\n      \"explanation\": \"A instrucao usa wrapping_sub para subtrair o valor de amount dos saldos, o que silenciosamente faz underflow (wrap-around) em vez de falhar. Nao ha verificacao previa de que user_balance >= amount nem uso de checked_sub. O enum ErrorCode define ArithmeticUnderflow, mas ele nunca e usado, indicando que a checagem foi omitida.\",\n      \"attack_hypothesis\": \"Um atacante chama burn com amount maior que o user_balance atual (por exemplo, amount = user_balance + 1). O wrapping_sub faz o saldo dar a volta para um valor enorme (u64::MAX), inflando artificialmente o saldo do atacante e corrompendo total_supply, permitindo drenar ou manipular o ledger.\",\n      \"category_note\": \"\"\n    }\n  ],\n  \"summary\": \"A instrucao burn realiza subtracao com wrapping_sub sem verificar saldo suficiente, permitindo underflow e manipulacao indevida dos saldos.\"\n}",
+  "instruction": "burn",
+  "findings": [
+    {
+      "category": "MATH",
+      "confidence": "high",
+      "evidence": "ledger.user_balance = ledger.user_balance.wrapping_sub(amount);\nledger.total_supply = ledger.total_supply.wrapping_sub(amount);",
+      "explanation": "A instrucao usa wrapping_sub para subtrair o valor de amount dos saldos, o que silenciosamente faz underflow (wrap-around) em vez de falhar. Nao ha verificacao previa de que user_balance >= amount nem uso de checked_sub. O enum ErrorCode define ArithmeticUnderflow, mas ele nunca e usado, indicando que a checagem foi omitida.",
+      "attack_hypothesis": "Um atacante chama burn com amount maior que o user_balance atual (por exemplo, amount = user_balance + 1). O wrapping_sub faz o saldo dar a volta para um valor enorme (u64::MAX), inflando artificialmente o saldo do atacante e corrompendo total_supply, permitindo drenar ou manipular o ledger.",
+      "category_note": ""
+    }
+  ],
+  "dropped": [],
+  "summary": "A instrucao burn realiza subtracao com wrapping_sub sem verificar saldo suficiente, permitindo underflow e manipulacao indevida dos saldos.",
+  "predicted": [
+    "MATH"
+  ],
+  "parse_error": null,
+  "case_id": "SSP-03-A-V2"
+}

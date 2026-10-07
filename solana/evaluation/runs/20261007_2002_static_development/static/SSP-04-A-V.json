@@ -1,0 +1,27 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2448,
+    "completion_tokens": 431,
+    "latency_s": 2.55,
+    "attempts": 1
+  },
+  "raw": "{\"instruction\": \"init\", \"findings\": [{\"category\": \"REINIT\", \"confidence\": \"high\", \"evidence\": \"#[account(mut)]\\npub config: Account<'info, Config>,\\n...\\nconfig.authority = ctx.accounts.authority.key();\\nconfig.is_initialized = true;\\nconfig.vault_balance = 0;\", \"explanation\": \"A conta `config` e recebida como `Account<'info, Config>` com apenas a constraint `mut`, sem `init` nem `init_if_needed`. Isso significa que a conta ja deve existir e estar inicializada para a instrucao ser executada, mas o handler sobrescreve `authority`, `is_initialized` e `vault_balance` sem verificar se a conta ja foi inicializada anteriormente. O campo `is_initialized` existe na struct e um erro `AlreadyInitialized` esta declarado, porem nunca sao usados. Assim, a instrucao de inicializacao pode ser reexecutada sobre uma conta ja inicializada, permitindo sobrescrever a autoridade e o saldo do vault.\", \"attack_hypothesis\": \"Um atacante chama `init` passando uma conta `config` ja existente e inicializada (por exemplo, a conta de configuracao legitima do programa) e sua propria conta como `authority`. Como nao ha checagem de `is_initialized`, o handler sobrescreve `config.authority` com a chave do atacante e zera `vault_balance`, assumindo o controle da configuracao e potencialmente drenando ou resetando o vault.\"}], \"summary\": \"A instrucao `init` permite reinicializacao: sobrescreve os campos de uma conta `Config` ja existente sem verificar `is_initialized`, permitindo ao atacante tomar a autoridade e zerar o saldo do vault.\"}",
+  "instruction": "init",
+  "findings": [
+    {
+      "category": "REINIT",
+      "confidence": "high",
+      "evidence": "#[account(mut)]\npub config: Account<'info, Config>,\n...\nconfig.authority = ctx.accounts.authority.key();\nconfig.is_initialized = true;\nconfig.vault_balance = 0;",
+      "explanation": "A conta `config` e recebida como `Account<'info, Config>` com apenas a constraint `mut`, sem `init` nem `init_if_needed`. Isso significa que a conta ja deve existir e estar inicializada para a instrucao ser executada, mas o handler sobrescreve `authority`, `is_initialized` e `vault_balance` sem verificar se a conta ja foi inicializada anteriormente. O campo `is_initialized` existe na struct e um erro `AlreadyInitialized` esta declarado, porem nunca sao usados. Assim, a instrucao de inicializacao pode ser reexecutada sobre uma conta ja inicializada, permitindo sobrescrever a autoridade e o saldo do vault.",
+      "attack_hypothesis": "Um atacante chama `init` passando uma conta `config` ja existente e inicializada (por exemplo, a conta de configuracao legitima do programa) e sua propria conta como `authority`. Como nao ha checagem de `is_initialized`, o handler sobrescreve `config.authority` com a chave do atacante e zera `vault_balance`, assumindo o controle da configuracao e potencialmente drenando ou resetando o vault."
+    }
+  ],
+  "dropped": [],
+  "summary": "A instrucao `init` permite reinicializacao: sobrescreve os campos de uma conta `Config` ja existente sem verificar `is_initialized`, permitindo ao atacante tomar a autoridade e zerar o saldo do vault.",
+  "predicted": [
+    "REINIT"
+  ],
+  "parse_error": null,
+  "case_id": "SSP-04-A-V"
+}

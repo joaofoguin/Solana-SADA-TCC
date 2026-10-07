@@ -1,0 +1,17 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2518,
+    "completion_tokens": 84,
+    "latency_s": 1.26,
+    "attempts": 1
+  },
+  "raw": "{\n  \"instruction\": \"update_fee\",\n  \"findings\": [],\n  \"summary\": \"A instrucao update_fee valida corretamente a assinatura via Signer<'info>, o proprietario e o discriminador via Account<'info, AdminConfig>, e compara a autoridade com o admin armazenado, sem apresentar vulnerabilidades das categorias analisadas.\"\n}",
+  "instruction": "update_fee",
+  "findings": [],
+  "dropped": [],
+  "summary": "A instrucao update_fee valida corretamente a assinatura via Signer<'info>, o proprietario e o discriminador via Account<'info, AdminConfig>, e compara a autoridade com o admin armazenado, sem apresentar vulnerabilidades das categorias analisadas.",
+  "predicted": [],
+  "parse_error": null,
+  "case_id": "SSP-06-A-S"
+}

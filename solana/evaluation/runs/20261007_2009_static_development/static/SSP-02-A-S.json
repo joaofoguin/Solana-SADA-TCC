@@ -1,0 +1,17 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2591,
+    "completion_tokens": 82,
+    "latency_s": 0.94,
+    "attempts": 1
+  },
+  "raw": "{\"instruction\": \"process\", \"findings\": [], \"summary\": \"A instrucao process usa Account<'info, Treasury> com has_one = authority e Signer<'info>, garantindo verificacao de proprietario, discriminador de tipo e assinatura, sem operacoes aritmeticas, PDAs, CPIs ou Sysvars, portanto nao apresenta achados.\"}",
+  "instruction": "process",
+  "findings": [],
+  "dropped": [],
+  "summary": "A instrucao process usa Account<'info, Treasury> com has_one = authority e Signer<'info>, garantindo verificacao de proprietario, discriminador de tipo e assinatura, sem operacoes aritmeticas, PDAs, CPIs ou Sysvars, portanto nao apresenta achados.",
+  "predicted": [],
+  "parse_error": null,
+  "case_id": "SSP-02-A-S"
+}

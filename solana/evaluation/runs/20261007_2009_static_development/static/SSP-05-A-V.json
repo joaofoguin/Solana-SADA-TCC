@@ -1,0 +1,28 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2570,
+    "completion_tokens": 499,
+    "latency_s": 2.85,
+    "attempts": 1
+  },
+  "raw": "{\n  \"instruction\": \"set_value\",\n  \"findings\": [\n    {\n      \"category\": \"PDA\",\n      \"confidence\": \"high\",\n      \"evidence\": \"let seeds = &[b\\\"data\\\" as &[u8], ctx.accounts.user.key.as_ref(), &[bump]];\\n\\nlet pda = Pubkey::create_program_address(seeds, ctx.program_id)\\n    .map_err(|_| ErrorCode::InvalidBump)?;\\n\\nrequire_keys_eq!(pda, ctx.accounts.data_account.key(), ErrorCode::PdaMismatch);\",\n      \"explanation\": \"O bump e fornecido pelo usuario como argumento e usado diretamente em `Pubkey::create_program_address` sem verificar se e o bump canonico. `create_program_address` apenas deriva um PDA valido para o bump dado, mas nao garante que seja o bump canonico (o maior bump que produz um endereco fora da curva). Um atacante pode fornecer um bump nao-canonico que ainda produza um PDA valido, resultando em um endereco diferente do PDA canonico esperado pelo programa. A mitigacao correta seria usar `Pubkey::find_program_address` ou a constraint `#[account(seeds = [...], bump)]` do Anchor, que derivam e validam o bump canonico automaticamente.\",\n      \"attack_hypothesis\": \"Um atacante fornece um bump nao-canonico que gera um PDA valido porem diferente do PDA canonico esperado. Como o programa aceita qualquer bump que produza um PDA valido, o atacante pode criar/controlar uma conta em um endereco PDA alternativo e passar essa conta como `data_account`, sobrescrevendo dados de estado (user, value, bump) em uma conta que nao deveria ser acessivel por essa instrucao, ou contornando a logica de associacao entre usuario e conta.\",\n      \"confidence_note\": \"\"\n    }\n  ],\n  \"summary\": \"A instrucao `set_value` aceita um bump fornecido pelo usuario e o usa em `create_program_address` sem validar se e o bump canonico, configurando uma falha de validacao/canonicalizacao de PDA.\"\n}",
+  "instruction": "set_value",
+  "findings": [
+    {
+      "category": "PDA",
+      "confidence": "high",
+      "evidence": "let seeds = &[b\"data\" as &[u8], ctx.accounts.user.key.as_ref(), &[bump]];\n\nlet pda = Pubkey::create_program_address(seeds, ctx.program_id)\n    .map_err(|_| ErrorCode::InvalidBump)?;\n\nrequire_keys_eq!(pda, ctx.accounts.data_account.key(), ErrorCode::PdaMismatch);",
+      "explanation": "O bump e fornecido pelo usuario como argumento e usado diretamente em `Pubkey::create_program_address` sem verificar se e o bump canonico. `create_program_address` apenas deriva um PDA valido para o bump dado, mas nao garante que seja o bump canonico (o maior bump que produz um endereco fora da curva). Um atacante pode fornecer um bump nao-canonico que ainda produza um PDA valido, resultando em um endereco diferente do PDA canonico esperado pelo programa. A mitigacao correta seria usar `Pubkey::find_program_address` ou a constraint `#[account(seeds = [...], bump)]` do Anchor, que derivam e validam o bump canonico automaticamente.",
+      "attack_hypothesis": "Um atacante fornece um bump nao-canonico que gera um PDA valido porem diferente do PDA canonico esperado. Como o programa aceita qualquer bump que produza um PDA valido, o atacante pode criar/controlar uma conta em um endereco PDA alternativo e passar essa conta como `data_account`, sobrescrevendo dados de estado (user, value, bump) em uma conta que nao deveria ser acessivel por essa instrucao, ou contornando a logica de associacao entre usuario e conta.",
+      "confidence_note": ""
+    }
+  ],
+  "dropped": [],
+  "summary": "A instrucao `set_value` aceita um bump fornecido pelo usuario e o usa em `create_program_address` sem validar se e o bump canonico, configurando uma falha de validacao/canonicalizacao de PDA.",
+  "predicted": [
+    "PDA"
+  ],
+  "parse_error": null,
+  "case_id": "SSP-05-A-V"
+}

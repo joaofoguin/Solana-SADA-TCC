@@ -1,0 +1,27 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2639,
+    "completion_tokens": 339,
+    "latency_s": 2.3,
+    "attempts": 1
+  },
+  "raw": "{\n  \"instruction\": \"mint\",\n  \"findings\": [\n    {\n      \"category\": \"MATH\",\n      \"confidence\": \"high\",\n      \"evidence\": \"ledger.total_supply = ledger.total_supply.wrapping_add(amount);\\nledger.user_balance = ledger.user_balance.wrapping_add(amount);\",\n      \"explanation\": \"A instrucao usa wrapping_add para incrementar total_supply e user_balance. wrapping_add descarta silenciosamente o overflow, fazendo os valores darem a volta (wrap around) em vez de falhar. Isso permite que um atacante manipule os saldos: por exemplo, ao atingir u64::MAX, um novo mint faz o valor reiniciar para um numero pequeno, corrompendo a contabilidade de supply e balance. A base de conhecimento exige aritmetica segura (checked_add/saturating_*) ou verificacoes de pre-condicao, o que nao esta presente.\",\n      \"attack_hypothesis\": \"Um atacante chama mint repetidamente com amounts que levam total_supply ou user_balance a ultrapassar u64::MAX. O wrapping_add faz o valor dar a volta para um numero baixo, permitindo inflar ou zerar saldos indevidamente e quebrar a invariante de supply.\"\n    }\n  ],\n  \"summary\": \"A instrucao mint usa wrapping_add em total_supply e user_balance, permitindo overflow silencioso e manipulacao indevida dos saldos.\"\n}",
+  "instruction": "mint",
+  "findings": [
+    {
+      "category": "MATH",
+      "confidence": "high",
+      "evidence": "ledger.total_supply = ledger.total_supply.wrapping_add(amount);\nledger.user_balance = ledger.user_balance.wrapping_add(amount);",
+      "explanation": "A instrucao usa wrapping_add para incrementar total_supply e user_balance. wrapping_add descarta silenciosamente o overflow, fazendo os valores darem a volta (wrap around) em vez de falhar. Isso permite que um atacante manipule os saldos: por exemplo, ao atingir u64::MAX, um novo mint faz o valor reiniciar para um numero pequeno, corrompendo a contabilidade de supply e balance. A base de conhecimento exige aritmetica segura (checked_add/saturating_*) ou verificacoes de pre-condicao, o que nao esta presente.",
+      "attack_hypothesis": "Um atacante chama mint repetidamente com amounts que levam total_supply ou user_balance a ultrapassar u64::MAX. O wrapping_add faz o valor dar a volta para um numero baixo, permitindo inflar ou zerar saldos indevidamente e quebrar a invariante de supply."
+    }
+  ],
+  "dropped": [],
+  "summary": "A instrucao mint usa wrapping_add em total_supply e user_balance, permitindo overflow silencioso e manipulacao indevida dos saldos.",
+  "predicted": [
+    "MATH"
+  ],
+  "parse_error": null,
+  "case_id": "SSP-03-A-V1"
+}

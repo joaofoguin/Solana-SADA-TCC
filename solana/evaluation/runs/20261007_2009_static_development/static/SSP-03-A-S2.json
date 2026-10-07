@@ -1,0 +1,17 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2676,
+    "completion_tokens": 59,
+    "latency_s": 1.11,
+    "attempts": 1
+  },
+  "raw": "{\n  \"instruction\": \"burn\",\n  \"findings\": [],\n  \"summary\": \"A instrucao burn usa Account<Ledger> com has_one = authority e Signer, e aritmetica segura com checked_sub, sem achados de seguranca.\"\n}",
+  "instruction": "burn",
+  "findings": [],
+  "dropped": [],
+  "summary": "A instrucao burn usa Account<Ledger> com has_one = authority e Signer, e aritmetica segura com checked_sub, sem achados de seguranca.",
+  "predicted": [],
+  "parse_error": null,
+  "case_id": "SSP-03-A-S2"
+}

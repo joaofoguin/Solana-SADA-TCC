@@ -1,0 +1,11 @@
+{
+  "prompt_version": "static-v1",
+  "prompt_sha256": "29c3d0e4c72954d7",
+  "llm_base_url": "https://api.groq.com/openai/v1",
+  "llm_model": "llama-3.3-70b-versatile",
+  "llm_json_mode": true,
+  "temperature": 0.0,
+  "split": "development",
+  "started": "2026-10-07T19:34:50.634809",
+  "ground_truth_version": "1.3"
+}

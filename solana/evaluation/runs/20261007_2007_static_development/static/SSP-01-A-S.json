@@ -1,0 +1,17 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2959,
+    "completion_tokens": 69,
+    "latency_s": 1.09,
+    "attempts": 1
+  },
+  "raw": "{\n  \"instruction\": \"withdraw\",\n  \"findings\": [],\n  \"summary\": \"A instrucao withdraw valida corretamente a autoridade via Signer e has_one, usa aritmetica segura com checked_sub e pre-condicao de saldo, sem achados de seguranca.\"\n}",
+  "instruction": "withdraw",
+  "findings": [],
+  "dropped": [],
+  "summary": "A instrucao withdraw valida corretamente a autoridade via Signer e has_one, usa aritmetica segura com checked_sub e pre-condicao de saldo, sem achados de seguranca.",
+  "predicted": [],
+  "parse_error": null,
+  "case_id": "SSP-01-A-S"
+}

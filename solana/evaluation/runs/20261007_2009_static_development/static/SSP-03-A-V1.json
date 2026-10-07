@@ -1,0 +1,28 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2639,
+    "completion_tokens": 331,
+    "latency_s": 2.54,
+    "attempts": 1
+  },
+  "raw": "{\n  \"instruction\": \"mint\",\n  \"findings\": [\n    {\n      \"category\": \"MATH\",\n      \"confidence\": \"high\",\n      \"evidence\": \"ledger.total_supply = ledger.total_supply.wrapping_add(amount);\\nledger.user_balance = ledger.user_balance.wrapping_add(amount);\",\n      \"explanation\": \"A instrucao usa wrapping_add para atualizar total_supply e user_balance. wrapping_add descarta silenciosamente o overflow, fazendo os valores darem a volta (wrap around) em vez de falhar. Isso permite que um atacante cunhe uma quantidade que estoure u64 e reinicie os saldos para valores baixos, manipulando indevidamente os saldos. O enum ErrorCode define ArithmeticOverflow, mas ele nunca e usado, indicando que a checagem segura foi omitida.\",\n      \"attack_hypothesis\": \"Um atacante chama mint com amount proximo de u64::MAX (ou um valor que somado ao saldo atual ultrapasse u64::MAX). O wrapping_add faz total_supply e user_balance darem a volta para valores pequenos, permitindo manipular o suprimento e o saldo do usuario de forma indevida.\",\n      \"attack_hypothesis_note\": \"\"\n    }\n  ],\n  \"summary\": \"A instrucao mint usa wrapping_add em vez de aritmetica segura (checked_add), permitindo overflow silencioso e manipulacao de saldos.\"\n}",
+  "instruction": "mint",
+  "findings": [
+    {
+      "category": "MATH",
+      "confidence": "high",
+      "evidence": "ledger.total_supply = ledger.total_supply.wrapping_add(amount);\nledger.user_balance = ledger.user_balance.wrapping_add(amount);",
+      "explanation": "A instrucao usa wrapping_add para atualizar total_supply e user_balance. wrapping_add descarta silenciosamente o overflow, fazendo os valores darem a volta (wrap around) em vez de falhar. Isso permite que um atacante cunhe uma quantidade que estoure u64 e reinicie os saldos para valores baixos, manipulando indevidamente os saldos. O enum ErrorCode define ArithmeticOverflow, mas ele nunca e usado, indicando que a checagem segura foi omitida.",
+      "attack_hypothesis": "Um atacante chama mint com amount proximo de u64::MAX (ou um valor que somado ao saldo atual ultrapasse u64::MAX). O wrapping_add faz total_supply e user_balance darem a volta para valores pequenos, permitindo manipular o suprimento e o saldo do usuario de forma indevida.",
+      "attack_hypothesis_note": ""
+    }
+  ],
+  "dropped": [],
+  "summary": "A instrucao mint usa wrapping_add em vez de aritmetica segura (checked_add), permitindo overflow silencioso e manipulacao de saldos.",
+  "predicted": [
+    "MATH"
+  ],
+  "parse_error": null,
+  "case_id": "SSP-03-A-V1"
+}

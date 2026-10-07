@@ -1,0 +1,35 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2663,
+    "completion_tokens": 563,
+    "latency_s": 3.13,
+    "attempts": 1
+  },
+  "raw": "{\n  \"instruction\": \"process\",\n  \"findings\": [\n    {\n      \"category\": \"OWNER\",\n      \"confidence\": \"high\",\n      \"evidence\": \"pub treasury: AccountInfo<'info>,\\n...\\nlet data = ctx.accounts.treasury.try_borrow_data()?;\",\n      \"explanation\": \"A conta `treasury` e recebida como `AccountInfo` e seus dados sao lidos diretamente via `try_borrow_data()` sem qualquer verificacao de que `treasury.owner` seja o programa atual. Diferente do tipo `Account<'info, T>`, o `AccountInfo` nao valida o proprietario, permitindo que uma conta forjada com layout identico seja passada.\",\n      \"attack_hypothesis\": \"Um atacante fornece uma conta cujo `owner` e um programa malicioso (ou qualquer conta controlada) contendo bytes que imitam o layout de `Treasury` (authority, balance, is_active=true). A instrucao le esses dados sem validar o proprietario, aceitando estado forjado como autentico.\"\n    },\n    {\n      \"category\": \"COSPLAY\",\n      \"confidence\": \"high\",\n      \"evidence\": \"let authority = Pubkey::try_from(&data[8..40])...;\\nlet balance = u64::from_le_bytes(data[40..48]...);\\nlet is_active = data[48] != 0;\",\n      \"explanation\": \"Os dados da conta sao desserializados manualmente a partir de offsets fixos (8..40, 40..48, 48) sem validar o discriminador de 8 bytes do Anchor. Como `treasury` e um `AccountInfo` cru, nao ha verificacao automatica do discriminador de tipo, permitindo que uma conta de outro tipo com layout compativel seja interpretada como `Treasury`.\",\n      \"attack_hypothesis\": \"Um atacante passa uma conta de um tipo diferente (por exemplo, outra conta do mesmo programa ou de outro programa) cujo buffer, nos offsets 8..48, contenha valores que satisfacam `is_active != 0`. A instrucao trata esses bytes como um `Treasury` valido, burlando a logica de tipo.\"\n    }\n  ],\n  \"summary\": \"A instrucao `process` le dados de uma conta `AccountInfo` sem validar o proprietario nem o discriminador de tipo, permitindo contas forjadas (OWNER) e type cosplay (COSPLAY).\"\n}",
+  "instruction": "process",
+  "findings": [
+    {
+      "category": "OWNER",
+      "confidence": "high",
+      "evidence": "pub treasury: AccountInfo<'info>,\n...\nlet data = ctx.accounts.treasury.try_borrow_data()?;",
+      "explanation": "A conta `treasury` e recebida como `AccountInfo` e seus dados sao lidos diretamente via `try_borrow_data()` sem qualquer verificacao de que `treasury.owner` seja o programa atual. Diferente do tipo `Account<'info, T>`, o `AccountInfo` nao valida o proprietario, permitindo que uma conta forjada com layout identico seja passada.",
+      "attack_hypothesis": "Um atacante fornece uma conta cujo `owner` e um programa malicioso (ou qualquer conta controlada) contendo bytes que imitam o layout de `Treasury` (authority, balance, is_active=true). A instrucao le esses dados sem validar o proprietario, aceitando estado forjado como autentico."
+    },
+    {
+      "category": "COSPLAY",
+      "confidence": "high",
+      "evidence": "let authority = Pubkey::try_from(&data[8..40])...;\nlet balance = u64::from_le_bytes(data[40..48]...);\nlet is_active = data[48] != 0;",
+      "explanation": "Os dados da conta sao desserializados manualmente a partir de offsets fixos (8..40, 40..48, 48) sem validar o discriminador de 8 bytes do Anchor. Como `treasury` e um `AccountInfo` cru, nao ha verificacao automatica do discriminador de tipo, permitindo que uma conta de outro tipo com layout compativel seja interpretada como `Treasury`.",
+      "attack_hypothesis": "Um atacante passa uma conta de um tipo diferente (por exemplo, outra conta do mesmo programa ou de outro programa) cujo buffer, nos offsets 8..48, contenha valores que satisfacam `is_active != 0`. A instrucao trata esses bytes como um `Treasury` valido, burlando a logica de tipo."
+    }
+  ],
+  "dropped": [],
+  "summary": "A instrucao `process` le dados de uma conta `AccountInfo` sem validar o proprietario nem o discriminador de tipo, permitindo contas forjadas (OWNER) e type cosplay (COSPLAY).",
+  "predicted": [
+    "COSPLAY",
+    "OWNER"
+  ],
+  "parse_error": null,
+  "case_id": "SSP-02-A-V"
+}

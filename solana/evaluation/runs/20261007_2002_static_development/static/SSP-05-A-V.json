@@ -1,0 +1,27 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2570,
+    "completion_tokens": 492,
+    "latency_s": 2.8,
+    "attempts": 1
+  },
+  "raw": "{\n  \"instruction\": \"set_value\",\n  \"findings\": [\n    {\n      \"category\": \"PDA\",\n      \"confidence\": \"high\",\n      \"evidence\": \"let seeds = &[b\\\"data\\\" as &[u8], ctx.accounts.user.key.as_ref(), &[bump]];\\n\\nlet pda = Pubkey::create_program_address(seeds, ctx.program_id)\\n    .map_err(|_| ErrorCode::InvalidBump)?;\\n\\nrequire_keys_eq!(pda, ctx.accounts.data_account.key(), ErrorCode::PdaMismatch);\",\n      \"explanation\": \"O bump e fornecido pelo usuario como argumento e usado diretamente em `Pubkey::create_program_address` sem verificar se e o bump canonico. `create_program_address` apenas deriva um endereco valido para o bump dado; nao garante que seja o bump canonico retornado por `find_program_address`. Um atacante pode fornecer um bump nao canonico que ainda produza um endereco valido fora da curva, e a checagem `require_keys_eq!` apenas confirma que o endereco derivado coincide com a conta fornecida, nao que o bump seja o canonico. Isso permite a existencia de multiplos PDAs validos para as mesmas seeds, quebrando a unicidade esperada do PDA.\",\n      \"attack_hypothesis\": \"Um atacante fornece um bump nao canonico (diferente do retornado por `find_program_address`) que ainda gera um endereco valido fora da curva, e passa uma conta `data_account` correspondente a esse endereco alternativo. Como a checagem apenas compara o endereco derivado com a conta fornecida, a instrucao aceita o PDA nao canonico, permitindo criar/gravar estado em um endereco PDA alternativo e contornar a unicidade do PDA canonico esperado pelo programa.\"\n    }\n  ],\n  \"summary\": \"A instrucao `set_value` valida o PDA com `create_program_address` usando um bump fornecido pelo usuario sem confirmar que e o bump canonico, configurando validacao impropria de PDA.\"\n}",
+  "instruction": "set_value",
+  "findings": [
+    {
+      "category": "PDA",
+      "confidence": "high",
+      "evidence": "let seeds = &[b\"data\" as &[u8], ctx.accounts.user.key.as_ref(), &[bump]];\n\nlet pda = Pubkey::create_program_address(seeds, ctx.program_id)\n    .map_err(|_| ErrorCode::InvalidBump)?;\n\nrequire_keys_eq!(pda, ctx.accounts.data_account.key(), ErrorCode::PdaMismatch);",
+      "explanation": "O bump e fornecido pelo usuario como argumento e usado diretamente em `Pubkey::create_program_address` sem verificar se e o bump canonico. `create_program_address` apenas deriva um endereco valido para o bump dado; nao garante que seja o bump canonico retornado por `find_program_address`. Um atacante pode fornecer um bump nao canonico que ainda produza um endereco valido fora da curva, e a checagem `require_keys_eq!` apenas confirma que o endereco derivado coincide com a conta fornecida, nao que o bump seja o canonico. Isso permite a existencia de multiplos PDAs validos para as mesmas seeds, quebrando a unicidade esperada do PDA.",
+      "attack_hypothesis": "Um atacante fornece um bump nao canonico (diferente do retornado por `find_program_address`) que ainda gera um endereco valido fora da curva, e passa uma conta `data_account` correspondente a esse endereco alternativo. Como a checagem apenas compara o endereco derivado com a conta fornecida, a instrucao aceita o PDA nao canonico, permitindo criar/gravar estado em um endereco PDA alternativo e contornar a unicidade do PDA canonico esperado pelo programa."
+    }
+  ],
+  "dropped": [],
+  "summary": "A instrucao `set_value` valida o PDA com `create_program_address` usando um bump fornecido pelo usuario sem confirmar que e o bump canonico, configurando validacao impropria de PDA.",
+  "predicted": [
+    "PDA"
+  ],
+  "parse_error": null,
+  "case_id": "SSP-05-A-V"
+}

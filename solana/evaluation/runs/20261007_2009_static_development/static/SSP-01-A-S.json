@@ -1,0 +1,17 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2959,
+    "completion_tokens": 69,
+    "latency_s": 1.28,
+    "attempts": 1
+  },
+  "raw": "{\n  \"instruction\": \"withdraw\",\n  \"findings\": [],\n  \"summary\": \"A instrucao withdraw valida a autoridade via Signer e has_one, usa Account<Vault> com seeds/bump canonicos e aritmetica segura (checked_sub), sem achados de seguranca.\"\n}",
+  "instruction": "withdraw",
+  "findings": [],
+  "dropped": [],
+  "summary": "A instrucao withdraw valida a autoridade via Signer e has_one, usa Account<Vault> com seeds/bump canonicos e aritmetica segura (checked_sub), sem achados de seguranca.",
+  "predicted": [],
+  "parse_error": null,
+  "case_id": "SSP-01-A-S"
+}

@@ -1,0 +1,27 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2448,
+    "completion_tokens": 363,
+    "latency_s": 2.17,
+    "attempts": 1
+  },
+  "raw": "{\"instruction\": \"init\", \"findings\": [{\"category\": \"REINIT\", \"confidence\": \"high\", \"evidence\": \"#[account(mut)]\\npub config: Account<'info, Config>,\\n...\\nconfig.authority = ctx.accounts.authority.key();\\nconfig.is_initialized = true;\\nconfig.vault_balance = 0;\", \"explanation\": \"A conta `config` e recebida como `Account<'info, Config>` com apenas a constraint `mut`, sem `init` nem verificacao de `is_initialized`. O handler sobrescreve `authority`, `is_initialized` e `vault_balance` incondicionalmente, permitindo reexecutar a inicializacao sobre uma conta ja inicializada. O campo `is_initialized` existe na struct e o erro `AlreadyInitialized` esta declarado, mas nunca sao usados para impedir a reinicializacao.\", \"attack_hypothesis\": \"Um atacante chama `init` novamente passando a conta `config` ja existente e sua propria conta como `authority` (assinante). O handler sobrescreve `config.authority` com a chave do atacante e zera `vault_balance`, assumindo o controle da configuracao e potencialmente bloqueando o acesso do dono legitimo ou manipulando o saldo registrado.\"}], \"summary\": \"A instrucao `init` permite reinicializacao da conta `config` por nao usar `#[account(init)]` nem validar `is_initialized`, sobrescrevendo a autoridade e o saldo.\"}",
+  "instruction": "init",
+  "findings": [
+    {
+      "category": "REINIT",
+      "confidence": "high",
+      "evidence": "#[account(mut)]\npub config: Account<'info, Config>,\n...\nconfig.authority = ctx.accounts.authority.key();\nconfig.is_initialized = true;\nconfig.vault_balance = 0;",
+      "explanation": "A conta `config` e recebida como `Account<'info, Config>` com apenas a constraint `mut`, sem `init` nem verificacao de `is_initialized`. O handler sobrescreve `authority`, `is_initialized` e `vault_balance` incondicionalmente, permitindo reexecutar a inicializacao sobre uma conta ja inicializada. O campo `is_initialized` existe na struct e o erro `AlreadyInitialized` esta declarado, mas nunca sao usados para impedir a reinicializacao.",
+      "attack_hypothesis": "Um atacante chama `init` novamente passando a conta `config` ja existente e sua propria conta como `authority` (assinante). O handler sobrescreve `config.authority` com a chave do atacante e zera `vault_balance`, assumindo o controle da configuracao e potencialmente bloqueando o acesso do dono legitimo ou manipulando o saldo registrado."
+    }
+  ],
+  "dropped": [],
+  "summary": "A instrucao `init` permite reinicializacao da conta `config` por nao usar `#[account(init)]` nem validar `is_initialized`, sobrescrevendo a autoridade e o saldo.",
+  "predicted": [
+    "REINIT"
+  ],
+  "parse_error": null,
+  "case_id": "SSP-04-A-V"
+}

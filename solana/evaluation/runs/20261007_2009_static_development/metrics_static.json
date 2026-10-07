@@ -1,0 +1,81 @@
+{
+  "global": {
+    "TP": 7,
+    "FP": 0,
+    "FN": 0,
+    "TN": 8,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0
+  },
+  "by_category": {
+    "Improper Owner Check": {
+      "TP": 1,
+      "FP": 0,
+      "FN": 0,
+      "TN": 1,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "Improper PDA Validation / Canonicalization": {
+      "TP": 1,
+      "FP": 0,
+      "FN": 0,
+      "TN": 1,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "Integer Overflow / Underflow": {
+      "TP": 2,
+      "FP": 0,
+      "FN": 0,
+      "TN": 2,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "Missing Signer Check": {
+      "TP": 1,
+      "FP": 0,
+      "FN": 0,
+      "TN": 1,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "Reinitialization Attacks": {
+      "TP": 1,
+      "FP": 0,
+      "FN": 0,
+      "TN": 2,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "Type Cosplay": {
+      "TP": 1,
+      "FP": 0,
+      "FN": 0,
+      "TN": 1,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    }
+  },
+  "cases_scored": 15,
+  "run_id": "20261007_2009_static_development",
+  "prompt_version": "static-v1",
+  "prompt_sha256": "29c3d0e4c72954d7",
+  "llm_base_url": "https://api.deepseek.com",
+  "llm_model": "deepseek-flash",
+  "llm_json_mode": true,
+  "llm_extra_body": {
+    "thinking": {
+      "type": "disabled"
+    }
+  },
+  "temperature": 0.0,
+  "tokens_this_session": 42961
+}

@@ -1,0 +1,27 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2959,
+    "completion_tokens": 267,
+    "latency_s": 2.4,
+    "attempts": 1
+  },
+  "raw": "{\n  \"instruction\": \"withdraw\",\n  \"findings\": [\n    {\n      \"category\": \"SIGNER\",\n      \"confidence\": \"high\",\n      \"evidence\": \"pub authority: AccountInfo<'info>,\",\n      \"explanation\": \"A conta `authority` e declarada como `AccountInfo` (nao `Signer`), portanto o Anchor nao exige que ela assine a transacao. A constraint `has_one = authority` apenas compara a chave publica da conta com o campo `vault.authority`, mas nao verifica `is_signer`. Assim, qualquer pessoa pode passar a conta de autoridade correta sem assinar e drenar o vault.\",\n      \"attack_hypothesis\": \"Um atacante fornece a conta `authority` correta (apenas como AccountInfo, sem assinatura) e uma conta `recipient` controlada por ele, chamando `withdraw` para transferir os lamports do vault para si mesmo sem a autorizacao do dono.\"\n    }\n  ],\n  \"summary\": \"A instrucao `withdraw` nao exige que a conta `authority` assine a transacao, permitindo que qualquer um drene o vault.\"\n}",
+  "instruction": "withdraw",
+  "findings": [
+    {
+      "category": "SIGNER",
+      "confidence": "high",
+      "evidence": "pub authority: AccountInfo<'info>,",
+      "explanation": "A conta `authority` e declarada como `AccountInfo` (nao `Signer`), portanto o Anchor nao exige que ela assine a transacao. A constraint `has_one = authority` apenas compara a chave publica da conta com o campo `vault.authority`, mas nao verifica `is_signer`. Assim, qualquer pessoa pode passar a conta de autoridade correta sem assinar e drenar o vault.",
+      "attack_hypothesis": "Um atacante fornece a conta `authority` correta (apenas como AccountInfo, sem assinatura) e uma conta `recipient` controlada por ele, chamando `withdraw` para transferir os lamports do vault para si mesmo sem a autorizacao do dono."
+    }
+  ],
+  "dropped": [],
+  "summary": "A instrucao `withdraw` nao exige que a conta `authority` assine a transacao, permitindo que qualquer um drene o vault.",
+  "predicted": [
+    "SIGNER"
+  ],
+  "parse_error": null,
+  "case_id": "SSP-01-A-V"
+}
