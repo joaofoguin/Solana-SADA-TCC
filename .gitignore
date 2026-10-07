@@ -1,0 +1,8 @@
+.env
+venv/
+__pycache__/
+*.pyc
+**/target/
+solana/dataset/programs/deploy/
+solana/dataset/programs/logs/
+*.so
