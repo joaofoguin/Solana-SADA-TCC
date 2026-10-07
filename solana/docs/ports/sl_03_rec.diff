@@ -1,0 +1,17 @@
+--- /home/tcc/fontes/sealevel-attacks/programs/3-type-cosplay/recommended/src/lib.rs	2026-10-06 20:47:37.383504139 +0000
++++ /home/tcc/sada-tcc/solana/dataset/programs/sealevel/sl_03_rec/src/lib.rs	2026-10-06 21:30:08.000000000 +0000
+@@ -1,5 +1,4 @@
+ use anchor_lang::prelude::*;
+-use borsh::{BorshDeserialize, BorshSerialize};
+ 
+ declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+ 
+@@ -7,7 +6,7 @@
+ pub mod type_cosplay_recommended {
+     use super::*;
+ 
+-    pub fn update_user(ctx: Context<UpdateUser>) -> ProgramResult {
++    pub fn update_user(ctx: Context<UpdateUser>) -> Result<()> {
+         msg!("GM {}", ctx.accounts.user.authority);
+         Ok(())
+     }

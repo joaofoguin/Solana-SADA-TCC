@@ -1,0 +1,14 @@
+--- /home/tcc/sada-tcc/solana/solana-security-pattern/patterns/03-integer-overflow//pinocchio/src/lib.rs	2026-09-26 20:26:09.787280739 +0000
++++ pinocchio/ssp_03_p/src/lib.rs	2026-10-07 17:29:48.273972572 +0000
+@@ -3,9 +3,9 @@
+ //! Demonstrates arithmetic that wraps instead of failing.
+ //! Solana BPF programs run in release mode where overflow wraps silently.
+ 
+-#![no_std]
++// PORT: #![no_std] removido (rustc do platform-tools v1.54 rejeita o panic handler do pinocchio 0.8)
+ 
+-pinocchio::nostd_panic_handler!();
++// PORT: nostd_panic_handler!() removido; o entrypoint! fornece o panic handler padrao
+ 
+ use pinocchio::{
+     account_info::AccountInfo,

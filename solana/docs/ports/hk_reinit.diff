@@ -1,0 +1,19 @@
+--- /home/tcc/sada-tcc/solana/solana-hacks/reinitialization/reinit-attack/src/lib.rs	2026-09-26 20:26:45.170918085 +0000
++++ /home/tcc/sada-tcc/solana/dataset/programs/hacks/hk_reinit/src/lib.rs	2026-10-06 21:30:25.000000000 +0000
+@@ -43,6 +43,7 @@
+   }
+ }
+ 
++#[cfg(not(feature = "no-entrypoint"))]
+ entrypoint!(process_instruction);
+ 
+ pub fn process_instruction(program_id: &Pubkey, accounts: &[AccountInfo], instruction_data: &[u8]) -> ProgramResult {
+@@ -56,7 +57,7 @@
+ 
+   let user_info = next_account_info(account_info_iter)?;
+   let authority_info = next_account_info(account_info_iter)?;
+-  
++
+   let mut user_data = user_info.try_borrow_mut_data()?;
+   let mut user = User::unpack_unchecked(&user_data)?;
+   msg!("User authority address is: {}", user.authority);

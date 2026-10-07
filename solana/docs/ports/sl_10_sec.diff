@@ -1,0 +1,9 @@
+--- /home/tcc/fontes/sealevel-attacks/programs/10-sysvar-address-checking/secure/src/lib.rs	2026-10-06 20:47:37.382673934 +0000
++++ /home/tcc/sada-tcc/solana/dataset/programs/sealevel/sl_10_sec/src/lib.rs	2026-10-06 21:30:08.000000000 +0000
+@@ -15,5 +15,6 @@
+ 
+ #[derive(Accounts)]
+ pub struct CheckSysvarAddress<'info> {
++    /// CHECK: PORT - doc exigido pelo Anchor >= 0.24; sem efeito na logica
+     rent: AccountInfo<'info>,
+ }

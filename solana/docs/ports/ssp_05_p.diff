@@ -1,0 +1,14 @@
+--- /home/tcc/sada-tcc/solana/solana-security-pattern/patterns/05-pda-bump-canonicalization//pinocchio/src/lib.rs	2026-09-26 20:26:09.788662049 +0000
++++ pinocchio/ssp_05_p/src/lib.rs	2026-10-07 17:29:48.281972591 +0000
+@@ -2,9 +2,9 @@
+ //!
+ //! Demonstrates accepting non-canonical bumps, allowing duplicate PDAs.
+ 
+-#![no_std]
++// PORT: #![no_std] removido (rustc do platform-tools v1.54 rejeita o panic handler do pinocchio 0.8)
+ 
+-pinocchio::nostd_panic_handler!();
++// PORT: nostd_panic_handler!() removido; o entrypoint! fornece o panic handler padrao
+ 
+ use pinocchio::{
+     account_info::AccountInfo,

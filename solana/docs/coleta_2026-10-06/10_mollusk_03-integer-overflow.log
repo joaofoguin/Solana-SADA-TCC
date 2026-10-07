@@ -1,0 +1,50 @@
+   Compiling test-integer-overflow v0.1.0 (/home/tcc/sada-tcc/solana/solana-security-pattern/patterns/03-integer-overflow/tests)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.76s
+     Running unittests src/lib.rs (target/debug/deps/test_integer_overflow-e3ec55ecf8326762)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/exploit.rs (target/debug/deps/exploit-5f41fedb8835fae4)
+
+running 5 tests
+test exploit_overflow_supply_wraps_to_zero ... [2026-10-06T20:47:29.392052698Z DEBUG solana_runtime::message_processor::stable_log] Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA invoke [1]
+[2026-10-06T20:47:29.392661103Z DEBUG solana_runtime::message_processor::stable_log] Program log: Instruction: MintVulnerable
+[2026-10-06T20:47:29.392865205Z DEBUG solana_runtime::message_processor::stable_log] Program log: VULNERABLE MINT: amount=1, new_supply=0, new_balance=1
+[2026-10-06T20:47:29.393266809Z DEBUG solana_runtime::message_processor::stable_log] Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA consumed 2185 of 1400000 compute units
+[2026-10-06T20:47:29.393329709Z DEBUG solana_runtime::message_processor::stable_log] Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA success
+ok
+test exploit_underflow_balance_wraps_to_max ... [2026-10-06T20:47:29.429077618Z DEBUG solana_runtime::message_processor::stable_log] Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA invoke [1]
+[2026-10-06T20:47:29.429576323Z DEBUG solana_runtime::message_processor::stable_log] Program log: Instruction: BurnVulnerable
+[2026-10-06T20:47:29.429747124Z DEBUG solana_runtime::message_processor::stable_log] Program log: VULNERABLE BURN: amount=11, new_supply=989, new_balance=18446744073709551615
+[2026-10-06T20:47:29.430178828Z DEBUG solana_runtime::message_processor::stable_log] Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA consumed 2342 of 1400000 compute units
+[2026-10-06T20:47:29.430242728Z DEBUG solana_runtime::message_processor::stable_log] Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA success
+ok
+test secure_allows_valid_mint ... [2026-10-06T20:47:29.464885328Z DEBUG solana_runtime::message_processor::stable_log] Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA invoke [1]
+[2026-10-06T20:47:29.467142347Z DEBUG solana_runtime::message_processor::stable_log] Program log: Instruction: MintSecure
+[2026-10-06T20:47:29.467275049Z DEBUG solana_runtime::message_processor::stable_log] Program log: SECURE MINT: amount=100, new_supply=1100, new_balance=600
+[2026-10-06T20:47:29.467363249Z DEBUG solana_runtime::message_processor::stable_log] Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA consumed 2280 of 1400000 compute units
+[2026-10-06T20:47:29.467417450Z DEBUG solana_runtime::message_processor::stable_log] Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA success
+ok
+test secure_blocks_overflow ... [2026-10-06T20:47:29.503671863Z DEBUG solana_runtime::message_processor::stable_log] Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA invoke [1]
+[2026-10-06T20:47:29.505957583Z DEBUG solana_runtime::message_processor::stable_log] Program log: Instruction: MintSecure
+[2026-10-06T20:47:29.506135585Z DEBUG solana_runtime::message_processor::stable_log] Program log: AnchorError occurred. Error Code: ArithmeticOverflow. Error Number: 6000. Error Message: Arithmetic overflow.
+[2026-10-06T20:47:29.506202185Z DEBUG solana_runtime::message_processor::stable_log] Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA consumed 2264 of 1400000 compute units
+[2026-10-06T20:47:29.506243786Z DEBUG solana_runtime::message_processor::stable_log] Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA failed: custom program error: 0x1770
+ok
+test secure_blocks_underflow ... [2026-10-06T20:47:29.543432507Z DEBUG solana_runtime::message_processor::stable_log] Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA invoke [1]
+[2026-10-06T20:47:29.545660626Z DEBUG solana_runtime::message_processor::stable_log] Program log: Instruction: BurnSecure
+[2026-10-06T20:47:29.545818128Z DEBUG solana_runtime::message_processor::stable_log] Program log: AnchorError occurred. Error Code: ArithmeticUnderflow. Error Number: 6001. Error Message: Arithmetic underflow.
+[2026-10-06T20:47:29.545943429Z DEBUG solana_runtime::message_processor::stable_log] Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA consumed 2264 of 1400000 compute units
+[2026-10-06T20:47:29.545991829Z DEBUG solana_runtime::message_processor::stable_log] Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA failed: custom program error: 0x1771
+ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.20s
+
+   Doc-tests test_integer_overflow
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

@@ -1,0 +1,38 @@
+   Compiling test-type-cosplay v0.1.0 (/home/tcc/sada-tcc/solana/solana-security-pattern/patterns/06-type-cosplay/tests)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.85s
+     Running unittests src/lib.rs (target/debug/deps/test_type_cosplay-948f16ee252b79e0)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/exploit.rs (target/debug/deps/exploit-eef6398d07b8f365)
+
+running 3 tests
+test exploit_type_cosplay_accepted ... [2026-10-06T20:47:35.732091641Z DEBUG solana_runtime::message_processor::stable_log] Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP invoke [1]
+[2026-10-06T20:47:35.732658644Z DEBUG solana_runtime::message_processor::stable_log] Program log: Instruction: UpdateFeeVulnerable
+[2026-10-06T20:47:35.732764345Z DEBUG solana_runtime::message_processor::stable_log] Program log: VULNERABLE: Fee updated to 9999 (no discriminator check!)
+[2026-10-06T20:47:35.733136947Z DEBUG solana_runtime::message_processor::stable_log] Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP consumed 1497 of 1400000 compute units
+[2026-10-06T20:47:35.733194848Z DEBUG solana_runtime::message_processor::stable_log] Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP success
+ok
+test secure_accepts_real_admin_config ... [2026-10-06T20:47:35.766941264Z DEBUG solana_runtime::message_processor::stable_log] Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP invoke [1]
+[2026-10-06T20:47:35.767454068Z DEBUG solana_runtime::message_processor::stable_log] Program log: Instruction: UpdateFeeSecure
+[2026-10-06T20:47:35.767620469Z DEBUG solana_runtime::message_processor::stable_log] Program log: SECURE: Fee updated to 500 (discriminator verified)
+[2026-10-06T20:47:35.768026571Z DEBUG solana_runtime::message_processor::stable_log] Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP consumed 1866 of 1400000 compute units
+[2026-10-06T20:47:35.768082472Z DEBUG solana_runtime::message_processor::stable_log] Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP success
+ok
+test secure_rejects_wrong_discriminator ... [2026-10-06T20:47:35.801102084Z DEBUG solana_runtime::message_processor::stable_log] Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP invoke [1]
+[2026-10-06T20:47:35.803416698Z DEBUG solana_runtime::message_processor::stable_log] Program log: Instruction: UpdateFeeSecure
+[2026-10-06T20:47:35.803603600Z DEBUG solana_runtime::message_processor::stable_log] Program log: AnchorError caused by account: config. Error Code: AccountDiscriminatorMismatch. Error Number: 3002. Error Message: Account discriminator did not match what was expected.
+[2026-10-06T20:47:35.803679500Z DEBUG solana_runtime::message_processor::stable_log] Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP consumed 2683 of 1400000 compute units
+[2026-10-06T20:47:35.803722700Z DEBUG solana_runtime::message_processor::stable_log] Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP failed: custom program error: 0xbba
+ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.28s
+
+   Doc-tests test_type_cosplay
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

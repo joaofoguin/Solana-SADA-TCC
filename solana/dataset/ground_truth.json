@@ -1,0 +1,1719 @@
+{
+  "version": "1.3",
+  "created": "2026-10-06",
+  "unit_of_analysis": "instruction",
+  "categories": [
+    "Missing Signer Check",
+    "Improper Owner Check",
+    "Arbitrary CPI",
+    "Improper PDA Validation / Canonicalization",
+    "Sysvar Account Check",
+    "Integer Overflow / Underflow",
+    "Type Cosplay",
+    "Reinitialization Attacks"
+  ],
+  "scoring_rules": {
+    "target_only": "Cada caso e avaliado somente na target_category.",
+    "vulnerable_case": "TP se o sistema reporta a target_category; FN caso contrario.",
+    "secure_case": "FP se o sistema reporta a target_category; TN caso contrario.",
+    "other_known_issues": "Predicao de uma categoria listada em other_known_issues e ignorada (nem TP nem FP).",
+    "other_wrong_category": "Predicao de categoria fora de target e de other_known_issues conta como FP.",
+    "frozen_after": "2026-10-26"
+  },
+  "sources": {
+    "ssp": {
+      "name": "Solana Security Patterns",
+      "repo": "justFiveDev/solana-security-pattern",
+      "commit": "a128ce9ceacadda7bb8ed686ce6a694439277dc5"
+    },
+    "sealevel": {
+      "name": "Sealevel Attacks",
+      "repo": "coral-xyz/sealevel-attacks",
+      "commit": "24555d044802db4022112a94d6d70e74291a4b6d"
+    },
+    "hacks": {
+      "name": "Solana Hacks",
+      "repo": "El-Merovingio/solana-hacks",
+      "commit": "7a0bebc9f40591eeb7e273ce57d166c759ec0d7f"
+    }
+  },
+  "cases": [
+    {
+      "id": "SSP-01-A-V",
+      "source": "Solana Security Patterns",
+      "source_key": "ssp",
+      "repo": "justFiveDev/solana-security-pattern",
+      "commit": "a128ce9ceacadda7bb8ed686ce6a694439277dc5",
+      "framework": "anchor",
+      "program_path": "patterns/01-missing-signer-check/anchor/src/lib.rs",
+      "ported_path": null,
+      "instruction": "withdraw_vulnerable",
+      "label": "vulnerable",
+      "target_category": "Missing Signer Check",
+      "other_known_issues": [],
+      "split": "development",
+      "sanitize": {
+        "drop_items": [
+          "withdraw_secure",
+          "WithdrawSecure"
+        ]
+      },
+      "evidence": {
+        "type": "mollusk_reference_test",
+        "reference_test": "patterns/01-missing-signer-check/tests/tests/exploit.rs::exploit_withdraw_without_signer",
+        "expected_status": "Success",
+        "verified": true,
+        "verified_on": "2026-10-06",
+        "log": "docs/coleta_2026-10-06/"
+      },
+      "notes": "",
+      "authored_by_student": false
+    },
+    {
+      "id": "SSP-01-A-S",
+      "source": "Solana Security Patterns",
+      "source_key": "ssp",
+      "repo": "justFiveDev/solana-security-pattern",
+      "commit": "a128ce9ceacadda7bb8ed686ce6a694439277dc5",
+      "framework": "anchor",
+      "program_path": "patterns/01-missing-signer-check/anchor/src/lib.rs",
+      "ported_path": null,
+      "instruction": "withdraw_secure",
+      "label": "secure",
+      "target_category": "Missing Signer Check",
+      "other_known_issues": [],
+      "split": "development",
+      "sanitize": {
+        "drop_items": [
+          "withdraw_vulnerable",
+          "WithdrawVulnerable"
+        ]
+      },
+      "evidence": {
+        "type": "mollusk_reference_test",
+        "reference_test": "patterns/01-missing-signer-check/tests/tests/exploit.rs::secure_rejects_unsigned_withdraw",
+        "expected_status": "Custom(3010)",
+        "verified": true,
+        "verified_on": "2026-10-06",
+        "log": "docs/coleta_2026-10-06/"
+      },
+      "notes": "",
+      "authored_by_student": false
+    },
+    {
+      "id": "SSP-02-A-V",
+      "source": "Solana Security Patterns",
+      "source_key": "ssp",
+      "repo": "justFiveDev/solana-security-pattern",
+      "commit": "a128ce9ceacadda7bb8ed686ce6a694439277dc5",
+      "framework": "anchor",
+      "program_path": "patterns/02-missing-owner-check/anchor/src/lib.rs",
+      "ported_path": null,
+      "instruction": "process_vulnerable",
+      "label": "vulnerable",
+      "target_category": "Improper Owner Check",
+      "other_known_issues": [
+        "Type Cosplay"
+      ],
+      "split": "development",
+      "sanitize": {
+        "drop_items": [
+          "process_secure",
+          "ProcessSecure"
+        ]
+      },
+      "evidence": {
+        "type": "mollusk_reference_test",
+        "reference_test": "patterns/02-missing-owner-check/tests/tests/exploit.rs::exploit_fake_account_accepted",
+        "expected_status": "Success",
+        "verified": true,
+        "verified_on": "2026-10-06",
+        "log": "docs/coleta_2026-10-06/"
+      },
+      "notes": "Le bytes de AccountInfo sem verificar owner nem discriminator.",
+      "authored_by_student": false
+    },
+    {
+      "id": "SSP-02-A-S",
+      "source": "Solana Security Patterns",
+      "source_key": "ssp",
+      "repo": "justFiveDev/solana-security-pattern",
+      "commit": "a128ce9ceacadda7bb8ed686ce6a694439277dc5",
+      "framework": "anchor",
+      "program_path": "patterns/02-missing-owner-check/anchor/src/lib.rs",
+      "ported_path": null,
+      "instruction": "process_secure",
+      "label": "secure",
+      "target_category": "Improper Owner Check",
+      "other_known_issues": [],
+      "split": "development",
+      "sanitize": {
+        "drop_items": [
+          "process_vulnerable",
+          "ProcessVulnerable"
+        ]
+      },
+      "evidence": {
+        "type": "mollusk_reference_test",
+        "reference_test": "patterns/02-missing-owner-check/tests/tests/exploit.rs::secure_rejects_fake_account",
+        "expected_status": "Custom(3007)",
+        "verified": true,
+        "verified_on": "2026-10-06",
+        "log": "docs/coleta_2026-10-06/"
+      },
+      "notes": "",
+      "authored_by_student": false
+    },
+    {
+      "id": "SSP-03-A-V1",
+      "source": "Solana Security Patterns",
+      "source_key": "ssp",
+      "repo": "justFiveDev/solana-security-pattern",
+      "commit": "a128ce9ceacadda7bb8ed686ce6a694439277dc5",
+      "framework": "anchor",
+      "program_path": "patterns/03-integer-overflow/anchor/src/lib.rs",
+      "ported_path": null,
+      "instruction": "mint_vulnerable",
+      "label": "vulnerable",
+      "target_category": "Integer Overflow / Underflow",
+      "other_known_issues": [],
+      "split": "development",
+      "sanitize": {
+        "drop_items": [
+          "burn_vulnerable",
+          "mint_secure",
+          "burn_secure"
+        ]
+      },
+      "evidence": {
+        "type": "mollusk_reference_test",
+        "reference_test": "patterns/03-integer-overflow/tests/tests/exploit.rs::exploit_overflow_supply_wraps_to_zero",
+        "expected_status": "Success",
+        "verified": true,
+        "verified_on": "2026-10-06",
+        "log": "docs/coleta_2026-10-06/"
+      },
+      "notes": "",
+      "authored_by_student": false
+    },
+    {
+      "id": "SSP-03-A-V2",
+      "source": "Solana Security Patterns",
+      "source_key": "ssp",
+      "repo": "justFiveDev/solana-security-pattern",
+      "commit": "a128ce9ceacadda7bb8ed686ce6a694439277dc5",
+      "framework": "anchor",
+      "program_path": "patterns/03-integer-overflow/anchor/src/lib.rs",
+      "ported_path": null,
+      "instruction": "burn_vulnerable",
+      "label": "vulnerable",
+      "target_category": "Integer Overflow / Underflow",
+      "other_known_issues": [],
+      "split": "development",
+      "sanitize": {
+        "drop_items": [
+          "mint_vulnerable",
+          "mint_secure",
+          "burn_secure"
+        ]
+      },
+      "evidence": {
+        "type": "mollusk_reference_test",
+        "reference_test": "patterns/03-integer-overflow/tests/tests/exploit.rs::exploit_underflow_balance_wraps_to_max",
+        "expected_status": "Success",
+        "verified": true,
+        "verified_on": "2026-10-06",
+        "log": "docs/coleta_2026-10-06/"
+      },
+      "notes": "",
+      "authored_by_student": false
+    },
+    {
+      "id": "SSP-03-A-S1",
+      "source": "Solana Security Patterns",
+      "source_key": "ssp",
+      "repo": "justFiveDev/solana-security-pattern",
+      "commit": "a128ce9ceacadda7bb8ed686ce6a694439277dc5",
+      "framework": "anchor",
+      "program_path": "patterns/03-integer-overflow/anchor/src/lib.rs",
+      "ported_path": null,
+      "instruction": "mint_secure",
+      "label": "secure",
+      "target_category": "Integer Overflow / Underflow",
+      "other_known_issues": [],
+      "split": "development",
+      "sanitize": {
+        "drop_items": [
+          "mint_vulnerable",
+          "burn_vulnerable",
+          "burn_secure"
+        ]
+      },
+      "evidence": {
+        "type": "mollusk_reference_test",
+        "reference_test": "patterns/03-integer-overflow/tests/tests/exploit.rs::secure_blocks_overflow",
+        "expected_status": "Custom(6000)",
+        "verified": true,
+        "verified_on": "2026-10-06",
+        "log": "docs/coleta_2026-10-06/"
+      },
+      "notes": "",
+      "authored_by_student": false
+    },
+    {
+      "id": "SSP-03-A-S2",
+      "source": "Solana Security Patterns",
+      "source_key": "ssp",
+      "repo": "justFiveDev/solana-security-pattern",
+      "commit": "a128ce9ceacadda7bb8ed686ce6a694439277dc5",
+      "framework": "anchor",
+      "program_path": "patterns/03-integer-overflow/anchor/src/lib.rs",
+      "ported_path": null,
+      "instruction": "burn_secure",
+      "label": "secure",
+      "target_category": "Integer Overflow / Underflow",
+      "other_known_issues": [],
+      "split": "development",
+      "sanitize": {
+        "drop_items": [
+          "mint_vulnerable",
+          "burn_vulnerable",
+          "mint_secure"
+        ]
+      },
+      "evidence": {
+        "type": "mollusk_reference_test",
+        "reference_test": "patterns/03-integer-overflow/tests/tests/exploit.rs::secure_blocks_underflow",
+        "expected_status": "Custom(6001)",
+        "verified": true,
+        "verified_on": "2026-10-06",
+        "log": "docs/coleta_2026-10-06/"
+      },
+      "notes": "",
+      "authored_by_student": false
+    },
+    {
+      "id": "SSP-04-A-V",
+      "source": "Solana Security Patterns",
+      "source_key": "ssp",
+      "repo": "justFiveDev/solana-security-pattern",
+      "commit": "a128ce9ceacadda7bb8ed686ce6a694439277dc5",
+      "framework": "anchor",
+      "program_path": "patterns/04-reinitialization-attack/anchor/src/lib.rs",
+      "ported_path": null,
+      "instruction": "init_vulnerable",
+      "label": "vulnerable",
+      "target_category": "Reinitialization Attacks",
+      "other_known_issues": [],
+      "split": "development",
+      "sanitize": {
+        "drop_items": [
+          "init_secure",
+          "InitSecure",
+          "init_anchor_native",
+          "InitAnchorNative"
+        ]
+      },
+      "evidence": {
+        "type": "mollusk_reference_test",
+        "reference_test": "patterns/04-reinitialization-attack/tests/tests/exploit.rs::exploit_reinit_overwrites_authority",
+        "expected_status": "Success",
+        "verified": true,
+        "verified_on": "2026-10-06",
+        "log": "docs/coleta_2026-10-06/"
+      },
+      "notes": "",
+      "authored_by_student": false
+    },
+    {
+      "id": "SSP-04-A-S",
+      "source": "Solana Security Patterns",
+      "source_key": "ssp",
+      "repo": "justFiveDev/solana-security-pattern",
+      "commit": "a128ce9ceacadda7bb8ed686ce6a694439277dc5",
+      "framework": "anchor",
+      "program_path": "patterns/04-reinitialization-attack/anchor/src/lib.rs",
+      "ported_path": null,
+      "instruction": "init_secure",
+      "label": "secure",
+      "target_category": "Reinitialization Attacks",
+      "other_known_issues": [],
+      "split": "development",
+      "sanitize": {
+        "drop_items": [
+          "init_vulnerable",
+          "InitVulnerable",
+          "init_anchor_native",
+          "InitAnchorNative"
+        ]
+      },
+      "evidence": {
+        "type": "mollusk_reference_test",
+        "reference_test": "patterns/04-reinitialization-attack/tests/tests/exploit.rs::secure_blocks_reinit",
+        "expected_status": "Custom(6000)",
+        "verified": true,
+        "verified_on": "2026-10-06",
+        "log": "docs/coleta_2026-10-06/"
+      },
+      "notes": "",
+      "authored_by_student": false
+    },
+    {
+      "id": "SSP-04-A-S2",
+      "source": "Solana Security Patterns",
+      "source_key": "ssp",
+      "repo": "justFiveDev/solana-security-pattern",
+      "commit": "a128ce9ceacadda7bb8ed686ce6a694439277dc5",
+      "framework": "anchor",
+      "program_path": "patterns/04-reinitialization-attack/anchor/src/lib.rs",
+      "ported_path": null,
+      "instruction": "init_anchor_native",
+      "label": "secure",
+      "target_category": "Reinitialization Attacks",
+      "other_known_issues": [],
+      "split": "development",
+      "sanitize": {
+        "drop_items": [
+          "init_vulnerable",
+          "InitVulnerable",
+          "init_secure",
+          "InitSecure"
+        ]
+      },
+      "evidence": {
+        "type": "static_only",
+        "reference_test": null,
+        "expected_status": null,
+        "verified": false
+      },
+      "notes": "Constraint init do Anchor; sem teste Mollusk na fonte.",
+      "authored_by_student": false
+    },
+    {
+      "id": "SSP-05-A-V",
+      "source": "Solana Security Patterns",
+      "source_key": "ssp",
+      "repo": "justFiveDev/solana-security-pattern",
+      "commit": "a128ce9ceacadda7bb8ed686ce6a694439277dc5",
+      "framework": "anchor",
+      "program_path": "patterns/05-pda-bump-canonicalization/anchor/src/lib.rs",
+      "ported_path": null,
+      "instruction": "set_value_vulnerable",
+      "label": "vulnerable",
+      "target_category": "Improper PDA Validation / Canonicalization",
+      "other_known_issues": [],
+      "split": "development",
+      "sanitize": {
+        "drop_items": [
+          "set_value_secure",
+          "SetValueSecure"
+        ]
+      },
+      "evidence": {
+        "type": "mollusk_reference_test",
+        "reference_test": "patterns/05-pda-bump-canonicalization/tests/tests/exploit.rs::exploit_non_canonical_bump_accepted",
+        "expected_status": "Success",
+        "verified": true,
+        "verified_on": "2026-10-06",
+        "log": "docs/coleta_2026-10-06/"
+      },
+      "notes": "",
+      "authored_by_student": false
+    },
+    {
+      "id": "SSP-05-A-S",
+      "source": "Solana Security Patterns",
+      "source_key": "ssp",
+      "repo": "justFiveDev/solana-security-pattern",
+      "commit": "a128ce9ceacadda7bb8ed686ce6a694439277dc5",
+      "framework": "anchor",
+      "program_path": "patterns/05-pda-bump-canonicalization/anchor/src/lib.rs",
+      "ported_path": null,
+      "instruction": "set_value_secure",
+      "label": "secure",
+      "target_category": "Improper PDA Validation / Canonicalization",
+      "other_known_issues": [],
+      "split": "development",
+      "sanitize": {
+        "drop_items": [
+          "set_value_vulnerable",
+          "SetValueVulnerable"
+        ]
+      },
+      "evidence": {
+        "type": "mollusk_reference_test",
+        "reference_test": "patterns/05-pda-bump-canonicalization/tests/tests/exploit.rs::secure_rejects_non_canonical_bump",
+        "expected_status": "Custom(6001)",
+        "verified": true,
+        "verified_on": "2026-10-06",
+        "log": "docs/coleta_2026-10-06/"
+      },
+      "notes": "",
+      "authored_by_student": false
+    },
+    {
+      "id": "SSP-06-A-V",
+      "source": "Solana Security Patterns",
+      "source_key": "ssp",
+      "repo": "justFiveDev/solana-security-pattern",
+      "commit": "a128ce9ceacadda7bb8ed686ce6a694439277dc5",
+      "framework": "anchor",
+      "program_path": "patterns/06-type-cosplay/anchor/src/lib.rs",
+      "ported_path": null,
+      "instruction": "update_fee_vulnerable",
+      "label": "vulnerable",
+      "target_category": "Type Cosplay",
+      "other_known_issues": [
+        "Improper Owner Check"
+      ],
+      "split": "development",
+      "sanitize": {
+        "drop_items": [
+          "update_fee_secure",
+          "UpdateFeeSecure"
+        ]
+      },
+      "evidence": {
+        "type": "mollusk_reference_test",
+        "reference_test": "patterns/06-type-cosplay/tests/tests/exploit.rs::exploit_type_cosplay_accepted",
+        "expected_status": "Success",
+        "verified": true,
+        "verified_on": "2026-10-06",
+        "log": "docs/coleta_2026-10-06/"
+      },
+      "notes": "UncheckedAccount sem verificacao de owner (escrita mitigada pelo runtime).",
+      "authored_by_student": false
+    },
+    {
+      "id": "SSP-06-A-S",
+      "source": "Solana Security Patterns",
+      "source_key": "ssp",
+      "repo": "justFiveDev/solana-security-pattern",
+      "commit": "a128ce9ceacadda7bb8ed686ce6a694439277dc5",
+      "framework": "anchor",
+      "program_path": "patterns/06-type-cosplay/anchor/src/lib.rs",
+      "ported_path": null,
+      "instruction": "update_fee_secure",
+      "label": "secure",
+      "target_category": "Type Cosplay",
+      "other_known_issues": [],
+      "split": "development",
+      "sanitize": {
+        "drop_items": [
+          "update_fee_vulnerable",
+          "UpdateFeeVulnerable"
+        ]
+      },
+      "evidence": {
+        "type": "mollusk_reference_test",
+        "reference_test": "patterns/06-type-cosplay/tests/tests/exploit.rs::secure_rejects_wrong_discriminator",
+        "expected_status": "Custom(3002)",
+        "verified": true,
+        "verified_on": "2026-10-06",
+        "log": "docs/coleta_2026-10-06/"
+      },
+      "notes": "",
+      "authored_by_student": false
+    },
+    {
+      "id": "SL-00-INS",
+      "source": "Sealevel Attacks",
+      "source_key": "sealevel",
+      "repo": "coral-xyz/sealevel-attacks",
+      "commit": "24555d044802db4022112a94d6d70e74291a4b6d",
+      "framework": "anchor",
+      "program_path": "programs/0-signer-authorization/insecure/src/lib.rs",
+      "ported_path": "programs/sealevel/sl_00_ins/src/lib.rs",
+      "instruction": "log_message",
+      "label": "vulnerable",
+      "target_category": "Missing Signer Check",
+      "other_known_issues": [],
+      "split": "evaluation",
+      "sanitize": {
+        "drop_items": []
+      },
+      "evidence": {
+        "type": "mollusk_oracle_test",
+        "reference_test": "oracle_tests/tests/sealevel.rs::sl_00_ins_attack",
+        "sanity_tests": [],
+        "expected_status": "Success",
+        "verified": true,
+        "verified_on": "2026-10-07",
+        "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+      },
+      "notes": "Requer port para Anchor atual (docs/ports/).",
+      "authored_by_student": false
+    },
+    {
+      "id": "SL-00-SEC",
+      "source": "Sealevel Attacks",
+      "source_key": "sealevel",
+      "repo": "coral-xyz/sealevel-attacks",
+      "commit": "24555d044802db4022112a94d6d70e74291a4b6d",
+      "framework": "anchor",
+      "program_path": "programs/0-signer-authorization/secure/src/lib.rs",
+      "ported_path": "programs/sealevel/sl_00_sec/src/lib.rs",
+      "instruction": "log_message",
+      "label": "secure",
+      "target_category": "Missing Signer Check",
+      "other_known_issues": [],
+      "split": "evaluation",
+      "sanitize": {
+        "drop_items": []
+      },
+      "evidence": {
+        "type": "mollusk_oracle_test",
+        "reference_test": "oracle_tests/tests/sealevel.rs::sl_00_sec_attack",
+        "sanity_tests": [
+          "oracle_tests/tests/sealevel.rs::sl_00_sec_sanity"
+        ],
+        "expected_status": "Err(MissingRequiredSignature)",
+        "verified": true,
+        "verified_on": "2026-10-07",
+        "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+      },
+      "notes": "Requer port para Anchor atual (docs/ports/).",
+      "authored_by_student": false
+    },
+    {
+      "id": "SL-00-REC",
+      "source": "Sealevel Attacks",
+      "source_key": "sealevel",
+      "repo": "coral-xyz/sealevel-attacks",
+      "commit": "24555d044802db4022112a94d6d70e74291a4b6d",
+      "framework": "anchor",
+      "program_path": "programs/0-signer-authorization/recommended/src/lib.rs",
+      "ported_path": "programs/sealevel/sl_00_rec/src/lib.rs",
+      "instruction": "log_message",
+      "label": "secure",
+      "target_category": "Missing Signer Check",
+      "other_known_issues": [],
+      "split": "evaluation",
+      "sanitize": {
+        "drop_items": []
+      },
+      "evidence": {
+        "type": "mollusk_oracle_test",
+        "reference_test": "oracle_tests/tests/sealevel.rs::sl_00_rec_attack",
+        "sanity_tests": [
+          "oracle_tests/tests/sealevel.rs::sl_00_rec_sanity"
+        ],
+        "expected_status": "Err(Custom(3010) AccountNotSigner)",
+        "verified": true,
+        "verified_on": "2026-10-07",
+        "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+      },
+      "notes": "Requer port para Anchor atual (docs/ports/).",
+      "authored_by_student": false
+    },
+    {
+      "id": "SL-02-INS",
+      "source": "Sealevel Attacks",
+      "source_key": "sealevel",
+      "repo": "coral-xyz/sealevel-attacks",
+      "commit": "24555d044802db4022112a94d6d70e74291a4b6d",
+      "framework": "anchor",
+      "program_path": "programs/2-owner-checks/insecure/src/lib.rs",
+      "ported_path": "programs/sealevel/sl_02_ins/src/lib.rs",
+      "instruction": "log_message",
+      "label": "vulnerable",
+      "target_category": "Improper Owner Check",
+      "other_known_issues": [],
+      "split": "evaluation",
+      "sanitize": {
+        "drop_items": []
+      },
+      "evidence": {
+        "type": "mollusk_oracle_test",
+        "reference_test": "oracle_tests/tests/sealevel.rs::sl_02_ins_attack",
+        "sanity_tests": [],
+        "expected_status": "Success",
+        "verified": true,
+        "verified_on": "2026-10-07",
+        "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+      },
+      "notes": "Requer port para Anchor atual (docs/ports/).",
+      "authored_by_student": false
+    },
+    {
+      "id": "SL-02-SEC",
+      "source": "Sealevel Attacks",
+      "source_key": "sealevel",
+      "repo": "coral-xyz/sealevel-attacks",
+      "commit": "24555d044802db4022112a94d6d70e74291a4b6d",
+      "framework": "anchor",
+      "program_path": "programs/2-owner-checks/secure/src/lib.rs",
+      "ported_path": "programs/sealevel/sl_02_sec/src/lib.rs",
+      "instruction": "log_message",
+      "label": "secure",
+      "target_category": "Improper Owner Check",
+      "other_known_issues": [],
+      "split": "evaluation",
+      "sanitize": {
+        "drop_items": []
+      },
+      "evidence": {
+        "type": "mollusk_oracle_test",
+        "reference_test": "oracle_tests/tests/sealevel.rs::sl_02_sec_attack",
+        "sanity_tests": [
+          "oracle_tests/tests/sealevel.rs::sl_02_sec_sanity"
+        ],
+        "expected_status": "Err(InvalidAccountData)",
+        "verified": true,
+        "verified_on": "2026-10-07",
+        "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+      },
+      "notes": "Requer port para Anchor atual (docs/ports/).",
+      "authored_by_student": false
+    },
+    {
+      "id": "SL-02-REC",
+      "source": "Sealevel Attacks",
+      "source_key": "sealevel",
+      "repo": "coral-xyz/sealevel-attacks",
+      "commit": "24555d044802db4022112a94d6d70e74291a4b6d",
+      "framework": "anchor",
+      "program_path": "programs/2-owner-checks/recommended/src/lib.rs",
+      "ported_path": "programs/sealevel/sl_02_rec/src/lib.rs",
+      "instruction": "log_message",
+      "label": "secure",
+      "target_category": "Improper Owner Check",
+      "other_known_issues": [],
+      "split": "evaluation",
+      "sanitize": {
+        "drop_items": []
+      },
+      "evidence": {
+        "type": "mollusk_oracle_test",
+        "reference_test": "oracle_tests/tests/sealevel.rs::sl_02_rec_attack",
+        "sanity_tests": [
+          "oracle_tests/tests/sealevel.rs::sl_02_rec_sanity"
+        ],
+        "expected_status": "Err(Custom(3007) AccountOwnedByWrongProgram)",
+        "verified": true,
+        "verified_on": "2026-10-07",
+        "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+      },
+      "notes": "Requer port para Anchor atual (docs/ports/).",
+      "authored_by_student": false
+    },
+    {
+      "id": "SL-03-INS",
+      "source": "Sealevel Attacks",
+      "source_key": "sealevel",
+      "repo": "coral-xyz/sealevel-attacks",
+      "commit": "24555d044802db4022112a94d6d70e74291a4b6d",
+      "framework": "anchor",
+      "program_path": "programs/3-type-cosplay/insecure/src/lib.rs",
+      "ported_path": "programs/sealevel/sl_03_ins/src/lib.rs",
+      "instruction": "update_user",
+      "label": "vulnerable",
+      "target_category": "Type Cosplay",
+      "other_known_issues": [],
+      "split": "evaluation",
+      "sanitize": {
+        "drop_items": []
+      },
+      "evidence": {
+        "type": "mollusk_oracle_test",
+        "reference_test": "oracle_tests/tests/sealevel.rs::sl_03_ins_attack",
+        "sanity_tests": [],
+        "expected_status": "Success",
+        "verified": true,
+        "verified_on": "2026-10-07",
+        "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+      },
+      "notes": "Verifica owner mas nao o tipo: separa Cosplay de Owner. Requer port para Anchor atual (docs/ports/).",
+      "authored_by_student": false
+    },
+    {
+      "id": "SL-03-SEC",
+      "source": "Sealevel Attacks",
+      "source_key": "sealevel",
+      "repo": "coral-xyz/sealevel-attacks",
+      "commit": "24555d044802db4022112a94d6d70e74291a4b6d",
+      "framework": "anchor",
+      "program_path": "programs/3-type-cosplay/secure/src/lib.rs",
+      "ported_path": "programs/sealevel/sl_03_sec/src/lib.rs",
+      "instruction": "update_user",
+      "label": "secure",
+      "target_category": "Type Cosplay",
+      "other_known_issues": [],
+      "split": "evaluation",
+      "sanitize": {
+        "drop_items": []
+      },
+      "evidence": {
+        "type": "mollusk_oracle_test",
+        "reference_test": "oracle_tests/tests/sealevel.rs::sl_03_sec_attack",
+        "sanity_tests": [
+          "oracle_tests/tests/sealevel.rs::sl_03_sec_sanity"
+        ],
+        "expected_status": "Err(InvalidAccountData)",
+        "verified": true,
+        "verified_on": "2026-10-07",
+        "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+      },
+      "notes": "Requer port para Anchor atual (docs/ports/).",
+      "authored_by_student": false
+    },
+    {
+      "id": "SL-03-REC",
+      "source": "Sealevel Attacks",
+      "source_key": "sealevel",
+      "repo": "coral-xyz/sealevel-attacks",
+      "commit": "24555d044802db4022112a94d6d70e74291a4b6d",
+      "framework": "anchor",
+      "program_path": "programs/3-type-cosplay/recommended/src/lib.rs",
+      "ported_path": "programs/sealevel/sl_03_rec/src/lib.rs",
+      "instruction": "update_user",
+      "label": "secure",
+      "target_category": "Type Cosplay",
+      "other_known_issues": [],
+      "split": "evaluation",
+      "sanitize": {
+        "drop_items": []
+      },
+      "evidence": {
+        "type": "mollusk_oracle_test",
+        "reference_test": "oracle_tests/tests/sealevel.rs::sl_03_rec_attack",
+        "sanity_tests": [
+          "oracle_tests/tests/sealevel.rs::sl_03_rec_sanity"
+        ],
+        "expected_status": "Err(Custom(3002) AccountDiscriminatorMismatch)",
+        "verified": true,
+        "verified_on": "2026-10-07",
+        "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+      },
+      "notes": "Requer port para Anchor atual (docs/ports/).",
+      "authored_by_student": false
+    },
+    {
+      "id": "SL-04-INS",
+      "source": "Sealevel Attacks",
+      "source_key": "sealevel",
+      "repo": "coral-xyz/sealevel-attacks",
+      "commit": "24555d044802db4022112a94d6d70e74291a4b6d",
+      "framework": "anchor",
+      "program_path": "programs/4-initialization/insecure/src/lib.rs",
+      "ported_path": "programs/sealevel/sl_04_ins/src/lib.rs",
+      "instruction": "initialize",
+      "label": "vulnerable",
+      "target_category": "Reinitialization Attacks",
+      "other_known_issues": [],
+      "split": "evaluation",
+      "sanitize": {
+        "drop_items": []
+      },
+      "evidence": {
+        "type": "mollusk_oracle_test",
+        "reference_test": "oracle_tests/tests/sealevel.rs::sl_04_ins_attack",
+        "sanity_tests": [],
+        "expected_status": "Success",
+        "verified": true,
+        "verified_on": "2026-10-07",
+        "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+      },
+      "notes": "Requer port para Anchor atual (docs/ports/).",
+      "authored_by_student": false
+    },
+    {
+      "id": "SL-04-SEC",
+      "source": "Sealevel Attacks",
+      "source_key": "sealevel",
+      "repo": "coral-xyz/sealevel-attacks",
+      "commit": "24555d044802db4022112a94d6d70e74291a4b6d",
+      "framework": "anchor",
+      "program_path": "programs/4-initialization/secure/src/lib.rs",
+      "ported_path": "programs/sealevel/sl_04_sec/src/lib.rs",
+      "instruction": "initialize",
+      "label": "vulnerable",
+      "target_category": "Reinitialization Attacks",
+      "other_known_issues": [],
+      "split": "evaluation",
+      "sanitize": {
+        "drop_items": []
+      },
+      "evidence": {
+        "type": "mollusk_oracle_test",
+        "reference_test": "oracle_tests/tests/sealevel.rs::sl_04_sec_attack",
+        "sanity_tests": [
+          "oracle_tests/tests/sealevel.rs::sl_04_sec_first_init_blocked"
+        ],
+        "expected_status": "Success (reinicializacao aceita)",
+        "verified": true,
+        "verified_on": "2026-10-07",
+        "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+      },
+      "notes": "DIVERGE DA FONTE: pasta 'secure', mas a condicao '!user.discriminator' esta invertida; bloqueia a 1a inicializacao e permite reinicializar. Commit 4bd537c dizia corrigir, HEAD ainda invertido. Requer port para Anchor atual (docs/ports/).",
+      "authored_by_student": false
+    },
+    {
+      "id": "SL-04-REC",
+      "source": "Sealevel Attacks",
+      "source_key": "sealevel",
+      "repo": "coral-xyz/sealevel-attacks",
+      "commit": "24555d044802db4022112a94d6d70e74291a4b6d",
+      "framework": "anchor",
+      "program_path": "programs/4-initialization/recommended/src/lib.rs",
+      "ported_path": "programs/sealevel/sl_04_rec/src/lib.rs",
+      "instruction": "init",
+      "label": "secure",
+      "target_category": "Reinitialization Attacks",
+      "other_known_issues": [],
+      "split": "evaluation",
+      "sanitize": {
+        "drop_items": []
+      },
+      "evidence": {
+        "type": "mollusk_oracle_test",
+        "reference_test": "oracle_tests/tests/sealevel.rs::sl_04_rec_attack",
+        "sanity_tests": [
+          "oracle_tests/tests/sealevel.rs::sl_04_rec_sanity"
+        ],
+        "expected_status": "Err(qualquer)",
+        "verified": true,
+        "verified_on": "2026-10-07",
+        "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+      },
+      "notes": "Requer port para Anchor atual (docs/ports/).",
+      "authored_by_student": false
+    },
+    {
+      "id": "SL-05-INS",
+      "source": "Sealevel Attacks",
+      "source_key": "sealevel",
+      "repo": "coral-xyz/sealevel-attacks",
+      "commit": "24555d044802db4022112a94d6d70e74291a4b6d",
+      "framework": "anchor",
+      "program_path": "programs/5-arbitrary-cpi/insecure/src/lib.rs",
+      "ported_path": "programs/sealevel/sl_05_ins/src/lib.rs",
+      "instruction": "cpi",
+      "label": "secure",
+      "target_category": "Arbitrary CPI",
+      "other_known_issues": [],
+      "split": "evaluation",
+      "sanitize": {
+        "drop_items": []
+      },
+      "evidence": {
+        "type": "mollusk_oracle_test",
+        "reference_test": "oracle_tests/tests/sealevel.rs::sl_05_ins_attack",
+        "sanity_tests": [],
+        "expected_status": "Err(IncorrectProgramId) no construtor spl_token antes do CPI",
+        "verified": true,
+        "verified_on": "2026-10-07",
+        "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+      },
+      "notes": "DIVERGE DA FONTE: pasta 'insecure', mas spl_token::instruction::transfer valida o program id (check_program_account) e o CPI arbitrario e rejeitado antes de acontecer. Mitigado pela biblioteca. Requer port para Anchor atual (docs/ports/).",
+      "authored_by_student": false
+    },
+    {
+      "id": "SL-05-RAW",
+      "source": "Sealevel Attacks",
+      "source_key": "sealevel",
+      "repo": "coral-xyz/sealevel-attacks",
+      "commit": "24555d044802db4022112a94d6d70e74291a4b6d",
+      "framework": "anchor",
+      "program_path": "programs/5-arbitrary-cpi/insecure/src/lib.rs",
+      "ported_path": "programs/sealevel/sl_05_raw/src/lib.rs",
+      "instruction": "cpi",
+      "label": "vulnerable",
+      "target_category": "Arbitrary CPI",
+      "other_known_issues": [],
+      "split": "evaluation",
+      "sanitize": {
+        "drop_items": []
+      },
+      "evidence": {
+        "type": "mollusk_oracle_test",
+        "reference_test": "oracle_tests/tests/sealevel.rs::sl_05_raw_attack",
+        "sanity_tests": [],
+        "expected_status": "Success (programa arbitrario invocado)",
+        "verified": true,
+        "verified_on": "2026-10-07",
+        "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+      },
+      "notes": "Construido pelo autor a partir de SL-05-INS: instrucao montada manualmente, sem o construtor da biblioteca. Unico caso vulneravel de Arbitrary CPI com execucao confirmada.",
+      "authored_by_student": true
+    },
+    {
+      "id": "SL-05-SEC",
+      "source": "Sealevel Attacks",
+      "source_key": "sealevel",
+      "repo": "coral-xyz/sealevel-attacks",
+      "commit": "24555d044802db4022112a94d6d70e74291a4b6d",
+      "framework": "anchor",
+      "program_path": "programs/5-arbitrary-cpi/secure/src/lib.rs",
+      "ported_path": "programs/sealevel/sl_05_sec/src/lib.rs",
+      "instruction": "cpi_secure",
+      "label": "secure",
+      "target_category": "Arbitrary CPI",
+      "other_known_issues": [],
+      "split": "evaluation",
+      "sanitize": {
+        "drop_items": []
+      },
+      "evidence": {
+        "type": "mollusk_oracle_test",
+        "reference_test": "oracle_tests/tests/sealevel.rs::sl_05_sec_attack",
+        "sanity_tests": [],
+        "expected_status": "Err(IncorrectProgramId)",
+        "verified": true,
+        "verified_on": "2026-10-07",
+        "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+      },
+      "notes": "Requer port para Anchor atual (docs/ports/).",
+      "authored_by_student": false
+    },
+    {
+      "id": "SL-05-REC",
+      "source": "Sealevel Attacks",
+      "source_key": "sealevel",
+      "repo": "coral-xyz/sealevel-attacks",
+      "commit": "24555d044802db4022112a94d6d70e74291a4b6d",
+      "framework": "anchor",
+      "program_path": "programs/5-arbitrary-cpi/recommended/src/lib.rs",
+      "ported_path": "programs/sealevel/sl_05_rec/src/lib.rs",
+      "instruction": "cpi",
+      "label": "secure",
+      "target_category": "Arbitrary CPI",
+      "other_known_issues": [],
+      "split": "evaluation",
+      "sanitize": {
+        "drop_items": []
+      },
+      "evidence": {
+        "type": "mollusk_oracle_test",
+        "reference_test": "oracle_tests/tests/sealevel.rs::sl_05_rec_attack",
+        "sanity_tests": [],
+        "expected_status": "Err(Custom(3008) InvalidProgramId)",
+        "verified": true,
+        "verified_on": "2026-10-07",
+        "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+      },
+      "notes": "Requer port para Anchor atual (docs/ports/).",
+      "authored_by_student": false
+    },
+    {
+      "id": "SL-07-INS",
+      "source": "Sealevel Attacks",
+      "source_key": "sealevel",
+      "repo": "coral-xyz/sealevel-attacks",
+      "commit": "24555d044802db4022112a94d6d70e74291a4b6d",
+      "framework": "anchor",
+      "program_path": "programs/7-bump-seed-canonicalization/insecure/src/lib.rs",
+      "ported_path": "programs/sealevel/sl_07_ins/src/lib.rs",
+      "instruction": "set_value",
+      "label": "vulnerable",
+      "target_category": "Improper PDA Validation / Canonicalization",
+      "other_known_issues": [
+        "Missing Signer Check"
+      ],
+      "split": "evaluation",
+      "sanitize": {
+        "drop_items": []
+      },
+      "evidence": {
+        "type": "mollusk_oracle_test",
+        "reference_test": "oracle_tests/tests/sealevel.rs::sl_07_ins_attack",
+        "sanity_tests": [],
+        "expected_status": "Success",
+        "verified": true,
+        "verified_on": "2026-10-07",
+        "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+      },
+      "notes": "Sem controle de acesso em nenhuma variante. Requer port para Anchor atual (docs/ports/).",
+      "authored_by_student": false
+    },
+    {
+      "id": "SL-07-SEC",
+      "source": "Sealevel Attacks",
+      "source_key": "sealevel",
+      "repo": "coral-xyz/sealevel-attacks",
+      "commit": "24555d044802db4022112a94d6d70e74291a4b6d",
+      "framework": "anchor",
+      "program_path": "programs/7-bump-seed-canonicalization/secure/src/lib.rs",
+      "ported_path": "programs/sealevel/sl_07_sec/src/lib.rs",
+      "instruction": "set_value_secure",
+      "label": "secure",
+      "target_category": "Improper PDA Validation / Canonicalization",
+      "other_known_issues": [
+        "Missing Signer Check"
+      ],
+      "split": "evaluation",
+      "sanitize": {
+        "drop_items": []
+      },
+      "evidence": {
+        "type": "mollusk_oracle_test",
+        "reference_test": "oracle_tests/tests/sealevel.rs::sl_07_sec_attack",
+        "sanity_tests": [
+          "oracle_tests/tests/sealevel.rs::sl_07_sec_sanity"
+        ],
+        "expected_status": "Err(InvalidArgument)",
+        "verified": true,
+        "verified_on": "2026-10-07",
+        "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+      },
+      "notes": "Sem controle de acesso em nenhuma variante. Requer port para Anchor atual (docs/ports/).",
+      "authored_by_student": false
+    },
+    {
+      "id": "SL-07-REC",
+      "source": "Sealevel Attacks",
+      "source_key": "sealevel",
+      "repo": "coral-xyz/sealevel-attacks",
+      "commit": "24555d044802db4022112a94d6d70e74291a4b6d",
+      "framework": "anchor",
+      "program_path": "programs/7-bump-seed-canonicalization/recommended/src/lib.rs",
+      "ported_path": "programs/sealevel/sl_07_rec/src/lib.rs",
+      "instruction": "set_value",
+      "label": "secure",
+      "target_category": "Improper PDA Validation / Canonicalization",
+      "other_known_issues": [
+        "Missing Signer Check"
+      ],
+      "split": "evaluation",
+      "sanitize": {
+        "drop_items": []
+      },
+      "evidence": {
+        "type": "mollusk_oracle_test",
+        "reference_test": "oracle_tests/tests/sealevel.rs::sl_07_rec_attack",
+        "sanity_tests": [
+          "oracle_tests/tests/sealevel.rs::sl_07_rec_sanity"
+        ],
+        "expected_status": "Err(Custom(2006) ConstraintSeeds)",
+        "verified": true,
+        "verified_on": "2026-10-07",
+        "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+      },
+      "notes": "Sem controle de acesso em nenhuma variante. Requer port para Anchor atual (docs/ports/).",
+      "authored_by_student": false
+    },
+    {
+      "id": "SL-10-INS",
+      "source": "Sealevel Attacks",
+      "source_key": "sealevel",
+      "repo": "coral-xyz/sealevel-attacks",
+      "commit": "24555d044802db4022112a94d6d70e74291a4b6d",
+      "framework": "anchor",
+      "program_path": "programs/10-sysvar-address-checking/insecure/src/lib.rs",
+      "ported_path": "programs/sealevel/sl_10_ins/src/lib.rs",
+      "instruction": "check_sysvar_address",
+      "label": "vulnerable",
+      "target_category": "Sysvar Account Check",
+      "other_known_issues": [],
+      "split": "evaluation",
+      "sanitize": {
+        "drop_items": []
+      },
+      "evidence": {
+        "type": "mollusk_oracle_test",
+        "reference_test": "oracle_tests/tests/sealevel.rs::sl_10_ins_attack",
+        "sanity_tests": [],
+        "expected_status": "Success",
+        "verified": true,
+        "verified_on": "2026-10-07",
+        "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+      },
+      "notes": "Requer port para Anchor atual (docs/ports/).",
+      "authored_by_student": false
+    },
+    {
+      "id": "SL-10-SEC",
+      "source": "Sealevel Attacks",
+      "source_key": "sealevel",
+      "repo": "coral-xyz/sealevel-attacks",
+      "commit": "24555d044802db4022112a94d6d70e74291a4b6d",
+      "framework": "anchor",
+      "program_path": "programs/10-sysvar-address-checking/secure/src/lib.rs",
+      "ported_path": "programs/sealevel/sl_10_sec/src/lib.rs",
+      "instruction": "check_sysvar_address",
+      "label": "secure",
+      "target_category": "Sysvar Account Check",
+      "other_known_issues": [],
+      "split": "evaluation",
+      "sanitize": {
+        "drop_items": []
+      },
+      "evidence": {
+        "type": "mollusk_oracle_test",
+        "reference_test": "oracle_tests/tests/sealevel.rs::sl_10_sec_attack",
+        "sanity_tests": [
+          "oracle_tests/tests/sealevel.rs::sl_10_sec_sanity"
+        ],
+        "expected_status": "Err(Custom(2501) RequireEqViolated)",
+        "verified": true,
+        "verified_on": "2026-10-07",
+        "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+      },
+      "notes": "Requer port para Anchor atual (docs/ports/).",
+      "authored_by_student": false
+    },
+    {
+      "id": "SL-10-REC",
+      "source": "Sealevel Attacks",
+      "source_key": "sealevel",
+      "repo": "coral-xyz/sealevel-attacks",
+      "commit": "24555d044802db4022112a94d6d70e74291a4b6d",
+      "framework": "anchor",
+      "program_path": "programs/10-sysvar-address-checking/recommended/src/lib.rs",
+      "ported_path": "programs/sealevel/sl_10_rec/src/lib.rs",
+      "instruction": "check_sysvar_address",
+      "label": "secure",
+      "target_category": "Sysvar Account Check",
+      "other_known_issues": [],
+      "split": "evaluation",
+      "sanitize": {
+        "drop_items": []
+      },
+      "evidence": {
+        "type": "mollusk_oracle_test",
+        "reference_test": "oracle_tests/tests/sealevel.rs::sl_10_rec_attack",
+        "sanity_tests": [
+          "oracle_tests/tests/sealevel.rs::sl_10_rec_sanity"
+        ],
+        "expected_status": "Err(Custom(3015) AccountSysvarMismatch)",
+        "verified": true,
+        "verified_on": "2026-10-07",
+        "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+      },
+      "notes": "Requer port para Anchor atual (docs/ports/).",
+      "authored_by_student": false
+    },
+    {
+      "id": "SSP-01-P-V",
+      "source": "Solana Security Patterns",
+      "source_key": "ssp",
+      "repo": "justFiveDev/solana-security-pattern",
+      "commit": "a128ce9ceacadda7bb8ed686ce6a694439277dc5",
+      "framework": "pinocchio",
+      "program_path": "patterns/01-missing-signer-check/pinocchio/src/lib.rs",
+      "ported_path": null,
+      "instruction": "withdraw_vulnerable",
+      "label": "vulnerable",
+      "target_category": "Missing Signer Check",
+      "other_known_issues": [],
+      "split": "evaluation",
+      "sanitize": {
+        "drop_items": [
+          "withdraw_secure"
+        ]
+      },
+      "evidence": {
+        "type": "mollusk_oracle_test",
+        "reference_test": "oracle_tests/tests/pinocchio.rs::ssp_01_p_v_attack",
+        "sanity_tests": [],
+        "expected_status": "Success",
+        "verified": true,
+        "verified_on": "2026-10-07",
+        "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+      },
+      "notes": "Sem teste na fonte; oraculo a escrever. Compilar a partir de copia em dataset/programs/.",
+      "authored_by_student": false
+    },
+    {
+      "id": "SSP-01-P-S",
+      "source": "Solana Security Patterns",
+      "source_key": "ssp",
+      "repo": "justFiveDev/solana-security-pattern",
+      "commit": "a128ce9ceacadda7bb8ed686ce6a694439277dc5",
+      "framework": "pinocchio",
+      "program_path": "patterns/01-missing-signer-check/pinocchio/src/lib.rs",
+      "ported_path": null,
+      "instruction": "withdraw_secure",
+      "label": "secure",
+      "target_category": "Missing Signer Check",
+      "other_known_issues": [],
+      "split": "evaluation",
+      "sanitize": {
+        "drop_items": [
+          "withdraw_vulnerable"
+        ]
+      },
+      "evidence": {
+        "type": "mollusk_oracle_test",
+        "reference_test": "oracle_tests/tests/pinocchio.rs::ssp_01_p_s_attack",
+        "sanity_tests": [
+          "oracle_tests/tests/pinocchio.rs::ssp_01_p_s_sanity"
+        ],
+        "expected_status": "Err(Custom(1001))",
+        "verified": true,
+        "verified_on": "2026-10-07",
+        "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+      },
+      "notes": "Sem teste na fonte; oraculo a escrever. Compilar a partir de copia em dataset/programs/.",
+      "authored_by_student": false
+    },
+    {
+      "id": "SSP-02-P-V",
+      "source": "Solana Security Patterns",
+      "source_key": "ssp",
+      "repo": "justFiveDev/solana-security-pattern",
+      "commit": "a128ce9ceacadda7bb8ed686ce6a694439277dc5",
+      "framework": "pinocchio",
+      "program_path": "patterns/02-missing-owner-check/pinocchio/src/lib.rs",
+      "ported_path": null,
+      "instruction": "process_vulnerable",
+      "label": "vulnerable",
+      "target_category": "Improper Owner Check",
+      "other_known_issues": [
+        "Type Cosplay"
+      ],
+      "split": "evaluation",
+      "sanitize": {
+        "drop_items": [
+          "process_secure"
+        ]
+      },
+      "evidence": {
+        "type": "mollusk_oracle_test",
+        "reference_test": "oracle_tests/tests/pinocchio.rs::ssp_02_p_v_attack",
+        "sanity_tests": [],
+        "expected_status": "Success",
+        "verified": true,
+        "verified_on": "2026-10-07",
+        "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+      },
+      "notes": "Sem teste na fonte; oraculo a escrever. Compilar a partir de copia em dataset/programs/.",
+      "authored_by_student": false
+    },
+    {
+      "id": "SSP-02-P-S",
+      "source": "Solana Security Patterns",
+      "source_key": "ssp",
+      "repo": "justFiveDev/solana-security-pattern",
+      "commit": "a128ce9ceacadda7bb8ed686ce6a694439277dc5",
+      "framework": "pinocchio",
+      "program_path": "patterns/02-missing-owner-check/pinocchio/src/lib.rs",
+      "ported_path": null,
+      "instruction": "process_secure",
+      "label": "secure",
+      "target_category": "Improper Owner Check",
+      "other_known_issues": [],
+      "split": "evaluation",
+      "sanitize": {
+        "drop_items": [
+          "process_vulnerable"
+        ]
+      },
+      "evidence": {
+        "type": "mollusk_oracle_test",
+        "reference_test": "oracle_tests/tests/pinocchio.rs::ssp_02_p_s_attack",
+        "sanity_tests": [
+          "oracle_tests/tests/pinocchio.rs::ssp_02_p_s_sanity"
+        ],
+        "expected_status": "Err(Custom(2001))",
+        "verified": true,
+        "verified_on": "2026-10-07",
+        "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+      },
+      "notes": "Sem teste na fonte; oraculo a escrever. Compilar a partir de copia em dataset/programs/.",
+      "authored_by_student": false
+    },
+    {
+      "id": "SSP-03-P-V1",
+      "source": "Solana Security Patterns",
+      "source_key": "ssp",
+      "repo": "justFiveDev/solana-security-pattern",
+      "commit": "a128ce9ceacadda7bb8ed686ce6a694439277dc5",
+      "framework": "pinocchio",
+      "program_path": "patterns/03-integer-overflow/pinocchio/src/lib.rs",
+      "ported_path": null,
+      "instruction": "mint_vulnerable",
+      "label": "vulnerable",
+      "target_category": "Integer Overflow / Underflow",
+      "other_known_issues": [
+        "Missing Signer Check"
+      ],
+      "split": "evaluation",
+      "sanitize": {
+        "drop_items": [
+          "burn_vulnerable",
+          "mint_secure",
+          "burn_secure"
+        ]
+      },
+      "evidence": {
+        "type": "mollusk_oracle_test",
+        "reference_test": "oracle_tests/tests/pinocchio.rs::ssp_03_p_v1_attack",
+        "sanity_tests": [],
+        "expected_status": "Success",
+        "verified": true,
+        "verified_on": "2026-10-07",
+        "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+      },
+      "notes": "Sem teste na fonte; oraculo a escrever. Compilar a partir de copia em dataset/programs/.",
+      "authored_by_student": false
+    },
+    {
+      "id": "SSP-03-P-V2",
+      "source": "Solana Security Patterns",
+      "source_key": "ssp",
+      "repo": "justFiveDev/solana-security-pattern",
+      "commit": "a128ce9ceacadda7bb8ed686ce6a694439277dc5",
+      "framework": "pinocchio",
+      "program_path": "patterns/03-integer-overflow/pinocchio/src/lib.rs",
+      "ported_path": null,
+      "instruction": "burn_vulnerable",
+      "label": "vulnerable",
+      "target_category": "Integer Overflow / Underflow",
+      "other_known_issues": [
+        "Missing Signer Check"
+      ],
+      "split": "evaluation",
+      "sanitize": {
+        "drop_items": [
+          "mint_vulnerable",
+          "mint_secure",
+          "burn_secure"
+        ]
+      },
+      "evidence": {
+        "type": "mollusk_oracle_test",
+        "reference_test": "oracle_tests/tests/pinocchio.rs::ssp_03_p_v2_attack",
+        "sanity_tests": [],
+        "expected_status": "Success",
+        "verified": true,
+        "verified_on": "2026-10-07",
+        "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+      },
+      "notes": "Sem teste na fonte; oraculo a escrever. Compilar a partir de copia em dataset/programs/.",
+      "authored_by_student": false
+    },
+    {
+      "id": "SSP-03-P-S1",
+      "source": "Solana Security Patterns",
+      "source_key": "ssp",
+      "repo": "justFiveDev/solana-security-pattern",
+      "commit": "a128ce9ceacadda7bb8ed686ce6a694439277dc5",
+      "framework": "pinocchio",
+      "program_path": "patterns/03-integer-overflow/pinocchio/src/lib.rs",
+      "ported_path": null,
+      "instruction": "mint_secure",
+      "label": "secure",
+      "target_category": "Integer Overflow / Underflow",
+      "other_known_issues": [
+        "Missing Signer Check"
+      ],
+      "split": "evaluation",
+      "sanitize": {
+        "drop_items": [
+          "mint_vulnerable",
+          "burn_vulnerable",
+          "burn_secure"
+        ]
+      },
+      "evidence": {
+        "type": "mollusk_oracle_test",
+        "reference_test": "oracle_tests/tests/pinocchio.rs::ssp_03_p_s1_attack",
+        "sanity_tests": [
+          "oracle_tests/tests/pinocchio.rs::ssp_03_p_s1_sanity"
+        ],
+        "expected_status": "Err(Custom(3001))",
+        "verified": true,
+        "verified_on": "2026-10-07",
+        "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+      },
+      "notes": "Sem teste na fonte; oraculo a escrever. Compilar a partir de copia em dataset/programs/.",
+      "authored_by_student": false
+    },
+    {
+      "id": "SSP-03-P-S2",
+      "source": "Solana Security Patterns",
+      "source_key": "ssp",
+      "repo": "justFiveDev/solana-security-pattern",
+      "commit": "a128ce9ceacadda7bb8ed686ce6a694439277dc5",
+      "framework": "pinocchio",
+      "program_path": "patterns/03-integer-overflow/pinocchio/src/lib.rs",
+      "ported_path": null,
+      "instruction": "burn_secure",
+      "label": "secure",
+      "target_category": "Integer Overflow / Underflow",
+      "other_known_issues": [
+        "Missing Signer Check"
+      ],
+      "split": "evaluation",
+      "sanitize": {
+        "drop_items": [
+          "mint_vulnerable",
+          "burn_vulnerable",
+          "mint_secure"
+        ]
+      },
+      "evidence": {
+        "type": "mollusk_oracle_test",
+        "reference_test": "oracle_tests/tests/pinocchio.rs::ssp_03_p_s2_attack",
+        "sanity_tests": [
+          "oracle_tests/tests/pinocchio.rs::ssp_03_p_s2_sanity"
+        ],
+        "expected_status": "Err(Custom(3002))",
+        "verified": true,
+        "verified_on": "2026-10-07",
+        "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+      },
+      "notes": "Sem teste na fonte; oraculo a escrever. Compilar a partir de copia em dataset/programs/.",
+      "authored_by_student": false
+    },
+    {
+      "id": "SSP-04-P-V",
+      "source": "Solana Security Patterns",
+      "source_key": "ssp",
+      "repo": "justFiveDev/solana-security-pattern",
+      "commit": "a128ce9ceacadda7bb8ed686ce6a694439277dc5",
+      "framework": "pinocchio",
+      "program_path": "patterns/04-reinitialization-attack/pinocchio/src/lib.rs",
+      "ported_path": null,
+      "instruction": "init_vulnerable",
+      "label": "vulnerable",
+      "target_category": "Reinitialization Attacks",
+      "other_known_issues": [
+        "Missing Signer Check"
+      ],
+      "split": "evaluation",
+      "sanitize": {
+        "drop_items": [
+          "init_secure"
+        ]
+      },
+      "evidence": {
+        "type": "mollusk_oracle_test",
+        "reference_test": "oracle_tests/tests/pinocchio.rs::ssp_04_p_v_attack",
+        "sanity_tests": [],
+        "expected_status": "Success",
+        "verified": true,
+        "verified_on": "2026-10-07",
+        "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+      },
+      "notes": "Sem teste na fonte; oraculo a escrever. Compilar a partir de copia em dataset/programs/.",
+      "authored_by_student": false
+    },
+    {
+      "id": "SSP-04-P-S",
+      "source": "Solana Security Patterns",
+      "source_key": "ssp",
+      "repo": "justFiveDev/solana-security-pattern",
+      "commit": "a128ce9ceacadda7bb8ed686ce6a694439277dc5",
+      "framework": "pinocchio",
+      "program_path": "patterns/04-reinitialization-attack/pinocchio/src/lib.rs",
+      "ported_path": null,
+      "instruction": "init_secure",
+      "label": "secure",
+      "target_category": "Reinitialization Attacks",
+      "other_known_issues": [
+        "Missing Signer Check"
+      ],
+      "split": "evaluation",
+      "sanitize": {
+        "drop_items": [
+          "init_vulnerable"
+        ]
+      },
+      "evidence": {
+        "type": "mollusk_oracle_test",
+        "reference_test": "oracle_tests/tests/pinocchio.rs::ssp_04_p_s_attack",
+        "sanity_tests": [
+          "oracle_tests/tests/pinocchio.rs::ssp_04_p_s_sanity"
+        ],
+        "expected_status": "Err(Custom(4001))",
+        "verified": true,
+        "verified_on": "2026-10-07",
+        "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+      },
+      "notes": "Sem teste na fonte; oraculo a escrever. Compilar a partir de copia em dataset/programs/.",
+      "authored_by_student": false
+    },
+    {
+      "id": "SSP-05-P-V",
+      "source": "Solana Security Patterns",
+      "source_key": "ssp",
+      "repo": "justFiveDev/solana-security-pattern",
+      "commit": "a128ce9ceacadda7bb8ed686ce6a694439277dc5",
+      "framework": "pinocchio",
+      "program_path": "patterns/05-pda-bump-canonicalization/pinocchio/src/lib.rs",
+      "ported_path": null,
+      "instruction": "set_value_vulnerable",
+      "label": "vulnerable",
+      "target_category": "Improper PDA Validation / Canonicalization",
+      "other_known_issues": [
+        "Missing Signer Check"
+      ],
+      "split": "evaluation",
+      "sanitize": {
+        "drop_items": [
+          "set_value_secure"
+        ]
+      },
+      "evidence": {
+        "type": "mollusk_oracle_test",
+        "reference_test": "oracle_tests/tests/pinocchio.rs::ssp_05_p_v_attack",
+        "sanity_tests": [],
+        "expected_status": "Success",
+        "verified": true,
+        "verified_on": "2026-10-07",
+        "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+      },
+      "notes": "Sem teste na fonte; oraculo a escrever. Compilar a partir de copia em dataset/programs/.",
+      "authored_by_student": false
+    },
+    {
+      "id": "SSP-05-P-S",
+      "source": "Solana Security Patterns",
+      "source_key": "ssp",
+      "repo": "justFiveDev/solana-security-pattern",
+      "commit": "a128ce9ceacadda7bb8ed686ce6a694439277dc5",
+      "framework": "pinocchio",
+      "program_path": "patterns/05-pda-bump-canonicalization/pinocchio/src/lib.rs",
+      "ported_path": null,
+      "instruction": "set_value_secure",
+      "label": "secure",
+      "target_category": "Improper PDA Validation / Canonicalization",
+      "other_known_issues": [
+        "Missing Signer Check"
+      ],
+      "split": "evaluation",
+      "sanitize": {
+        "drop_items": [
+          "set_value_vulnerable"
+        ]
+      },
+      "evidence": {
+        "type": "mollusk_oracle_test",
+        "reference_test": "oracle_tests/tests/pinocchio.rs::ssp_05_p_s_attack",
+        "sanity_tests": [
+          "oracle_tests/tests/pinocchio.rs::ssp_05_p_s_sanity"
+        ],
+        "expected_status": "Err(Custom(5002))",
+        "verified": true,
+        "verified_on": "2026-10-07",
+        "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+      },
+      "notes": "Sem teste na fonte; oraculo a escrever. Compilar a partir de copia em dataset/programs/.",
+      "authored_by_student": false
+    },
+    {
+      "id": "SSP-06-P-V",
+      "source": "Solana Security Patterns",
+      "source_key": "ssp",
+      "repo": "justFiveDev/solana-security-pattern",
+      "commit": "a128ce9ceacadda7bb8ed686ce6a694439277dc5",
+      "framework": "pinocchio",
+      "program_path": "patterns/06-type-cosplay/pinocchio/src/lib.rs",
+      "ported_path": null,
+      "instruction": "update_fee_vulnerable",
+      "label": "vulnerable",
+      "target_category": "Type Cosplay",
+      "other_known_issues": [],
+      "split": "evaluation",
+      "sanitize": {
+        "drop_items": [
+          "update_fee_secure"
+        ]
+      },
+      "evidence": {
+        "type": "mollusk_oracle_test",
+        "reference_test": "oracle_tests/tests/pinocchio.rs::ssp_06_p_v_attack",
+        "sanity_tests": [],
+        "expected_status": "Success",
+        "verified": true,
+        "verified_on": "2026-10-07",
+        "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+      },
+      "notes": "Sem teste na fonte; oraculo a escrever. Compilar a partir de copia em dataset/programs/.",
+      "authored_by_student": false
+    },
+    {
+      "id": "SSP-06-P-S",
+      "source": "Solana Security Patterns",
+      "source_key": "ssp",
+      "repo": "justFiveDev/solana-security-pattern",
+      "commit": "a128ce9ceacadda7bb8ed686ce6a694439277dc5",
+      "framework": "pinocchio",
+      "program_path": "patterns/06-type-cosplay/pinocchio/src/lib.rs",
+      "ported_path": null,
+      "instruction": "update_fee_secure",
+      "label": "secure",
+      "target_category": "Type Cosplay",
+      "other_known_issues": [],
+      "split": "evaluation",
+      "sanitize": {
+        "drop_items": [
+          "update_fee_vulnerable"
+        ]
+      },
+      "evidence": {
+        "type": "mollusk_oracle_test",
+        "reference_test": "oracle_tests/tests/pinocchio.rs::ssp_06_p_s_attack",
+        "sanity_tests": [
+          "oracle_tests/tests/pinocchio.rs::ssp_06_p_s_sanity"
+        ],
+        "expected_status": "Err(Custom(6002))",
+        "verified": true,
+        "verified_on": "2026-10-07",
+        "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+      },
+      "notes": "Sem teste na fonte; oraculo a escrever. Compilar a partir de copia em dataset/programs/.",
+      "authored_by_student": false
+    },
+    {
+      "id": "HK-REINIT-V",
+      "source": "Solana Hacks",
+      "source_key": "hacks",
+      "repo": "El-Merovingio/solana-hacks",
+      "commit": "7a0bebc9f40591eeb7e273ce57d166c759ec0d7f",
+      "framework": "native",
+      "program_path": "reinitialization/reinit-attack/src/lib.rs",
+      "ported_path": "programs/hacks/hk_reinit/src/lib.rs",
+      "instruction": "initialize",
+      "label": "vulnerable",
+      "target_category": "Reinitialization Attacks",
+      "other_known_issues": [
+        "Missing Signer Check"
+      ],
+      "split": "evaluation",
+      "sanitize": {
+        "drop_items": []
+      },
+      "evidence": {
+        "type": "mollusk_oracle_test",
+        "reference_test": "oracle_tests/tests/hacks.rs::hk_reinit_attack",
+        "sanity_tests": [],
+        "expected_status": "Success",
+        "verified": true,
+        "verified_on": "2026-10-07",
+        "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+      },
+      "notes": "PoC original usa validator local; oraculo Mollusk a escrever. Port solana-program 1.15 -> 2.1.",
+      "authored_by_student": false
+    }
+  ],
+  "excluded": [
+    {
+      "source": "Solana Hacks",
+      "path": "bump-seed-canonicalization",
+      "reason": "Nao ha parametro bump; o PoC demonstra ausencia de controle de acesso em modify_acc, nao canonicalizacao. Mantido apenas para analise qualitativa."
+    },
+    {
+      "source": "Solana Hacks",
+      "path": "cosplay",
+      "reason": "Confusao entre enums sem discriminator; o PoC desserializa conta zerada e nao demonstra a confusao de tipos. Mantido apenas para analise qualitativa."
+    },
+    {
+      "source": "Solana Hacks",
+      "path": "account-data-match",
+      "reason": "Duplicate Mutable Accounts; fora das 8 categorias."
+    },
+    {
+      "source": "Sealevel Attacks",
+      "path": "programs/8-pda-sharing",
+      "reason": "PDA Sharing (seeds pouco especificas) nao e canonicalizacao nem validacao de PDA de entrada; codigo incompleto por design."
+    },
+    {
+      "source": "Sealevel Attacks",
+      "path": "programs/1,6,9",
+      "reason": "account-data-matching, duplicate-mutable-accounts, closing-accounts: fora das 8 categorias."
+    }
+  ]
+}

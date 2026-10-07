@@ -1,0 +1,37 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.87s
+     Running unittests src/lib.rs (target/debug/deps/test_missing_signer-4cbb6628ac05cd57)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/exploit.rs (target/debug/deps/exploit-08051c153b3a7980)
+
+running 3 tests
+test exploit_withdraw_without_signer ... [2026-10-06T20:47:17.258803795Z DEBUG solana_runtime::message_processor::stable_log] Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC invoke [1]
+[2026-10-06T20:47:17.259443497Z DEBUG solana_runtime::message_processor::stable_log] Program log: Instruction: WithdrawVulnerable
+[2026-10-06T20:47:17.259798299Z DEBUG solana_runtime::message_processor::stable_log] Program log: VULNERABLE: Withdrew 500000 lamports without signature verification!
+[2026-10-06T20:47:17.260219400Z DEBUG solana_runtime::message_processor::stable_log] Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC consumed 5496 of 1400000 compute units
+[2026-10-06T20:47:17.260289700Z DEBUG solana_runtime::message_processor::stable_log] Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC success
+ok
+test secure_allows_signed_withdraw ... [2026-10-06T20:47:17.297361245Z DEBUG solana_runtime::message_processor::stable_log] Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC invoke [1]
+[2026-10-06T20:47:17.298014447Z DEBUG solana_runtime::message_processor::stable_log] Program log: Instruction: WithdrawSecure
+[2026-10-06T20:47:17.298277448Z DEBUG solana_runtime::message_processor::stable_log] Program log: SECURE: Withdrew 500000 lamports with proper signature verification
+[2026-10-06T20:47:17.298687850Z DEBUG solana_runtime::message_processor::stable_log] Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC consumed 3947 of 1400000 compute units
+[2026-10-06T20:47:17.298752950Z DEBUG solana_runtime::message_processor::stable_log] Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC success
+ok
+test secure_rejects_unsigned_withdraw ... [2026-10-06T20:47:17.338334204Z DEBUG solana_runtime::message_processor::stable_log] Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC invoke [1]
+[2026-10-06T20:47:17.341203216Z DEBUG solana_runtime::message_processor::stable_log] Program log: Instruction: WithdrawSecure
+[2026-10-06T20:47:17.341431816Z DEBUG solana_runtime::message_processor::stable_log] Program log: AnchorError caused by account: authority. Error Code: AccountNotSigner. Error Number: 3010. Error Message: The given account did not sign.
+[2026-10-06T20:47:17.341500117Z DEBUG solana_runtime::message_processor::stable_log] Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC consumed 2778 of 1400000 compute units
+[2026-10-06T20:47:17.341542917Z DEBUG solana_runtime::message_processor::stable_log] Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC failed: custom program error: 0xbc2
+ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.27s
+
+   Doc-tests test_missing_signer
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

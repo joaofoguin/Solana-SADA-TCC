@@ -1,0 +1,35 @@
+--- /home/tcc/fontes/sealevel-attacks/programs/4-initialization/secure/src/lib.rs	2026-10-06 20:47:37.384291244 +0000
++++ /home/tcc/sada-tcc/solana/dataset/programs/sealevel/sl_04_sec/src/lib.rs	2026-10-06 21:30:25.000000000 +0000
+@@ -1,5 +1,4 @@
+ use anchor_lang::prelude::*;
+-use borsh::{BorshDeserialize, BorshSerialize};
+ use std::ops::DerefMut;
+ 
+ declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+@@ -8,10 +7,10 @@
+ pub mod reinitialization_secure_recommended {
+     use super::*;
+ 
+-    pub fn initialize(ctx: Context<Initialize>) -> ProgramResult {
++    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
+         let mut user = User::try_from_slice(&ctx.accounts.user.data.borrow()).unwrap();
+         if !user.discriminator {
+-            return Err(ProgramError::InvalidAccountData);
++            return Err(ProgramError::InvalidAccountData.into());
+         }
+ 
+         user.authority = ctx.accounts.authority.key();
+@@ -27,11 +26,12 @@
+ 
+ #[derive(Accounts)]
+ pub struct Initialize<'info> {
++    /// CHECK: PORT - doc exigido pelo Anchor >= 0.24; sem efeito na logica
+     user: AccountInfo<'info>,
+     authority: Signer<'info>,
+ }
+ 
+-#[derive(BorshSerialize, BorshDeserialize)]
++#[derive(AnchorSerialize, AnchorDeserialize)] // PORT: Borsh* -> Anchor* (mesmo borsh)
+ pub struct User {
+     discriminator: bool,
+     authority: Pubkey,

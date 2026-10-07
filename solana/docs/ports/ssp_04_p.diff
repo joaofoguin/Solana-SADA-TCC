@@ -1,0 +1,14 @@
+--- /home/tcc/sada-tcc/solana/solana-security-pattern/patterns/04-reinitialization-attack//pinocchio/src/lib.rs	2026-09-26 20:26:09.787968544 +0000
++++ pinocchio/ssp_04_p/src/lib.rs	2026-10-07 17:29:48.278972584 +0000
+@@ -3,9 +3,9 @@
+ //! Demonstrates allowing accounts to be initialized multiple times,
+ //! enabling attackers to overwrite authority and steal funds.
+ 
+-#![no_std]
++// PORT: #![no_std] removido (rustc do platform-tools v1.54 rejeita o panic handler do pinocchio 0.8)
+ 
+-pinocchio::nostd_panic_handler!();
++// PORT: nostd_panic_handler!() removido; o entrypoint! fornece o panic handler padrao
+ 
+ use pinocchio::{
+     account_info::AccountInfo,

@@ -1,0 +1,42 @@
+   Compiling test-pda-bump v0.1.0 (/home/tcc/sada-tcc/solana/solana-security-pattern/patterns/05-pda-bump-canonicalization/tests)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.82s
+     Running unittests src/lib.rs (target/debug/deps/test_pda_bump-d9ef034659147b85)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/exploit.rs (target/debug/deps/exploit-8083fb2eee87c98e)
+
+running 3 tests
+test exploit_non_canonical_bump_accepted ... [2026-10-06T20:47:33.510659092Z DEBUG solana_runtime::message_processor::stable_log] Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm invoke [1]
+[2026-10-06T20:47:33.511183794Z DEBUG solana_runtime::message_processor::stable_log] Program log: Instruction: SetValueVulnerable
+[2026-10-06T20:47:33.511449996Z DEBUG solana_runtime::message_processor::stable_log] Program log: VULNERABLE: Set value=999999 at bump=253 (non-canonical bump accepted!)
+[2026-10-06T20:47:33.511878297Z DEBUG solana_runtime::message_processor::stable_log] Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm consumed 3743 of 1400000 compute units
+[2026-10-06T20:47:33.511956098Z DEBUG solana_runtime::message_processor::stable_log] Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm success
+ok
+test secure_accepts_canonical_bump ... [2026-10-06T20:47:33.543856538Z DEBUG solana_runtime::message_processor::stable_log] Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm invoke [1]
+[2026-10-06T20:47:33.544359740Z DEBUG solana_runtime::message_processor::stable_log] Program log: Instruction: SetValueSecure
+[2026-10-06T20:47:33.544608641Z DEBUG solana_runtime::message_processor::stable_log] Program log: SECURE: Set value=42 at canonical bump=255 (only valid bump accepted)
+[2026-10-06T20:47:33.545085943Z DEBUG solana_runtime::message_processor::stable_log] Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm consumed 3664 of 1400000 compute units
+[2026-10-06T20:47:33.545146843Z DEBUG solana_runtime::message_processor::stable_log] Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm success
+ok
+test secure_rejects_non_canonical_bump ... [2026-10-06T20:47:33.578695390Z DEBUG solana_runtime::message_processor::stable_log] Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm invoke [1]
+[2026-10-06T20:47:33.581075501Z DEBUG solana_runtime::message_processor::stable_log] Program log: Instruction: SetValueSecure
+[2026-10-06T20:47:33.581437202Z DEBUG solana_runtime::message_processor::stable_log] Program log: AnchorError thrown in patterns/05-pda-bump-canonicalization/anchor/src/lib.rs:89. Error Code: PdaMismatch. Error Number: 6001. Error Message: PDA address mismatch.
+[2026-10-06T20:47:33.581458203Z DEBUG solana_runtime::message_processor::stable_log] Program log: Left:
+[2026-10-06T20:47:33.581494403Z DEBUG solana_runtime::message_processor::stable_log] Program log: 8YzKzqs6m5muntL5WWFdCLySboUgJGRXs94z9uWSbjnJ
+[2026-10-06T20:47:33.581514803Z DEBUG solana_runtime::message_processor::stable_log] Program log: Right:
+[2026-10-06T20:47:33.581547203Z DEBUG solana_runtime::message_processor::stable_log] Program log: HPt7VbgzpuKb1VCtsqBc3w6Cw9DGrVPe6bDcYCd774Wa
+[2026-10-06T20:47:33.581633103Z DEBUG solana_runtime::message_processor::stable_log] Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm consumed 6363 of 1400000 compute units
+[2026-10-06T20:47:33.581679404Z DEBUG solana_runtime::message_processor::stable_log] Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm failed: custom program error: 0x1771
+ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+
+   Doc-tests test_pda_bump
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

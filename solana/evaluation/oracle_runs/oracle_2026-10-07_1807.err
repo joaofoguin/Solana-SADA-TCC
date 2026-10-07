@@ -1,0 +1,5 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.35s
+     Running tests/hacks.rs (oracle_tests/target/debug/deps/hacks-459f6969b6537bca)
+     Running tests/pinocchio.rs (oracle_tests/target/debug/deps/pinocchio-ff8bb1ddf1a7766a)
+     Running tests/sealevel.rs (oracle_tests/target/debug/deps/sealevel-aa3fb71459f8fe91)
+error: test failed, to rerun pass `--test sealevel`

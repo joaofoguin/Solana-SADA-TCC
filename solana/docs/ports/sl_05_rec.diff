@@ -1,0 +1,11 @@
+--- /home/tcc/fontes/sealevel-attacks/programs/5-arbitrary-cpi/recommended/src/lib.rs	2026-10-06 20:47:37.384709947 +0000
++++ /home/tcc/sada-tcc/solana/dataset/programs/sealevel/sl_05_rec/src/lib.rs	2026-10-06 21:30:08.000000000 +0000
+@@ -7,7 +7,7 @@
+ pub mod arbitrary_cpi_recommended {
+     use super::*;
+ 
+-    pub fn cpi(ctx: Context<Cpi>, amount: u64) -> ProgramResult {
++    pub fn cpi(ctx: Context<Cpi>, amount: u64) -> Result<()> {
+         token::transfer(ctx.accounts.transfer_ctx(), amount)
+     }
+ }

@@ -1,0 +1,48 @@
+== patterns/01-missing-signer-check/
+patterns/01-missing-signer-check/anchor/Cargo.toml
+patterns/01-missing-signer-check/anchor/src/lib.rs
+patterns/01-missing-signer-check/pinocchio/Cargo.toml
+patterns/01-missing-signer-check/pinocchio/src/lib.rs
+patterns/01-missing-signer-check/tests/Cargo.toml
+patterns/01-missing-signer-check/tests/src/lib.rs
+patterns/01-missing-signer-check/tests/tests/exploit.rs
+== patterns/02-missing-owner-check/
+patterns/02-missing-owner-check/anchor/Cargo.toml
+patterns/02-missing-owner-check/anchor/src/lib.rs
+patterns/02-missing-owner-check/pinocchio/Cargo.toml
+patterns/02-missing-owner-check/pinocchio/src/lib.rs
+patterns/02-missing-owner-check/tests/Cargo.toml
+patterns/02-missing-owner-check/tests/src/lib.rs
+patterns/02-missing-owner-check/tests/tests/exploit.rs
+== patterns/03-integer-overflow/
+patterns/03-integer-overflow/anchor/Cargo.toml
+patterns/03-integer-overflow/anchor/src/lib.rs
+patterns/03-integer-overflow/pinocchio/Cargo.toml
+patterns/03-integer-overflow/pinocchio/src/lib.rs
+patterns/03-integer-overflow/tests/Cargo.toml
+patterns/03-integer-overflow/tests/src/lib.rs
+patterns/03-integer-overflow/tests/tests/exploit.rs
+== patterns/04-reinitialization-attack/
+patterns/04-reinitialization-attack/anchor/Cargo.toml
+patterns/04-reinitialization-attack/anchor/src/lib.rs
+patterns/04-reinitialization-attack/pinocchio/Cargo.toml
+patterns/04-reinitialization-attack/pinocchio/src/lib.rs
+patterns/04-reinitialization-attack/tests/Cargo.toml
+patterns/04-reinitialization-attack/tests/src/lib.rs
+patterns/04-reinitialization-attack/tests/tests/exploit.rs
+== patterns/05-pda-bump-canonicalization/
+patterns/05-pda-bump-canonicalization/anchor/Cargo.toml
+patterns/05-pda-bump-canonicalization/anchor/src/lib.rs
+patterns/05-pda-bump-canonicalization/pinocchio/Cargo.toml
+patterns/05-pda-bump-canonicalization/pinocchio/src/lib.rs
+patterns/05-pda-bump-canonicalization/tests/Cargo.toml
+patterns/05-pda-bump-canonicalization/tests/src/lib.rs
+patterns/05-pda-bump-canonicalization/tests/tests/exploit.rs
+== patterns/06-type-cosplay/
+patterns/06-type-cosplay/anchor/Cargo.toml
+patterns/06-type-cosplay/anchor/src/lib.rs
+patterns/06-type-cosplay/pinocchio/Cargo.toml
+patterns/06-type-cosplay/pinocchio/src/lib.rs
+patterns/06-type-cosplay/tests/Cargo.toml
+patterns/06-type-cosplay/tests/src/lib.rs
+patterns/06-type-cosplay/tests/tests/exploit.rs

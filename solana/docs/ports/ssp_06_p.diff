@@ -1,0 +1,14 @@
+--- /home/tcc/sada-tcc/solana/solana-security-pattern/patterns/06-type-cosplay//pinocchio/src/lib.rs	2026-09-26 20:26:09.789306154 +0000
++++ pinocchio/ssp_06_p/src/lib.rs	2026-10-07 17:29:48.284962098 +0000
+@@ -2,9 +2,9 @@
+ //!
+ //! Demonstrates passing wrong account type with same binary layout.
+ 
+-#![no_std]
++// PORT: #![no_std] removido (rustc do platform-tools v1.54 rejeita o panic handler do pinocchio 0.8)
+ 
+-pinocchio::nostd_panic_handler!();
++// PORT: nostd_panic_handler!() removido; o entrypoint! fornece o panic handler padrao
+ 
+ use pinocchio::{
+     account_info::AccountInfo,

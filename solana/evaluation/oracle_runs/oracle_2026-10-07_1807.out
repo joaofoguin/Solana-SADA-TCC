@@ -1,0 +1,84 @@
+
+running 1 test
+test hk_reinit_attack ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+
+running 21 tests
+test ssp_01_p_s_attack ... ok
+test ssp_01_p_s_sanity ... ok
+test ssp_01_p_v_attack ... ok
+test ssp_02_p_s_attack ... ok
+test ssp_02_p_s_sanity ... ok
+test ssp_02_p_v_attack ... ok
+test ssp_03_p_s1_attack ... ok
+test ssp_03_p_s1_sanity ... ok
+test ssp_03_p_s2_attack ... ok
+test ssp_03_p_s2_sanity ... ok
+test ssp_03_p_v1_attack ... ok
+test ssp_03_p_v2_attack ... ok
+test ssp_04_p_s_attack ... ok
+test ssp_04_p_s_sanity ... ok
+test ssp_04_p_v_attack ... ok
+test ssp_05_p_s_attack ... ok
+test ssp_05_p_s_sanity ... ok
+test ssp_05_p_v_attack ... ok
+test ssp_06_p_s_attack ... ok
+test ssp_06_p_s_sanity ... ok
+test ssp_06_p_v_attack ... ok
+
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.18s
+
+
+running 33 tests
+test sl_00_ins_attack ... ok
+test sl_00_rec_attack ... ok
+test sl_00_rec_sanity ... ok
+test sl_00_sec_attack ... ok
+test sl_00_sec_sanity ... ok
+test sl_02_ins_attack ... ok
+test sl_02_rec_attack ... ok
+test sl_02_rec_sanity ... ok
+test sl_02_sec_attack ... ok
+test sl_02_sec_sanity ... ok
+test sl_03_ins_attack ... ok
+test sl_03_rec_attack ... ok
+test sl_03_rec_sanity ... ok
+test sl_03_sec_attack ... ok
+test sl_03_sec_sanity ... ok
+test sl_04_ins_attack ... ok
+test sl_04_rec_attack ... ok
+test sl_04_rec_sanity ... ok
+test sl_04_sec_attack ... ok
+test sl_04_sec_first_init_blocked ... ok
+test sl_05_ins_attack ... FAILED
+test sl_05_rec_attack ... ok
+test sl_05_sec_attack ... ok
+test sl_07_ins_attack ... ok
+test sl_07_rec_attack ... ok
+test sl_07_rec_sanity ... ok
+test sl_07_sec_attack ... ok
+test sl_07_sec_sanity ... ok
+test sl_10_ins_attack ... ok
+test sl_10_rec_attack ... ok
+test sl_10_rec_sanity ... ok
+test sl_10_sec_attack ... ok
+test sl_10_sec_sanity ... ok
+
+failures:
+
+---- sl_05_ins_attack stdout ----
+
+thread 'sl_05_ins_attack' (8498) panicked at /home/tcc/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mollusk-svm-0.0.12/src/result.rs:108:21:
+assertion `left == right` failed: CHECK: program result: got Failure(IncorrectProgramId), expected Success
+  left: Failure(IncorrectProgramId)
+ right: Success
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    sl_05_ins_attack
+
+test result: FAILED. 32 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.09s
+

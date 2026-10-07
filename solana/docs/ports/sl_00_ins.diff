@@ -1,0 +1,18 @@
+--- /home/tcc/fontes/sealevel-attacks/programs/0-signer-authorization/insecure/src/lib.rs	2026-10-06 20:47:37.381140924 +0000
++++ /home/tcc/sada-tcc/solana/dataset/programs/sealevel/sl_00_ins/src/lib.rs	2026-10-06 21:30:08.000000000 +0000
+@@ -5,7 +5,7 @@
+ pub mod signer_authorization_insecure {
+     use super::*;
+ 
+-    pub fn log_message(ctx: Context<LogMessage>) -> ProgramResult {
++    pub fn log_message(ctx: Context<LogMessage>) -> Result<()> {
+         msg!("GM {}", ctx.accounts.authority.key().to_string());
+         Ok(())
+     }
+@@ -13,5 +13,6 @@
+ 
+ #[derive(Accounts)]
+ pub struct LogMessage<'info> {
++    /// CHECK: PORT - doc exigido pelo Anchor >= 0.24; sem efeito na logica
+     authority: AccountInfo<'info>,
+ }

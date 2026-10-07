@@ -1,0 +1,27 @@
+[package]
+name = "oracle-tests"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Testes-oraculo: confirmam por execucao o rotulo de cada caso do Evaluation Set"
+
+# crate isolado (nao pertence a nenhum workspace)
+[workspace]
+
+[[test]]
+name = "sealevel"
+path = "tests/sealevel.rs"
+
+[[test]]
+name = "pinocchio"
+path = "tests/pinocchio.rs"
+
+[[test]]
+name = "hacks"
+path = "tests/hacks.rs"
+
+# mesmas versoes dos testes do Security Patterns (comprovadas nesta VM)
+[dev-dependencies]
+mollusk-svm = "0.0.12"
+solana-sdk = "2.1"
+sha2 = "0.10"

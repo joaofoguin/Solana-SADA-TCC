@@ -1,0 +1,42 @@
+   Compiling test-missing-owner v0.1.0 (/home/tcc/sada-tcc/solana/solana-security-pattern/patterns/02-missing-owner-check/tests)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 8.33s
+     Running unittests src/lib.rs (target/debug/deps/test_missing_owner-79161599f19b888f)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/exploit.rs (target/debug/deps/exploit-28f393842323a9f4)
+
+running 3 tests
+test exploit_fake_account_accepted ... [2026-10-06T20:47:27.420396250Z DEBUG solana_runtime::message_processor::stable_log] Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw invoke [1]
+[2026-10-06T20:47:27.420966855Z DEBUG solana_runtime::message_processor::stable_log] Program log: Instruction: ProcessVulnerable
+[2026-10-06T20:47:27.421398259Z DEBUG solana_runtime::message_processor::stable_log] Program log: VULNERABLE: Processed treasury — authority=1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM, balance=999999999 (UNVERIFIED OWNER!)
+[2026-10-06T20:47:27.421783162Z DEBUG solana_runtime::message_processor::stable_log] Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw consumed 8530 of 1400000 compute units
+[2026-10-06T20:47:27.421851263Z DEBUG solana_runtime::message_processor::stable_log] Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw success
+ok
+test secure_accepts_real_treasury ... [2026-10-06T20:47:27.458764882Z DEBUG solana_runtime::message_processor::stable_log] Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw invoke [1]
+[2026-10-06T20:47:27.459276486Z DEBUG solana_runtime::message_processor::stable_log] Program log: Instruction: ProcessSecure
+[2026-10-06T20:47:27.459764691Z DEBUG solana_runtime::message_processor::stable_log] Program log: SECURE: Processed treasury — authority=11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3, balance=1000000 (OWNER VERIFIED)
+[2026-10-06T20:47:27.460167994Z DEBUG solana_runtime::message_processor::stable_log] Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw consumed 8773 of 1400000 compute units
+[2026-10-06T20:47:27.460229795Z DEBUG solana_runtime::message_processor::stable_log] Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw success
+ok
+test secure_rejects_fake_account ... [2026-10-06T20:47:27.494928995Z DEBUG solana_runtime::message_processor::stable_log] Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw invoke [1]
+[2026-10-06T20:47:27.497176114Z DEBUG solana_runtime::message_processor::stable_log] Program log: Instruction: ProcessSecure
+[2026-10-06T20:47:27.497374616Z DEBUG solana_runtime::message_processor::stable_log] Program log: AnchorError caused by account: treasury. Error Code: AccountOwnedByWrongProgram. Error Number: 3007. Error Message: The given account is owned by a different program than expected.
+[2026-10-06T20:47:27.497392516Z DEBUG solana_runtime::message_processor::stable_log] Program log: Left:
+[2026-10-06T20:47:27.497408116Z DEBUG solana_runtime::message_processor::stable_log] Program log: 11111111111111111111111111111111
+[2026-10-06T20:47:27.497417816Z DEBUG solana_runtime::message_processor::stable_log] Program log: Right:
+[2026-10-06T20:47:27.497450017Z DEBUG solana_runtime::message_processor::stable_log] Program log: 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw
+[2026-10-06T20:47:27.497502017Z DEBUG solana_runtime::message_processor::stable_log] Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw consumed 3125 of 1400000 compute units
+[2026-10-06T20:47:27.497540517Z DEBUG solana_runtime::message_processor::stable_log] Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw failed: custom program error: 0xbbf
+ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+
+   Doc-tests test_missing_owner
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

@@ -1,0 +1,30 @@
+--- /home/tcc/fontes/sealevel-attacks/programs/7-bump-seed-canonicalization/recommended/src/lib.rs	2026-10-06 20:47:37.385810554 +0000
++++ /home/tcc/sada-tcc/solana/dataset/programs/sealevel/sl_07_rec/src/lib.rs	2026-10-06 21:31:16.000000000 +0000
+@@ -6,7 +6,7 @@
+ pub mod bump_seed_canonicalization_recommended {
+     use super::*;
+ 
+-    pub fn set_value(ctx: Context<BumpSeed>, key: u64, new_value: u64) -> ProgramResult {
++    pub fn set_value(ctx: Context<BumpSeed>, key: u64, new_value: u64) -> Result<()> {
+         ctx.accounts.data.value = new_value;
+         Ok(())
+     }
+@@ -15,17 +15,7 @@
+ #[derive(Accounts)]
+ #[instruction(key: u64)]
+ pub struct BumpSeed<'info> {
+-    // Note a subtle pattern that is not displayed here.
+-    //
+-    // Usually, the usage of PDAs is broken into two parts:
+-    //
+-    // 1) allocation via `#[account(init, seeds = [...], bump)]`
+-    // 2) using the account via `#[account(init, seeds = [...], bump = data.bump)]
+-    //
+-    // When using a PDA, it's usually recommend to store the bump seed in the
+-    // account data, so that you can use it as demonstrated in 2), which will
+-    // provide a more efficient check.
+-    #[account(seeds = [key.to_le_bytes().as_ref()], bump)]
++    #[account(mut, seeds = [key.to_le_bytes().as_ref()], bump)] // PORT: mut (ver sl_07_ins)
+     data: Account<'info, Data>,
+ }
+ 

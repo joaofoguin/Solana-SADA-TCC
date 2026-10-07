@@ -1,0 +1,37 @@
+--- /home/tcc/fontes/sealevel-attacks/programs/5-arbitrary-cpi/insecure/src/lib.rs	2026-10-06 20:47:37.384482746 +0000
++++ /home/tcc/sada-tcc/solana/dataset/programs/sealevel/sl_05_ins/src/lib.rs	2026-10-06 21:30:08.000000000 +0000
+@@ -1,5 +1,6 @@
+ use anchor_lang::prelude::*;
+ use anchor_lang::solana_program;
++use anchor_spl::token::spl_token; // PORT: spl_token via anchor_spl
+ 
+ declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+ 
+@@ -7,7 +8,7 @@
+ pub mod arbitrary_cpi_insecure {
+     use super::*;
+ 
+-    pub fn cpi(ctx: Context<Cpi>, amount: u64) -> ProgramResult {
++    pub fn cpi(ctx: Context<Cpi>, amount: u64) -> Result<()> {
+         solana_program::program::invoke(
+             &spl_token::instruction::transfer(
+                 ctx.accounts.token_program.key,
+@@ -23,13 +24,18 @@
+                 ctx.accounts.authority.clone(),
+             ],
+         )
++        .map_err(Into::into) // PORT: ProgramResult -> anchor Result
+     }
+ }
+ 
+ #[derive(Accounts)]
+ pub struct Cpi<'info> {
++    /// CHECK: PORT - doc exigido pelo Anchor >= 0.24; sem efeito na logica
+     source: AccountInfo<'info>,
++    /// CHECK: PORT
+     destination: AccountInfo<'info>,
++    /// CHECK: PORT
+     authority: AccountInfo<'info>,
++    /// CHECK: PORT
+     token_program: AccountInfo<'info>,
+ }

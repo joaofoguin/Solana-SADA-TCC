@@ -1,0 +1,62 @@
+patterns/01-missing-signer-check/tests/tests/exploit.rs:121:fn exploit_withdraw_without_signer() {
+patterns/01-missing-signer-check/tests/tests/exploit.rs:131:    let mollusk = Mollusk::new(&PROGRAM_ID, "missing_signer");
+patterns/01-missing-signer-check/tests/tests/exploit.rs:149:    mollusk.process_and_validate_instruction(&ix, &accounts, &[Check::success()]);
+patterns/01-missing-signer-check/tests/tests/exploit.rs:153:fn secure_rejects_unsigned_withdraw() {
+patterns/01-missing-signer-check/tests/tests/exploit.rs:161:    // (ConstraintSigner) wrapped as ProgramError::Custom(2002).
+patterns/01-missing-signer-check/tests/tests/exploit.rs:163:    let mollusk = Mollusk::new(&PROGRAM_ID, "missing_signer");
+patterns/01-missing-signer-check/tests/tests/exploit.rs:182:    // which maps to ProgramError::Custom(3010).
+patterns/01-missing-signer-check/tests/tests/exploit.rs:186:        &[Check::err(ProgramError::Custom(3010))],
+patterns/01-missing-signer-check/tests/tests/exploit.rs:191:fn secure_allows_signed_withdraw() {
+patterns/01-missing-signer-check/tests/tests/exploit.rs:198:    let mollusk = Mollusk::new(&PROGRAM_ID, "missing_signer");
+patterns/01-missing-signer-check/tests/tests/exploit.rs:216:    mollusk.process_and_validate_instruction(&ix, &accounts, &[Check::success()]);
+patterns/02-missing-owner-check/tests/tests/exploit.rs:60:fn exploit_fake_account_accepted() {
+patterns/02-missing-owner-check/tests/tests/exploit.rs:71:    let mollusk = Mollusk::new(&PROGRAM_ID, "missing_owner");
+patterns/02-missing-owner-check/tests/tests/exploit.rs:101:    mollusk.process_and_validate_instruction(&ix, &accounts, &[Check::success()]);
+patterns/02-missing-owner-check/tests/tests/exploit.rs:105:fn secure_rejects_fake_account() {
+patterns/02-missing-owner-check/tests/tests/exploit.rs:115:    let mollusk = Mollusk::new(&PROGRAM_ID, "missing_owner");
+patterns/02-missing-owner-check/tests/tests/exploit.rs:147:        &[Check::err(ProgramError::Custom(3007))],
+patterns/02-missing-owner-check/tests/tests/exploit.rs:152:fn secure_accepts_real_treasury() {
+patterns/02-missing-owner-check/tests/tests/exploit.rs:156:    let mollusk = Mollusk::new(&PROGRAM_ID, "missing_owner");
+patterns/02-missing-owner-check/tests/tests/exploit.rs:185:    mollusk.process_and_validate_instruction(&ix, &accounts, &[Check::success()]);
+patterns/03-integer-overflow/tests/tests/exploit.rs:95:fn exploit_overflow_supply_wraps_to_zero() {
+patterns/03-integer-overflow/tests/tests/exploit.rs:104:    let mollusk = Mollusk::new(&PROGRAM_ID, "integer_overflow");
+patterns/03-integer-overflow/tests/tests/exploit.rs:109:    mollusk.process_and_validate_instruction(&ix, &accounts, &[Check::success()]);
+patterns/03-integer-overflow/tests/tests/exploit.rs:113:fn exploit_underflow_balance_wraps_to_max() {
+patterns/03-integer-overflow/tests/tests/exploit.rs:124:    let mollusk = Mollusk::new(&PROGRAM_ID, "integer_overflow");
+patterns/03-integer-overflow/tests/tests/exploit.rs:129:    mollusk.process_and_validate_instruction(&ix, &accounts, &[Check::success()]);
+patterns/03-integer-overflow/tests/tests/exploit.rs:133:fn secure_blocks_overflow() {
+patterns/03-integer-overflow/tests/tests/exploit.rs:142:    let mollusk = Mollusk::new(&PROGRAM_ID, "integer_overflow");
+patterns/03-integer-overflow/tests/tests/exploit.rs:151:        &[Check::err(ProgramError::Custom(6000))],
+patterns/03-integer-overflow/tests/tests/exploit.rs:156:fn secure_blocks_underflow() {
+patterns/03-integer-overflow/tests/tests/exploit.rs:165:    let mollusk = Mollusk::new(&PROGRAM_ID, "integer_overflow");
+patterns/03-integer-overflow/tests/tests/exploit.rs:174:        &[Check::err(ProgramError::Custom(6001))],
+patterns/03-integer-overflow/tests/tests/exploit.rs:179:fn secure_allows_valid_mint() {
+patterns/03-integer-overflow/tests/tests/exploit.rs:183:    let mollusk = Mollusk::new(&PROGRAM_ID, "integer_overflow");
+patterns/03-integer-overflow/tests/tests/exploit.rs:188:    mollusk.process_and_validate_instruction(&ix, &accounts, &[Check::success()]);
+patterns/04-reinitialization-attack/tests/tests/exploit.rs:59:fn exploit_reinit_overwrites_authority() {
+patterns/04-reinitialization-attack/tests/tests/exploit.rs:70:    let mollusk = Mollusk::new(&PROGRAM_ID, "reinitialization");
+patterns/04-reinitialization-attack/tests/tests/exploit.rs:100:    mollusk.process_and_validate_instruction(&ix, &accounts, &[Check::success()]);
+patterns/04-reinitialization-attack/tests/tests/exploit.rs:104:fn secure_blocks_reinit() {
+patterns/04-reinitialization-attack/tests/tests/exploit.rs:111:    let mollusk = Mollusk::new(&PROGRAM_ID, "reinitialization");
+patterns/04-reinitialization-attack/tests/tests/exploit.rs:143:        &[Check::err(ProgramError::Custom(6000))],
+patterns/04-reinitialization-attack/tests/tests/exploit.rs:148:fn secure_allows_first_init() {
+patterns/04-reinitialization-attack/tests/tests/exploit.rs:152:    let mollusk = Mollusk::new(&PROGRAM_ID, "reinitialization");
+patterns/04-reinitialization-attack/tests/tests/exploit.rs:179:    mollusk.process_and_validate_instruction(&ix, &accounts, &[Check::success()]);
+patterns/05-pda-bump-canonicalization/tests/tests/exploit.rs:79:fn exploit_non_canonical_bump_accepted() {
+patterns/05-pda-bump-canonicalization/tests/tests/exploit.rs:90:    let mollusk = Mollusk::new(&PROGRAM_ID, "pda_bump");
+patterns/05-pda-bump-canonicalization/tests/tests/exploit.rs:128:    mollusk.process_and_validate_instruction(&ix, &accounts, &[Check::success()]);
+patterns/05-pda-bump-canonicalization/tests/tests/exploit.rs:132:fn secure_rejects_non_canonical_bump() {
+patterns/05-pda-bump-canonicalization/tests/tests/exploit.rs:140:    let mollusk = Mollusk::new(&PROGRAM_ID, "pda_bump");
+patterns/05-pda-bump-canonicalization/tests/tests/exploit.rs:178:        &[Check::err(ProgramError::Custom(6001))],
+patterns/05-pda-bump-canonicalization/tests/tests/exploit.rs:183:fn secure_accepts_canonical_bump() {
+patterns/05-pda-bump-canonicalization/tests/tests/exploit.rs:187:    let mollusk = Mollusk::new(&PROGRAM_ID, "pda_bump");
+patterns/05-pda-bump-canonicalization/tests/tests/exploit.rs:220:    mollusk.process_and_validate_instruction(&ix, &accounts, &[Check::success()]);
+patterns/06-type-cosplay/tests/tests/exploit.rs:73:fn exploit_type_cosplay_accepted() {
+patterns/06-type-cosplay/tests/tests/exploit.rs:86:    let mollusk = Mollusk::new(&PROGRAM_ID, "type_cosplay");
+patterns/06-type-cosplay/tests/tests/exploit.rs:121:    mollusk.process_and_validate_instruction(&ix, &accounts, &[Check::success()]);
+patterns/06-type-cosplay/tests/tests/exploit.rs:125:fn secure_rejects_wrong_discriminator() {
+patterns/06-type-cosplay/tests/tests/exploit.rs:133:    let mollusk = Mollusk::new(&PROGRAM_ID, "type_cosplay");
+patterns/06-type-cosplay/tests/tests/exploit.rs:171:        &[Check::err(ProgramError::Custom(3002))],
+patterns/06-type-cosplay/tests/tests/exploit.rs:176:fn secure_accepts_real_admin_config() {
+patterns/06-type-cosplay/tests/tests/exploit.rs:183:    let mollusk = Mollusk::new(&PROGRAM_ID, "type_cosplay");
+patterns/06-type-cosplay/tests/tests/exploit.rs:218:    mollusk.process_and_validate_instruction(&ix, &accounts, &[Check::success()]);

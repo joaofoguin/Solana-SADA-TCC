@@ -1,0 +1,45 @@
+--- /home/tcc/fontes/sealevel-attacks/programs/3-type-cosplay/insecure/src/lib.rs	2026-10-06 20:47:37.383349038 +0000
++++ /home/tcc/sada-tcc/solana/dataset/programs/sealevel/sl_03_ins/src/lib.rs	2026-10-06 21:30:08.000000000 +0000
+@@ -1,5 +1,4 @@
+ use anchor_lang::prelude::*;
+-use borsh::{BorshDeserialize, BorshSerialize};
+ 
+ declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+ 
+@@ -7,13 +6,13 @@
+ pub mod type_cosplay_insecure {
+     use super::*;
+ 
+-    pub fn update_user(ctx: Context<UpdateUser>) -> ProgramResult {
++    pub fn update_user(ctx: Context<UpdateUser>) -> Result<()> {
+         let user = User::try_from_slice(&ctx.accounts.user.data.borrow()).unwrap();
+         if ctx.accounts.user.owner != ctx.program_id {
+-            return Err(ProgramError::IllegalOwner);
++            return Err(ProgramError::IllegalOwner.into());
+         }
+         if user.authority != ctx.accounts.authority.key() {
+-            return Err(ProgramError::InvalidAccountData);
++            return Err(ProgramError::InvalidAccountData.into());
+         }
+         msg!("GM {}", user.authority);
+         Ok(())
+@@ -22,16 +21,17 @@
+ 
+ #[derive(Accounts)]
+ pub struct UpdateUser<'info> {
++    /// CHECK: PORT - doc exigido pelo Anchor >= 0.24; sem efeito na logica
+     user: AccountInfo<'info>,
+     authority: Signer<'info>,
+ }
+ 
+-#[derive(BorshSerialize, BorshDeserialize)]
++#[derive(AnchorSerialize, AnchorDeserialize)] // PORT: Borsh* -> Anchor* (mesmo borsh)
+ pub struct User {
+     authority: Pubkey,
+ }
+ 
+-#[derive(BorshSerialize, BorshDeserialize)]
++#[derive(AnchorSerialize, AnchorDeserialize)]
+ pub struct Metadata {
+     account: Pubkey,
+ }

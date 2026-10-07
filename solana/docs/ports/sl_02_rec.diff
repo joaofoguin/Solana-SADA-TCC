@@ -1,0 +1,11 @@
+--- /home/tcc/fontes/sealevel-attacks/programs/2-owner-checks/recommended/src/lib.rs	2026-10-06 20:47:37.383014836 +0000
++++ /home/tcc/sada-tcc/solana/dataset/programs/sealevel/sl_02_rec/src/lib.rs	2026-10-06 21:30:08.000000000 +0000
+@@ -7,7 +7,7 @@
+ pub mod owner_checks_recommended {
+     use super::*;
+ 
+-    pub fn log_message(ctx: Context<LogMessage>) -> ProgramResult {
++    pub fn log_message(ctx: Context<LogMessage>) -> Result<()> {
+         msg!("Your account balance is: {}", ctx.accounts.token.amount);
+         Ok(())
+     }

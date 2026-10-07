@@ -1,0 +1,336 @@
+{
+  "SL-00-INS": {
+    "reference_test": "oracle_tests/tests/sealevel.rs::sl_00_ins_attack",
+    "sanity_tests": [],
+    "expected_status": "Success",
+    "verified": true,
+    "date": "2026-10-07",
+    "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+  },
+  "SL-00-SEC": {
+    "reference_test": "oracle_tests/tests/sealevel.rs::sl_00_sec_attack",
+    "sanity_tests": [
+      "oracle_tests/tests/sealevel.rs::sl_00_sec_sanity"
+    ],
+    "expected_status": "Err(MissingRequiredSignature)",
+    "verified": true,
+    "date": "2026-10-07",
+    "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+  },
+  "SL-00-REC": {
+    "reference_test": "oracle_tests/tests/sealevel.rs::sl_00_rec_attack",
+    "sanity_tests": [
+      "oracle_tests/tests/sealevel.rs::sl_00_rec_sanity"
+    ],
+    "expected_status": "Err(Custom(3010) AccountNotSigner)",
+    "verified": true,
+    "date": "2026-10-07",
+    "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+  },
+  "SL-02-INS": {
+    "reference_test": "oracle_tests/tests/sealevel.rs::sl_02_ins_attack",
+    "sanity_tests": [],
+    "expected_status": "Success",
+    "verified": true,
+    "date": "2026-10-07",
+    "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+  },
+  "SL-02-SEC": {
+    "reference_test": "oracle_tests/tests/sealevel.rs::sl_02_sec_attack",
+    "sanity_tests": [
+      "oracle_tests/tests/sealevel.rs::sl_02_sec_sanity"
+    ],
+    "expected_status": "Err(InvalidAccountData)",
+    "verified": true,
+    "date": "2026-10-07",
+    "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+  },
+  "SL-02-REC": {
+    "reference_test": "oracle_tests/tests/sealevel.rs::sl_02_rec_attack",
+    "sanity_tests": [
+      "oracle_tests/tests/sealevel.rs::sl_02_rec_sanity"
+    ],
+    "expected_status": "Err(Custom(3007) AccountOwnedByWrongProgram)",
+    "verified": true,
+    "date": "2026-10-07",
+    "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+  },
+  "SL-03-INS": {
+    "reference_test": "oracle_tests/tests/sealevel.rs::sl_03_ins_attack",
+    "sanity_tests": [],
+    "expected_status": "Success",
+    "verified": true,
+    "date": "2026-10-07",
+    "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+  },
+  "SL-03-SEC": {
+    "reference_test": "oracle_tests/tests/sealevel.rs::sl_03_sec_attack",
+    "sanity_tests": [
+      "oracle_tests/tests/sealevel.rs::sl_03_sec_sanity"
+    ],
+    "expected_status": "Err(InvalidAccountData)",
+    "verified": true,
+    "date": "2026-10-07",
+    "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+  },
+  "SL-03-REC": {
+    "reference_test": "oracle_tests/tests/sealevel.rs::sl_03_rec_attack",
+    "sanity_tests": [
+      "oracle_tests/tests/sealevel.rs::sl_03_rec_sanity"
+    ],
+    "expected_status": "Err(Custom(3002) AccountDiscriminatorMismatch)",
+    "verified": true,
+    "date": "2026-10-07",
+    "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+  },
+  "SL-04-INS": {
+    "reference_test": "oracle_tests/tests/sealevel.rs::sl_04_ins_attack",
+    "sanity_tests": [],
+    "expected_status": "Success",
+    "verified": true,
+    "date": "2026-10-07",
+    "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+  },
+  "SL-04-SEC": {
+    "reference_test": "oracle_tests/tests/sealevel.rs::sl_04_sec_attack",
+    "sanity_tests": [
+      "oracle_tests/tests/sealevel.rs::sl_04_sec_first_init_blocked"
+    ],
+    "expected_status": "Success (reinicializacao aceita)",
+    "verified": true,
+    "date": "2026-10-07",
+    "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+  },
+  "SL-04-REC": {
+    "reference_test": "oracle_tests/tests/sealevel.rs::sl_04_rec_attack",
+    "sanity_tests": [
+      "oracle_tests/tests/sealevel.rs::sl_04_rec_sanity"
+    ],
+    "expected_status": "Err(qualquer)",
+    "verified": true,
+    "date": "2026-10-07",
+    "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+  },
+  "SL-05-INS": {
+    "reference_test": "oracle_tests/tests/sealevel.rs::sl_05_ins_attack",
+    "sanity_tests": [],
+    "expected_status": "Err(IncorrectProgramId) no construtor spl_token antes do CPI",
+    "verified": true,
+    "date": "2026-10-07",
+    "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+  },
+  "SL-05-RAW": {
+    "reference_test": "oracle_tests/tests/sealevel.rs::sl_05_raw_attack",
+    "sanity_tests": [],
+    "expected_status": "Success (programa arbitrario invocado)",
+    "verified": true,
+    "date": "2026-10-07",
+    "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+  },
+  "SL-05-SEC": {
+    "reference_test": "oracle_tests/tests/sealevel.rs::sl_05_sec_attack",
+    "sanity_tests": [],
+    "expected_status": "Err(IncorrectProgramId)",
+    "verified": true,
+    "date": "2026-10-07",
+    "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+  },
+  "SL-05-REC": {
+    "reference_test": "oracle_tests/tests/sealevel.rs::sl_05_rec_attack",
+    "sanity_tests": [],
+    "expected_status": "Err(Custom(3008) InvalidProgramId)",
+    "verified": true,
+    "date": "2026-10-07",
+    "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+  },
+  "SL-07-INS": {
+    "reference_test": "oracle_tests/tests/sealevel.rs::sl_07_ins_attack",
+    "sanity_tests": [],
+    "expected_status": "Success",
+    "verified": true,
+    "date": "2026-10-07",
+    "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+  },
+  "SL-07-SEC": {
+    "reference_test": "oracle_tests/tests/sealevel.rs::sl_07_sec_attack",
+    "sanity_tests": [
+      "oracle_tests/tests/sealevel.rs::sl_07_sec_sanity"
+    ],
+    "expected_status": "Err(InvalidArgument)",
+    "verified": true,
+    "date": "2026-10-07",
+    "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+  },
+  "SL-07-REC": {
+    "reference_test": "oracle_tests/tests/sealevel.rs::sl_07_rec_attack",
+    "sanity_tests": [
+      "oracle_tests/tests/sealevel.rs::sl_07_rec_sanity"
+    ],
+    "expected_status": "Err(Custom(2006) ConstraintSeeds)",
+    "verified": true,
+    "date": "2026-10-07",
+    "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+  },
+  "SL-10-INS": {
+    "reference_test": "oracle_tests/tests/sealevel.rs::sl_10_ins_attack",
+    "sanity_tests": [],
+    "expected_status": "Success",
+    "verified": true,
+    "date": "2026-10-07",
+    "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+  },
+  "SL-10-SEC": {
+    "reference_test": "oracle_tests/tests/sealevel.rs::sl_10_sec_attack",
+    "sanity_tests": [
+      "oracle_tests/tests/sealevel.rs::sl_10_sec_sanity"
+    ],
+    "expected_status": "Err(Custom(2501) RequireEqViolated)",
+    "verified": true,
+    "date": "2026-10-07",
+    "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+  },
+  "SL-10-REC": {
+    "reference_test": "oracle_tests/tests/sealevel.rs::sl_10_rec_attack",
+    "sanity_tests": [
+      "oracle_tests/tests/sealevel.rs::sl_10_rec_sanity"
+    ],
+    "expected_status": "Err(Custom(3015) AccountSysvarMismatch)",
+    "verified": true,
+    "date": "2026-10-07",
+    "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+  },
+  "SSP-01-P-V": {
+    "reference_test": "oracle_tests/tests/pinocchio.rs::ssp_01_p_v_attack",
+    "sanity_tests": [],
+    "expected_status": "Success",
+    "verified": true,
+    "date": "2026-10-07",
+    "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+  },
+  "SSP-01-P-S": {
+    "reference_test": "oracle_tests/tests/pinocchio.rs::ssp_01_p_s_attack",
+    "sanity_tests": [
+      "oracle_tests/tests/pinocchio.rs::ssp_01_p_s_sanity"
+    ],
+    "expected_status": "Err(Custom(1001))",
+    "verified": true,
+    "date": "2026-10-07",
+    "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+  },
+  "SSP-02-P-V": {
+    "reference_test": "oracle_tests/tests/pinocchio.rs::ssp_02_p_v_attack",
+    "sanity_tests": [],
+    "expected_status": "Success",
+    "verified": true,
+    "date": "2026-10-07",
+    "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+  },
+  "SSP-02-P-S": {
+    "reference_test": "oracle_tests/tests/pinocchio.rs::ssp_02_p_s_attack",
+    "sanity_tests": [
+      "oracle_tests/tests/pinocchio.rs::ssp_02_p_s_sanity"
+    ],
+    "expected_status": "Err(Custom(2001))",
+    "verified": true,
+    "date": "2026-10-07",
+    "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+  },
+  "SSP-03-P-V1": {
+    "reference_test": "oracle_tests/tests/pinocchio.rs::ssp_03_p_v1_attack",
+    "sanity_tests": [],
+    "expected_status": "Success",
+    "verified": true,
+    "date": "2026-10-07",
+    "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+  },
+  "SSP-03-P-V2": {
+    "reference_test": "oracle_tests/tests/pinocchio.rs::ssp_03_p_v2_attack",
+    "sanity_tests": [],
+    "expected_status": "Success",
+    "verified": true,
+    "date": "2026-10-07",
+    "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+  },
+  "SSP-03-P-S1": {
+    "reference_test": "oracle_tests/tests/pinocchio.rs::ssp_03_p_s1_attack",
+    "sanity_tests": [
+      "oracle_tests/tests/pinocchio.rs::ssp_03_p_s1_sanity"
+    ],
+    "expected_status": "Err(Custom(3001))",
+    "verified": true,
+    "date": "2026-10-07",
+    "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+  },
+  "SSP-03-P-S2": {
+    "reference_test": "oracle_tests/tests/pinocchio.rs::ssp_03_p_s2_attack",
+    "sanity_tests": [
+      "oracle_tests/tests/pinocchio.rs::ssp_03_p_s2_sanity"
+    ],
+    "expected_status": "Err(Custom(3002))",
+    "verified": true,
+    "date": "2026-10-07",
+    "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+  },
+  "SSP-04-P-V": {
+    "reference_test": "oracle_tests/tests/pinocchio.rs::ssp_04_p_v_attack",
+    "sanity_tests": [],
+    "expected_status": "Success",
+    "verified": true,
+    "date": "2026-10-07",
+    "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+  },
+  "SSP-04-P-S": {
+    "reference_test": "oracle_tests/tests/pinocchio.rs::ssp_04_p_s_attack",
+    "sanity_tests": [
+      "oracle_tests/tests/pinocchio.rs::ssp_04_p_s_sanity"
+    ],
+    "expected_status": "Err(Custom(4001))",
+    "verified": true,
+    "date": "2026-10-07",
+    "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+  },
+  "SSP-05-P-V": {
+    "reference_test": "oracle_tests/tests/pinocchio.rs::ssp_05_p_v_attack",
+    "sanity_tests": [],
+    "expected_status": "Success",
+    "verified": true,
+    "date": "2026-10-07",
+    "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+  },
+  "SSP-05-P-S": {
+    "reference_test": "oracle_tests/tests/pinocchio.rs::ssp_05_p_s_attack",
+    "sanity_tests": [
+      "oracle_tests/tests/pinocchio.rs::ssp_05_p_s_sanity"
+    ],
+    "expected_status": "Err(Custom(5002))",
+    "verified": true,
+    "date": "2026-10-07",
+    "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+  },
+  "SSP-06-P-V": {
+    "reference_test": "oracle_tests/tests/pinocchio.rs::ssp_06_p_v_attack",
+    "sanity_tests": [],
+    "expected_status": "Success",
+    "verified": true,
+    "date": "2026-10-07",
+    "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+  },
+  "SSP-06-P-S": {
+    "reference_test": "oracle_tests/tests/pinocchio.rs::ssp_06_p_s_attack",
+    "sanity_tests": [
+      "oracle_tests/tests/pinocchio.rs::ssp_06_p_s_sanity"
+    ],
+    "expected_status": "Err(Custom(6002))",
+    "verified": true,
+    "date": "2026-10-07",
+    "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+  },
+  "HK-REINIT-V": {
+    "reference_test": "oracle_tests/tests/hacks.rs::hk_reinit_attack",
+    "sanity_tests": [],
+    "expected_status": "Success",
+    "verified": true,
+    "date": "2026-10-07",
+    "log": "evaluation/oracle_runs/oracle_2026-10-07_1808.out"
+  }
+}

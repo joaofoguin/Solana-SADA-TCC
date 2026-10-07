@@ -1,0 +1,44 @@
+== 01-missing-signer-check
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test exploit_withdraw_without_signer ... [2026-10-06T20:47:17.258803795Z DEBUG solana_runtime::message_processor::stable_log] Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC invoke [1]
+test secure_allows_signed_withdraw ... [2026-10-06T20:47:17.297361245Z DEBUG solana_runtime::message_processor::stable_log] Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC invoke [1]
+test secure_rejects_unsigned_withdraw ... [2026-10-06T20:47:17.338334204Z DEBUG solana_runtime::message_processor::stable_log] Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC invoke [1]
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.27s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+== 02-missing-owner-check
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test exploit_fake_account_accepted ... [2026-10-06T20:47:27.420396250Z DEBUG solana_runtime::message_processor::stable_log] Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw invoke [1]
+test secure_accepts_real_treasury ... [2026-10-06T20:47:27.458764882Z DEBUG solana_runtime::message_processor::stable_log] Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw invoke [1]
+test secure_rejects_fake_account ... [2026-10-06T20:47:27.494928995Z DEBUG solana_runtime::message_processor::stable_log] Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw invoke [1]
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+== 03-integer-overflow
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test exploit_overflow_supply_wraps_to_zero ... [2026-10-06T20:47:29.392052698Z DEBUG solana_runtime::message_processor::stable_log] Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA invoke [1]
+test exploit_underflow_balance_wraps_to_max ... [2026-10-06T20:47:29.429077618Z DEBUG solana_runtime::message_processor::stable_log] Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA invoke [1]
+test secure_allows_valid_mint ... [2026-10-06T20:47:29.464885328Z DEBUG solana_runtime::message_processor::stable_log] Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA invoke [1]
+test secure_blocks_overflow ... [2026-10-06T20:47:29.503671863Z DEBUG solana_runtime::message_processor::stable_log] Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA invoke [1]
+test secure_blocks_underflow ... [2026-10-06T20:47:29.543432507Z DEBUG solana_runtime::message_processor::stable_log] Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA invoke [1]
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.20s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+== 04-reinitialization-attack
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test exploit_reinit_overwrites_authority ... [2026-10-06T20:47:31.483075378Z DEBUG solana_runtime::message_processor::stable_log] Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg invoke [1]
+test secure_allows_first_init ... [2026-10-06T20:47:31.520759304Z DEBUG solana_runtime::message_processor::stable_log] Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg invoke [1]
+test secure_blocks_reinit ... [2026-10-06T20:47:31.558609831Z DEBUG solana_runtime::message_processor::stable_log] Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg invoke [1]
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+== 05-pda-bump-canonicalization
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test exploit_non_canonical_bump_accepted ... [2026-10-06T20:47:33.510659092Z DEBUG solana_runtime::message_processor::stable_log] Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm invoke [1]
+test secure_accepts_canonical_bump ... [2026-10-06T20:47:33.543856538Z DEBUG solana_runtime::message_processor::stable_log] Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm invoke [1]
+test secure_rejects_non_canonical_bump ... [2026-10-06T20:47:33.578695390Z DEBUG solana_runtime::message_processor::stable_log] Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm invoke [1]
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+== 06-type-cosplay
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test exploit_type_cosplay_accepted ... [2026-10-06T20:47:35.732091641Z DEBUG solana_runtime::message_processor::stable_log] Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP invoke [1]
+test secure_accepts_real_admin_config ... [2026-10-06T20:47:35.766941264Z DEBUG solana_runtime::message_processor::stable_log] Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP invoke [1]
+test secure_rejects_wrong_discriminator ... [2026-10-06T20:47:35.801102084Z DEBUG solana_runtime::message_processor::stable_log] Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP invoke [1]
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.28s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s

@@ -1,0 +1,47 @@
+patterns/01-missing-signer-check/anchor/src/lib.rs:24:    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
+patterns/01-missing-signer-check/anchor/src/lib.rs:33:    pub fn deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
+patterns/01-missing-signer-check/anchor/src/lib.rs:75:    pub fn withdraw_vulnerable(ctx: Context<WithdrawVulnerable>, amount: u64) -> Result<()> {
+patterns/01-missing-signer-check/anchor/src/lib.rs:109:    pub fn withdraw_secure(ctx: Context<WithdrawSecure>, amount: u64) -> Result<()> {
+patterns/02-missing-owner-check/anchor/src/lib.rs:28:    pub fn initialize(ctx: Context<Initialize>, amount: u64) -> Result<()> {
+patterns/02-missing-owner-check/anchor/src/lib.rs:56:    pub fn process_vulnerable(ctx: Context<ProcessVulnerable>) -> Result<()> {
+patterns/02-missing-owner-check/anchor/src/lib.rs:98:    pub fn process_secure(ctx: Context<ProcessSecure>) -> Result<()> {
+patterns/03-integer-overflow/anchor/src/lib.rs:28:    pub fn initialize(ctx: Context<Initialize>, initial_supply: u64) -> Result<()> {
+patterns/03-integer-overflow/anchor/src/lib.rs:56:    pub fn mint_vulnerable(ctx: Context<Operate>, amount: u64) -> Result<()> {
+patterns/03-integer-overflow/anchor/src/lib.rs:72:    pub fn burn_vulnerable(ctx: Context<Operate>, amount: u64) -> Result<()> {
+patterns/03-integer-overflow/anchor/src/lib.rs:103:    pub fn mint_secure(ctx: Context<Operate>, amount: u64) -> Result<()> {
+patterns/03-integer-overflow/anchor/src/lib.rs:126:    pub fn burn_secure(ctx: Context<Operate>, amount: u64) -> Result<()> {
+patterns/04-reinitialization-attack/anchor/src/lib.rs:40:    pub fn init_vulnerable(ctx: Context<InitVulnerable>) -> Result<()> {
+patterns/04-reinitialization-attack/anchor/src/lib.rs:69:    pub fn init_secure(ctx: Context<InitSecure>) -> Result<()> {
+patterns/04-reinitialization-attack/anchor/src/lib.rs:89:    pub fn init_anchor_native(ctx: Context<InitAnchorNative>) -> Result<()> {
+patterns/05-pda-bump-canonicalization/anchor/src/lib.rs:42:    pub fn set_value_vulnerable(
+patterns/05-pda-bump-canonicalization/anchor/src/lib.rs:79:    pub fn set_value_secure(
+patterns/06-type-cosplay/anchor/src/lib.rs:45:    pub fn update_fee_vulnerable(
+patterns/06-type-cosplay/anchor/src/lib.rs:86:    pub fn update_fee_secure(
+patterns/01-missing-signer-check/pinocchio/src/lib.rs:31:pub fn process_instruction(
+patterns/01-missing-signer-check/pinocchio/src/lib.rs:41:        IX_WITHDRAW_VULNERABLE => withdraw_vulnerable(accounts, instruction_data),
+patterns/01-missing-signer-check/pinocchio/src/lib.rs:42:        IX_WITHDRAW_SECURE => withdraw_secure(accounts, instruction_data),
+patterns/01-missing-signer-check/pinocchio/src/lib.rs:43:        _ => Err(ProgramError::InvalidInstructionData),
+patterns/02-missing-owner-check/pinocchio/src/lib.rs:35:pub fn process_instruction(
+patterns/02-missing-owner-check/pinocchio/src/lib.rs:45:        IX_PROCESS_VULNERABLE => process_vulnerable(accounts),
+patterns/02-missing-owner-check/pinocchio/src/lib.rs:46:        IX_PROCESS_SECURE => process_secure(program_id, accounts),
+patterns/02-missing-owner-check/pinocchio/src/lib.rs:47:        _ => Err(ProgramError::InvalidInstructionData),
+patterns/02-missing-owner-check/pinocchio/src/lib.rs:64:fn process_vulnerable(accounts: &[AccountInfo]) -> ProgramResult {
+patterns/02-missing-owner-check/pinocchio/src/lib.rs:104:fn process_secure(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
+patterns/03-integer-overflow/pinocchio/src/lib.rs:29:pub fn process_instruction(
+patterns/03-integer-overflow/pinocchio/src/lib.rs:45:        IX_MINT_VULNERABLE => mint_vulnerable(accounts, amount),
+patterns/03-integer-overflow/pinocchio/src/lib.rs:46:        IX_BURN_VULNERABLE => burn_vulnerable(accounts, amount),
+patterns/03-integer-overflow/pinocchio/src/lib.rs:47:        IX_MINT_SECURE => mint_secure(accounts, amount),
+patterns/03-integer-overflow/pinocchio/src/lib.rs:48:        IX_BURN_SECURE => burn_secure(accounts, amount),
+patterns/03-integer-overflow/pinocchio/src/lib.rs:49:        _ => Err(ProgramError::InvalidInstructionData),
+patterns/04-reinitialization-attack/pinocchio/src/lib.rs:26:pub fn process_instruction(
+patterns/04-reinitialization-attack/pinocchio/src/lib.rs:36:        IX_INIT_VULNERABLE => init_vulnerable(accounts),
+patterns/04-reinitialization-attack/pinocchio/src/lib.rs:37:        IX_INIT_SECURE => init_secure(accounts),
+patterns/04-reinitialization-attack/pinocchio/src/lib.rs:38:        _ => Err(ProgramError::InvalidInstructionData),
+patterns/05-pda-bump-canonicalization/pinocchio/src/lib.rs:26:pub fn process_instruction(
+patterns/05-pda-bump-canonicalization/pinocchio/src/lib.rs:36:        IX_SET_VALUE_VULNERABLE => set_value_vulnerable(program_id, accounts, instruction_data),
+patterns/05-pda-bump-canonicalization/pinocchio/src/lib.rs:37:        IX_SET_VALUE_SECURE => set_value_secure(program_id, accounts, instruction_data),
+patterns/05-pda-bump-canonicalization/pinocchio/src/lib.rs:38:        _ => Err(ProgramError::InvalidInstructionData),
+patterns/06-type-cosplay/pinocchio/src/lib.rs:30:pub fn process_instruction(
+patterns/06-type-cosplay/pinocchio/src/lib.rs:46:        IX_UPDATE_FEE_VULNERABLE => update_fee_vulnerable(accounts, new_fee),
+patterns/06-type-cosplay/pinocchio/src/lib.rs:47:        IX_UPDATE_FEE_SECURE => update_fee_secure(accounts, new_fee),
+patterns/06-type-cosplay/pinocchio/src/lib.rs:48:        _ => Err(ProgramError::InvalidInstructionData),

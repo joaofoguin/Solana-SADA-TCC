@@ -1,0 +1,15 @@
+--- /home/tcc/sada-tcc/solana/solana-security-pattern/patterns/01-missing-signer-check//pinocchio/src/lib.rs	2026-09-26 20:26:09.785377725 +0000
++++ pinocchio/ssp_01_p/src/lib.rs	2026-10-07 17:29:48.259972538 +0000
+@@ -3,10 +3,10 @@
+ //! Demonstrates the vulnerability using Pinocchio's low-level approach.
+ //! Unlike Anchor, Pinocchio requires explicit manual checks for everything.
+ 
+-#![no_std]
++// PORT: #![no_std] removido (rustc do platform-tools v1.54 rejeita o panic handler do pinocchio 0.8)
+ 
+ // Required for no_std
+-pinocchio::nostd_panic_handler!();
++// PORT: nostd_panic_handler!() removido; o entrypoint! fornece o panic handler padrao
+ 
+ use pinocchio::{
+     account_info::AccountInfo,

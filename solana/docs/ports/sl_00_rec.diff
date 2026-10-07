@@ -1,0 +1,11 @@
+--- /home/tcc/fontes/sealevel-attacks/programs/0-signer-authorization/recommended/src/lib.rs	2026-10-06 20:47:37.381324025 +0000
++++ /home/tcc/sada-tcc/solana/dataset/programs/sealevel/sl_00_rec/src/lib.rs	2026-10-06 21:30:08.000000000 +0000
+@@ -6,7 +6,7 @@
+ pub mod signer_authorization_recommended {
+     use super::*;
+ 
+-    pub fn log_message(ctx: Context<LogMessage>) -> ProgramResult {
++    pub fn log_message(ctx: Context<LogMessage>) -> Result<()> {
+         msg!("GM {}", ctx.accounts.authority.key().to_string());
+         Ok(())
+     }

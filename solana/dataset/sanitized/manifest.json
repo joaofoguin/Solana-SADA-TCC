@@ -1,0 +1,314 @@
+[
+  {
+    "id": "SSP-01-A-V",
+    "file": "sanitized/SSP-01-A-V.rs",
+    "target_instruction": "withdraw",
+    "leak_terms": []
+  },
+  {
+    "id": "SSP-01-A-S",
+    "file": "sanitized/SSP-01-A-S.rs",
+    "target_instruction": "withdraw",
+    "leak_terms": []
+  },
+  {
+    "id": "SSP-02-A-V",
+    "file": "sanitized/SSP-02-A-V.rs",
+    "target_instruction": "process",
+    "leak_terms": []
+  },
+  {
+    "id": "SSP-02-A-S",
+    "file": "sanitized/SSP-02-A-S.rs",
+    "target_instruction": "process",
+    "leak_terms": []
+  },
+  {
+    "id": "SSP-03-A-V1",
+    "file": "sanitized/SSP-03-A-V1.rs",
+    "target_instruction": "mint",
+    "leak_terms": []
+  },
+  {
+    "id": "SSP-03-A-V2",
+    "file": "sanitized/SSP-03-A-V2.rs",
+    "target_instruction": "burn",
+    "leak_terms": []
+  },
+  {
+    "id": "SSP-03-A-S1",
+    "file": "sanitized/SSP-03-A-S1.rs",
+    "target_instruction": "mint",
+    "leak_terms": []
+  },
+  {
+    "id": "SSP-03-A-S2",
+    "file": "sanitized/SSP-03-A-S2.rs",
+    "target_instruction": "burn",
+    "leak_terms": []
+  },
+  {
+    "id": "SSP-04-A-V",
+    "file": "sanitized/SSP-04-A-V.rs",
+    "target_instruction": "init",
+    "leak_terms": []
+  },
+  {
+    "id": "SSP-04-A-S",
+    "file": "sanitized/SSP-04-A-S.rs",
+    "target_instruction": "init",
+    "leak_terms": []
+  },
+  {
+    "id": "SSP-04-A-S2",
+    "file": "sanitized/SSP-04-A-S2.rs",
+    "target_instruction": "init",
+    "leak_terms": []
+  },
+  {
+    "id": "SSP-05-A-V",
+    "file": "sanitized/SSP-05-A-V.rs",
+    "target_instruction": "set_value",
+    "leak_terms": []
+  },
+  {
+    "id": "SSP-05-A-S",
+    "file": "sanitized/SSP-05-A-S.rs",
+    "target_instruction": "set_value",
+    "leak_terms": []
+  },
+  {
+    "id": "SSP-06-A-V",
+    "file": "sanitized/SSP-06-A-V.rs",
+    "target_instruction": "update_fee",
+    "leak_terms": []
+  },
+  {
+    "id": "SSP-06-A-S",
+    "file": "sanitized/SSP-06-A-S.rs",
+    "target_instruction": "update_fee",
+    "leak_terms": []
+  },
+  {
+    "id": "SL-00-INS",
+    "file": "sanitized/SL-00-INS.rs",
+    "target_instruction": "log_message",
+    "leak_terms": []
+  },
+  {
+    "id": "SL-00-SEC",
+    "file": "sanitized/SL-00-SEC.rs",
+    "target_instruction": "log_message",
+    "leak_terms": []
+  },
+  {
+    "id": "SL-00-REC",
+    "file": "sanitized/SL-00-REC.rs",
+    "target_instruction": "log_message",
+    "leak_terms": []
+  },
+  {
+    "id": "SL-02-INS",
+    "file": "sanitized/SL-02-INS.rs",
+    "target_instruction": "log_message",
+    "leak_terms": []
+  },
+  {
+    "id": "SL-02-SEC",
+    "file": "sanitized/SL-02-SEC.rs",
+    "target_instruction": "log_message",
+    "leak_terms": []
+  },
+  {
+    "id": "SL-02-REC",
+    "file": "sanitized/SL-02-REC.rs",
+    "target_instruction": "log_message",
+    "leak_terms": []
+  },
+  {
+    "id": "SL-03-INS",
+    "file": "sanitized/SL-03-INS.rs",
+    "target_instruction": "update_user",
+    "leak_terms": []
+  },
+  {
+    "id": "SL-03-SEC",
+    "file": "sanitized/SL-03-SEC.rs",
+    "target_instruction": "update_user",
+    "leak_terms": []
+  },
+  {
+    "id": "SL-03-REC",
+    "file": "sanitized/SL-03-REC.rs",
+    "target_instruction": "update_user",
+    "leak_terms": []
+  },
+  {
+    "id": "SL-04-INS",
+    "file": "sanitized/SL-04-INS.rs",
+    "target_instruction": "initialize",
+    "leak_terms": []
+  },
+  {
+    "id": "SL-04-SEC",
+    "file": "sanitized/SL-04-SEC.rs",
+    "target_instruction": "initialize",
+    "leak_terms": []
+  },
+  {
+    "id": "SL-04-REC",
+    "file": "sanitized/SL-04-REC.rs",
+    "target_instruction": "init",
+    "leak_terms": []
+  },
+  {
+    "id": "SL-05-INS",
+    "file": "sanitized/SL-05-INS.rs",
+    "target_instruction": "cpi",
+    "leak_terms": []
+  },
+  {
+    "id": "SL-05-RAW",
+    "file": "sanitized/SL-05-RAW.rs",
+    "target_instruction": "cpi",
+    "leak_terms": []
+  },
+  {
+    "id": "SL-05-SEC",
+    "file": "sanitized/SL-05-SEC.rs",
+    "target_instruction": "cpi",
+    "leak_terms": []
+  },
+  {
+    "id": "SL-05-REC",
+    "file": "sanitized/SL-05-REC.rs",
+    "target_instruction": "cpi",
+    "leak_terms": []
+  },
+  {
+    "id": "SL-07-INS",
+    "file": "sanitized/SL-07-INS.rs",
+    "target_instruction": "set_value",
+    "leak_terms": []
+  },
+  {
+    "id": "SL-07-SEC",
+    "file": "sanitized/SL-07-SEC.rs",
+    "target_instruction": "set_value",
+    "leak_terms": []
+  },
+  {
+    "id": "SL-07-REC",
+    "file": "sanitized/SL-07-REC.rs",
+    "target_instruction": "set_value",
+    "leak_terms": []
+  },
+  {
+    "id": "SL-10-INS",
+    "file": "sanitized/SL-10-INS.rs",
+    "target_instruction": "check_sysvar_address",
+    "leak_terms": []
+  },
+  {
+    "id": "SL-10-SEC",
+    "file": "sanitized/SL-10-SEC.rs",
+    "target_instruction": "check_sysvar_address",
+    "leak_terms": []
+  },
+  {
+    "id": "SL-10-REC",
+    "file": "sanitized/SL-10-REC.rs",
+    "target_instruction": "check_sysvar_address",
+    "leak_terms": []
+  },
+  {
+    "id": "SSP-01-P-V",
+    "file": "sanitized/SSP-01-P-V.rs",
+    "target_instruction": "withdraw",
+    "leak_terms": []
+  },
+  {
+    "id": "SSP-01-P-S",
+    "file": "sanitized/SSP-01-P-S.rs",
+    "target_instruction": "withdraw",
+    "leak_terms": []
+  },
+  {
+    "id": "SSP-02-P-V",
+    "file": "sanitized/SSP-02-P-V.rs",
+    "target_instruction": "process",
+    "leak_terms": []
+  },
+  {
+    "id": "SSP-02-P-S",
+    "file": "sanitized/SSP-02-P-S.rs",
+    "target_instruction": "process",
+    "leak_terms": []
+  },
+  {
+    "id": "SSP-03-P-V1",
+    "file": "sanitized/SSP-03-P-V1.rs",
+    "target_instruction": "mint",
+    "leak_terms": []
+  },
+  {
+    "id": "SSP-03-P-V2",
+    "file": "sanitized/SSP-03-P-V2.rs",
+    "target_instruction": "burn",
+    "leak_terms": []
+  },
+  {
+    "id": "SSP-03-P-S1",
+    "file": "sanitized/SSP-03-P-S1.rs",
+    "target_instruction": "mint",
+    "leak_terms": []
+  },
+  {
+    "id": "SSP-03-P-S2",
+    "file": "sanitized/SSP-03-P-S2.rs",
+    "target_instruction": "burn",
+    "leak_terms": []
+  },
+  {
+    "id": "SSP-04-P-V",
+    "file": "sanitized/SSP-04-P-V.rs",
+    "target_instruction": "init",
+    "leak_terms": []
+  },
+  {
+    "id": "SSP-04-P-S",
+    "file": "sanitized/SSP-04-P-S.rs",
+    "target_instruction": "init",
+    "leak_terms": []
+  },
+  {
+    "id": "SSP-05-P-V",
+    "file": "sanitized/SSP-05-P-V.rs",
+    "target_instruction": "set_value",
+    "leak_terms": []
+  },
+  {
+    "id": "SSP-05-P-S",
+    "file": "sanitized/SSP-05-P-S.rs",
+    "target_instruction": "set_value",
+    "leak_terms": []
+  },
+  {
+    "id": "SSP-06-P-V",
+    "file": "sanitized/SSP-06-P-V.rs",
+    "target_instruction": "update_fee",
+    "leak_terms": []
+  },
+  {
+    "id": "SSP-06-P-S",
+    "file": "sanitized/SSP-06-P-S.rs",
+    "target_instruction": "update_fee",
+    "leak_terms": []
+  },
+  {
+    "id": "HK-REINIT-V",
+    "file": "sanitized/HK-REINIT-V.rs",
+    "target_instruction": "initialize",
+    "leak_terms": []
+  }
+]

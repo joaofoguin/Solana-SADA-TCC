@@ -1,0 +1,38 @@
+   Compiling test-reinitialization v0.1.0 (/home/tcc/sada-tcc/solana/solana-security-pattern/patterns/04-reinitialization-attack/tests)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.81s
+     Running unittests src/lib.rs (target/debug/deps/test_reinitialization-dca4911cbf32e356)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/exploit.rs (target/debug/deps/exploit-5ad2d7ae2ed5114a)
+
+running 3 tests
+test exploit_reinit_overwrites_authority ... [2026-10-06T20:47:31.483075378Z DEBUG solana_runtime::message_processor::stable_log] Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg invoke [1]
+[2026-10-06T20:47:31.483652283Z DEBUG solana_runtime::message_processor::stable_log] Program log: Instruction: InitVulnerable
+[2026-10-06T20:47:31.484090487Z DEBUG solana_runtime::message_processor::stable_log] Program log: VULNERABLE INIT: authority set to 1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh (no re-init guard!)
+[2026-10-06T20:47:31.484473890Z DEBUG solana_runtime::message_processor::stable_log] Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg consumed 8697 of 1400000 compute units
+[2026-10-06T20:47:31.484535891Z DEBUG solana_runtime::message_processor::stable_log] Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg success
+ok
+test secure_allows_first_init ... [2026-10-06T20:47:31.520759304Z DEBUG solana_runtime::message_processor::stable_log] Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg invoke [1]
+[2026-10-06T20:47:31.521260008Z DEBUG solana_runtime::message_processor::stable_log] Program log: Instruction: InitSecure
+[2026-10-06T20:47:31.521702012Z DEBUG solana_runtime::message_processor::stable_log] Program log: SECURE INIT: authority set to 11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP (one-time only)
+[2026-10-06T20:47:31.522090415Z DEBUG solana_runtime::message_processor::stable_log] Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg consumed 8822 of 1400000 compute units
+[2026-10-06T20:47:31.522145816Z DEBUG solana_runtime::message_processor::stable_log] Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg success
+ok
+test secure_blocks_reinit ... [2026-10-06T20:47:31.558609831Z DEBUG solana_runtime::message_processor::stable_log] Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg invoke [1]
+[2026-10-06T20:47:31.560797050Z DEBUG solana_runtime::message_processor::stable_log] Program log: Instruction: InitSecure
+[2026-10-06T20:47:31.560967152Z DEBUG solana_runtime::message_processor::stable_log] Program log: AnchorError thrown in patterns/04-reinitialization-attack/anchor/src/lib.rs:73. Error Code: AlreadyInitialized. Error Number: 6000. Error Message: Account already initialized.
+[2026-10-06T20:47:31.561043752Z DEBUG solana_runtime::message_processor::stable_log] Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg consumed 2803 of 1400000 compute units
+[2026-10-06T20:47:31.561084653Z DEBUG solana_runtime::message_processor::stable_log] Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg failed: custom program error: 0x1770
+ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+
+   Doc-tests test_reinitialization
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
