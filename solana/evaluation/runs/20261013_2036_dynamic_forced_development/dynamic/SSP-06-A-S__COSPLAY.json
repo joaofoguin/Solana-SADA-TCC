@@ -1,0 +1,83 @@
+{
+  "category": "COSPLAY",
+  "verdict": "not_confirmed",
+  "exploit_successful": false,
+  "attack_result": "Failure(Custom(3002))",
+  "reason": "ataque rejeitado: Failure(Custom(3002))",
+  "attempts_used": 2,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 1754,
+        "completion_tokens": 745,
+        "latency_s": 3.79
+      },
+      "raw": "{\n  \"plan\": \"Preparamos uma conta AdminConfig legítima com admin = authority e fee_basis_points = 100, e uma conta UserData com o mesmo layout (authority, balance) cujo authority é a mesma carteira. O baseline chama update_fee com a conta AdminConfig correta e deve ter sucesso. O ataque substitui a conta config pela conta UserData (mesmo layout, discriminador diferente) mantendo o mesmo signer authority. O efeito mede se a instrução aceitou a conta errada: se o ataque tiver sucesso, o campo fee_basis_points (offset 40) da conta UserData terá sido alterado para o novo valor, demonstrando type cosplay.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet admin_config_key = Pubkey::new_unique();\\nlet user_data_key = Pubkey::new_unique();\\n\\nlet admin_config_data = anchor_account_data(\\n    \\\"AdminConfig\\\",\\n    &[authority.to_bytes().to_vec(), 100u64.to_le_bytes().to_vec()].concat(),\\n);\\nlet user_data_data = anchor_account_data(\\n    \\\"UserData\\\",\\n    &[authority.to_bytes().to_vec(), 500u64.to_le_bytes().to_vec()].concat(),\\n);\\n\\nlet admin_config_account = account(&env.program_id, &admin_config_data, None);\\nlet user_data_account = account(&env.program_id, &user_data_data, None);\\nlet authority_account = wallet(1_000_000_000);\\n\\nlet metas = vec![\\n    AccountMeta::new(admin_config_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n];\\nlet baseline_ix = env.anchor_ix(\\\"update_fee\\\", &(200u64,), metas.clone());\\nlet baseline_accounts = vec![\\n    (admin_config_key, admin_config_account.clone()),\\n    (authority, authority_account.clone()),\\n];\\nlet baseline_result = env.baseline(\\\"update_fee legitimo com AdminConfig\\\", &baseline_ix, &baseline_accounts);\\nassert_eq!(baseline_result.program_result, ProgramResult::Success);\\n\\nlet attack_metas = vec![\\n    AccountMeta::new(user_data_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n];\\nlet attack_ix = env.anchor_ix(\\\"update_fee\\\", &(999u64,), attack_metas);\\nlet attack_accounts = vec![\\n    (user_data_key, user_data_account.clone()),\\n    (authority, authority_account.clone()),\\n];\\nlet attack_result = env.attack(\\\"update_fee com UserData no lugar de AdminConfig\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let user_data_after = after(&attack_result, &user_data_key);\\n    let fee_after = read_u64(user_data_after.data(), 40);\\n    env.effect(\\n        \\\"UserData foi aceita como AdminConfig e fee_basis_points foi alterado para 999\\\",\\n        fee_after == 999,\\n    );\\n}\"\n}",
+      "plan": "Preparamos uma conta AdminConfig legítima com admin = authority e fee_basis_points = 100, e uma conta UserData com o mesmo layout (authority, balance) cujo authority é a mesma carteira. O baseline chama update_fee com a conta AdminConfig correta e deve ter sucesso. O ataque substitui a conta config pela conta UserData (mesmo layout, discriminador diferente) mantendo o mesmo signer authority. O efeito mede se a instrução aceitou a conta errada: se o ataque tiver sucesso, o campo fee_basis_points (offset 40) da conta UserData terá sido alterado para o novo valor, demonstrando type cosplay.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet admin_config_key = Pubkey::new_unique();\nlet user_data_key = Pubkey::new_unique();\n\nlet admin_config_data = anchor_account_data(\n    \"AdminConfig\",\n    &[authority.to_bytes().to_vec(), 100u64.to_le_bytes().to_vec()].concat(),\n);\nlet user_data_data = anchor_account_data(\n    \"UserData\",\n    &[authority.to_bytes().to_vec(), 500u64.to_le_bytes().to_vec()].concat(),\n);\n\nlet admin_config_account = account(&env.program_id, &admin_config_data, None);\nlet user_data_account = account(&env.program_id, &user_data_data, None);\nlet authority_account = wallet(1_000_000_000);\n\nlet metas = vec![\n    AccountMeta::new(admin_config_key, false),\n    AccountMeta::new_readonly(authority, true),\n];\nlet baseline_ix = env.anchor_ix(\"update_fee\", &(200u64,), metas.clone());\nlet baseline_accounts = vec![\n    (admin_config_key, admin_config_account.clone()),\n    (authority, authority_account.clone()),\n];\nlet baseline_result = env.baseline(\"update_fee legitimo com AdminConfig\", &baseline_ix, &baseline_accounts);\nassert_eq!(baseline_result.program_result, ProgramResult::Success);\n\nlet attack_metas = vec![\n    AccountMeta::new(user_data_key, false),\n    AccountMeta::new_readonly(authority, true),\n];\nlet attack_ix = env.anchor_ix(\"update_fee\", &(999u64,), attack_metas);\nlet attack_accounts = vec![\n    (user_data_key, user_data_account.clone()),\n    (authority, authority_account.clone()),\n];\nlet attack_result = env.attack(\"update_fee com UserData no lugar de AdminConfig\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let user_data_after = after(&attack_result, &user_data_key);\n    let fee_after = read_u64(user_data_after.data(), 40);\n    env.effect(\n        \"UserData foi aceita como AdminConfig e fee_basis_points foi alterado para 999\",\n        fee_after == 999,\n    );\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0308]: mismatched types\n  --> tests/attempt.rs:30:51\n   |\n30 | ...ine_ix = env.anchor_ix(\"update_fee\", &(200u64,), metas.clone());\n   |                 ---------               ^^^^^^^^^^ expected `&[u8]`, found `&(u64,)`\n   |                 |\n   |                 arguments to this method are incorrect\n   |\n   = note: expected reference `&[u8]`\n              found reference `&(u64,)`\nnote: method defined here\n  --> src/lib.rs:98:12\nerror[E0308]: mismatched types\n  --> tests/attempt.rs:42:49\n   |\n42 | ...ack_ix = env.anchor_ix(\"update_fee\", &(999u64,), attack_metas);\n   |                 ---------               ^^^^^^^^^^ expected `&[u8]`, found `&(u64,)`\n   |                 |\n   |                 arguments to this method are incorrect\n   |\n   = note: expected reference `&[u8]`\n              found reference `&(u64,)`\nnote: method defined here\n  --> src/lib.rs:98:12\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors",
+        "elapsed_s": 0.6
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0308]: mismatched types\n  --> tests/attempt.rs:30:51\n   |\n30 | ...ine_ix = env.anchor_ix(\"update_fee\", &(200u64,), metas.clone());\n   |                 ---------               ^^^^^^^^^^ expected `&[u8]`, found `&(u64,)`\n   |                 |\n   |                 arguments to this method are incorrect\n   |\n   = note: expected reference `&[u8]`\n              found reference `&(u64,)`\nnote: method defined here\n  --> src/lib.rs:98:12\nerror[E0308]: mismatched types\n  --> tests/attempt.rs:42:49\n   |\n42 | ...ack_ix = env.anchor_ix(\"update_fee\", &(999u64,), attack_metas);\n   |                 ---------               ^^^^^^^^^^ expected `&[u8]`, found `&(u64,)`\n   |                 |\n   |                 arguments to this method are incorrect\n   |\n   = note: expected reference `&[u8]`\n              found reference `&(u64,)`\nnote: method defined here\n  --> src/lib.rs:98:12\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2599,
+        "completion_tokens": 718,
+        "latency_s": 3.57
+      },
+      "raw": "{\n  \"plan\": \"Preparar uma conta AdminConfig legítima (dono do programa, admin = authority) e uma conta UserData com o mesmo layout de campos (authority, balance) para servir de cosplay. Executar update_fee legitimamente com AdminConfig para provar que o cenário está correto. Atacar passando a conta UserData no lugar de AdminConfig, assinada pela mesma authority, e medir se o campo fee_basis_points (offset 40) da UserData foi alterado para 999, demonstrando que o programa aceitou um tipo de conta diferente.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet admin_config_key = Pubkey::new_unique();\\nlet user_data_key = Pubkey::new_unique();\\n\\nlet admin_config_data = anchor_account_data(\\n    \\\"AdminConfig\\\",\\n    &[authority.to_bytes().to_vec(), 100u64.to_le_bytes().to_vec()].concat(),\\n);\\nlet user_data_data = anchor_account_data(\\n    \\\"UserData\\\",\\n    &[authority.to_bytes().to_vec(), 500u64.to_le_bytes().to_vec()].concat(),\\n);\\n\\nlet admin_config_account = account(&env.program_id, &admin_config_data, None);\\nlet user_data_account = account(&env.program_id, &user_data_data, None);\\nlet authority_account = wallet(1_000_000_000);\\n\\nlet metas = vec![\\n    AccountMeta::new(admin_config_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n];\\nlet baseline_ix = env.anchor_ix(\\\"update_fee\\\", &200u64.to_le_bytes(), metas.clone());\\nlet baseline_accounts = vec![\\n    (admin_config_key, admin_config_account.clone()),\\n    (authority, authority_account.clone()),\\n];\\nlet baseline_result = env.baseline(\\\"update_fee legitimo com AdminConfig\\\", &baseline_ix, &baseline_accounts);\\nassert_eq!(baseline_result.program_result, ProgramResult::Success);\\n\\nlet attack_metas = vec![\\n    AccountMeta::new(user_data_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n];\\nlet attack_ix = env.anchor_ix(\\\"update_fee\\\", &999u64.to_le_bytes(), attack_metas);\\nlet attack_accounts = vec![\\n    (user_data_key, user_data_account.clone()),\\n    (authority, authority_account.clone()),\\n];\\nlet attack_result = env.attack(\\\"update_fee com UserData no lugar de AdminConfig\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let user_data_after = after(&attack_result, &user_data_key);\\n    let fee_after = read_u64(user_data_after.data(), 40);\\n    env.effect(\\n        \\\"UserData foi aceita como AdminConfig e fee_basis_points foi alterado para 999\\\",\\n        fee_after == 999,\\n    );\\n}\"\n}",
+      "plan": "Preparar uma conta AdminConfig legítima (dono do programa, admin = authority) e uma conta UserData com o mesmo layout de campos (authority, balance) para servir de cosplay. Executar update_fee legitimamente com AdminConfig para provar que o cenário está correto. Atacar passando a conta UserData no lugar de AdminConfig, assinada pela mesma authority, e medir se o campo fee_basis_points (offset 40) da UserData foi alterado para 999, demonstrando que o programa aceitou um tipo de conta diferente.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet admin_config_key = Pubkey::new_unique();\nlet user_data_key = Pubkey::new_unique();\n\nlet admin_config_data = anchor_account_data(\n    \"AdminConfig\",\n    &[authority.to_bytes().to_vec(), 100u64.to_le_bytes().to_vec()].concat(),\n);\nlet user_data_data = anchor_account_data(\n    \"UserData\",\n    &[authority.to_bytes().to_vec(), 500u64.to_le_bytes().to_vec()].concat(),\n);\n\nlet admin_config_account = account(&env.program_id, &admin_config_data, None);\nlet user_data_account = account(&env.program_id, &user_data_data, None);\nlet authority_account = wallet(1_000_000_000);\n\nlet metas = vec![\n    AccountMeta::new(admin_config_key, false),\n    AccountMeta::new_readonly(authority, true),\n];\nlet baseline_ix = env.anchor_ix(\"update_fee\", &200u64.to_le_bytes(), metas.clone());\nlet baseline_accounts = vec![\n    (admin_config_key, admin_config_account.clone()),\n    (authority, authority_account.clone()),\n];\nlet baseline_result = env.baseline(\"update_fee legitimo com AdminConfig\", &baseline_ix, &baseline_accounts);\nassert_eq!(baseline_result.program_result, ProgramResult::Success);\n\nlet attack_metas = vec![\n    AccountMeta::new(user_data_key, false),\n    AccountMeta::new_readonly(authority, true),\n];\nlet attack_ix = env.anchor_ix(\"update_fee\", &999u64.to_le_bytes(), attack_metas);\nlet attack_accounts = vec![\n    (user_data_key, user_data_account.clone()),\n    (authority, authority_account.clone()),\n];\nlet attack_result = env.attack(\"update_fee com UserData no lugar de AdminConfig\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let user_data_after = after(&attack_result, &user_data_key);\n    let fee_after = read_u64(user_data_after.data(), 40);\n    env.effect(\n        \"UserData foi aceita como AdminConfig e fee_basis_points foi alterado para 999\",\n        fee_after == 999,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "update_fee legitimo com AdminConfig",
+            "result": "Success",
+            "compute_units": 1866,
+            "account_flags": "-w,sr"
+          },
+          {
+            "step": "attack",
+            "note": "update_fee com UserData no lugar de AdminConfig",
+            "result": "Failure(Custom(3002))",
+            "compute_units": 2683,
+            "account_flags": "-w,sr"
+          }
+        ],
+        "runtime_trace": [
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP invoke [1]",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP consumed 1866 of 1400000 compute units",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP success",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP invoke [1]",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP consumed 2683 of 1400000 compute units",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP failed: custom program error: 0xbba"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "not_confirmed",
+      "reason": "ataque rejeitado: Failure(Custom(3002))"
+    }
+  ],
+  "case_id": "SSP-06-A-S",
+  "static_finding": {
+    "category": "COSPLAY",
+    "evidence": "",
+    "explanation": "",
+    "attack_hypothesis": "Verificar por execucao se a instrucao e vulneravel a Type Cosplay."
+  }
+}

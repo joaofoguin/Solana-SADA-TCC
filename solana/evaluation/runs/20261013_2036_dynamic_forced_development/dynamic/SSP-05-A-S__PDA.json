@@ -1,0 +1,83 @@
+{
+  "category": "PDA",
+  "verdict": "not_confirmed",
+  "exploit_successful": false,
+  "attack_result": "Failure(Custom(6001))",
+  "reason": "ataque rejeitado: Failure(Custom(6001))",
+  "attempts_used": 2,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 1793,
+        "completion_tokens": 923,
+        "latency_s": 4.6
+      },
+      "raw": "{\n  \"plan\": \"O cenário monta uma conta DataAccount existente com dono do programa e um usuário signer. O baseline chama set_value com o PDA canônico derivado de [b\\\"data\\\", user] e valor 1, provando que o cenário está correto. O ataque tenta usar uma conta com endereço diferente do PDA canônico (por exemplo, um PDA com bump não canônico ou uma conta arbitrária) para verificar se a validação de PDA é contornada. O efeito mede se a conta usada no ataque foi aceita e teve seu campo value alterado, indicando falha na canonicalização do PDA.\",\n  \"scenario\": \"let user = Pubkey::new_unique();\\nlet (canonical_pda, _bump) = Pubkey::find_program_address(&[b\\\"data\\\", user.as_ref()], &env.program_id);\\n\\n// Conta DataAccount existente no PDA canônico\\nlet data_account_data = anchor_account_data(\\\"DataAccount\\\", &[user, 0u64, 0u8]);\\nlet data_account = account(&env.program_id, &data_account_data, None);\\n\\nlet user_account = wallet(1_000_000_000);\\n\\n// Baseline: uso legítimo com o PDA canônico\\nlet ix_baseline = env.anchor_ix(\\n    \\\"set_value\\\",\\n    &(1u64,),\\n    vec![\\n        AccountMeta::new(canonical_pda, false),\\n        AccountMeta::new_readonly(user, true),\\n    ],\\n);\\nlet contas_baseline = vec![\\n    (canonical_pda, data_account.clone()),\\n    (user, user_account.clone()),\\n];\\nlet r_baseline = env.baseline(\\\"set_value com PDA canônico\\\", &ix_baseline, &contas_baseline);\\n\\n// Ataque: usar uma conta com endereço diferente do PDA canônico\\n// Tentamos um bump não canônico para o mesmo par (data, user)\\nlet mut non_canonical_pda = Pubkey::default();\\nlet mut found = false;\\nfor bump in (0u8..=255).rev() {\\n    if let Ok(pda) = Pubkey::create_program_address(&[b\\\"data\\\", user.as_ref(), &[bump]], &env.program_id) {\\n        if pda != canonical_pda {\\n            non_canonical_pda = pda;\\n            found = true;\\n            break;\\n        }\\n    }\\n}\\n\\nif !found {\\n    // Se não houver bump alternativo, usamos uma conta arbitrária\\n    non_canonical_pda = Pubkey::new_unique();\\n}\\n\\nlet fake_data = anchor_account_data(\\\"DataAccount\\\", &[user, 0u64, 0u8]);\\nlet fake_account = account(&env.program_id, &fake_data, None);\\n\\nlet ix_attack = env.anchor_ix(\\n    \\\"set_value\\\",\\n    &(999u64,),\\n    vec![\\n        AccountMeta::new(non_canonical_pda, false),\\n        AccountMeta::new_readonly(user, true),\\n    ],\\n);\\nlet contas_attack = vec![\\n    (non_canonical_pda, fake_account),\\n    (user, user_account),\\n];\\nlet r_attack = env.attack(\\\"set_value com PDA não canônico\\\", &ix_attack, &contas_attack);\\n\\nif r_attack.program_result == ProgramResult::Success {\\n    let data_after = after(&r_attack, &non_canonical_pda).data();\\n    let value_after = read_u64(data_after, 40);\\n    env.effect(\\n        \\\"PDA não canônico aceito e valor alterado para 999\\\",\\n        value_after == 999u64,\\n    );\\n}\"\n}",
+      "plan": "O cenário monta uma conta DataAccount existente com dono do programa e um usuário signer. O baseline chama set_value com o PDA canônico derivado de [b\"data\", user] e valor 1, provando que o cenário está correto. O ataque tenta usar uma conta com endereço diferente do PDA canônico (por exemplo, um PDA com bump não canônico ou uma conta arbitrária) para verificar se a validação de PDA é contornada. O efeito mede se a conta usada no ataque foi aceita e teve seu campo value alterado, indicando falha na canonicalização do PDA.",
+      "scenario": "let user = Pubkey::new_unique();\nlet (canonical_pda, _bump) = Pubkey::find_program_address(&[b\"data\", user.as_ref()], &env.program_id);\n\n// Conta DataAccount existente no PDA canônico\nlet data_account_data = anchor_account_data(\"DataAccount\", &[user, 0u64, 0u8]);\nlet data_account = account(&env.program_id, &data_account_data, None);\n\nlet user_account = wallet(1_000_000_000);\n\n// Baseline: uso legítimo com o PDA canônico\nlet ix_baseline = env.anchor_ix(\n    \"set_value\",\n    &(1u64,),\n    vec![\n        AccountMeta::new(canonical_pda, false),\n        AccountMeta::new_readonly(user, true),\n    ],\n);\nlet contas_baseline = vec![\n    (canonical_pda, data_account.clone()),\n    (user, user_account.clone()),\n];\nlet r_baseline = env.baseline(\"set_value com PDA canônico\", &ix_baseline, &contas_baseline);\n\n// Ataque: usar uma conta com endereço diferente do PDA canônico\n// Tentamos um bump não canônico para o mesmo par (data, user)\nlet mut non_canonical_pda = Pubkey::default();\nlet mut found = false;\nfor bump in (0u8..=255).rev() {\n    if let Ok(pda) = Pubkey::create_program_address(&[b\"data\", user.as_ref(), &[bump]], &env.program_id) {\n        if pda != canonical_pda {\n            non_canonical_pda = pda;\n            found = true;\n            break;\n        }\n    }\n}\n\nif !found {\n    // Se não houver bump alternativo, usamos uma conta arbitrária\n    non_canonical_pda = Pubkey::new_unique();\n}\n\nlet fake_data = anchor_account_data(\"DataAccount\", &[user, 0u64, 0u8]);\nlet fake_account = account(&env.program_id, &fake_data, None);\n\nlet ix_attack = env.anchor_ix(\n    \"set_value\",\n    &(999u64,),\n    vec![\n        AccountMeta::new(non_canonical_pda, false),\n        AccountMeta::new_readonly(user, true),\n    ],\n);\nlet contas_attack = vec![\n    (non_canonical_pda, fake_account),\n    (user, user_account),\n];\nlet r_attack = env.attack(\"set_value com PDA não canônico\", &ix_attack, &contas_attack);\n\nif r_attack.program_result == ProgramResult::Success {\n    let data_after = after(&r_attack, &non_canonical_pda).data();\n    let value_after = read_u64(data_after, 40);\n    env.effect(\n        \"PDA não canônico aceito e valor alterado para 999\",\n        value_after == 999u64,\n    );\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0308]: mismatched types\n  --> tests/attempt.rs:13:66\n   |\n13 | ...DataAccount\", &[user, 0u64, 0u8]);\n   |                    ^^^^ expected `u8`, found `Pubkey`\n\nerror[E0308]: mismatched types\n  --> tests/attempt.rs:21:9\n   |\n19 |     let ix_baseline = env.anchor_ix(\n   |                           --------- arguments to this method are incorrect\n20 |         \"set_value\",\n21 |         &(1u64,),\n   |         ^^^^^^^^ expected `&[u8]`, found `&(u64,)`\n   |\n   = note: expected reference `&[u8]`\n              found reference `&(u64,)`\nnote: method defined here\nerror[E0308]: mismatched types\n  --> tests/attempt.rs:52:58\n   |\n52 | ...DataAccount\", &[user, 0u64, 0u8]);\n   |                    ^^^^ expected `u8`, found `Pubkey`\n\nerror[E0308]: mismatched types\n  --> tests/attempt.rs:57:9\n   |\n55 |     let ix_attack = env.anchor_ix(\n   |                         --------- arguments to this method are incorrect\n56 |         \"set_value\",\n57 |         &(999u64,),\n   |         ^^^^^^^^^^ expected `&[u8]`, found `&(u64,)`\n   |\n   = note: expected reference `&[u8]`\n              found reference `&(u64,)`\nnote: method defined here\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 4 previous errors",
+        "elapsed_s": 0.7
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0308]: mismatched types\n  --> tests/attempt.rs:13:66\n   |\n13 | ...DataAccount\", &[user, 0u64, 0u8]);\n   |                    ^^^^ expected `u8`, found `Pubkey`\n\nerror[E0308]: mismatched types\n  --> tests/attempt.rs:21:9\n   |\n19 |     let ix_baseline = env.anchor_ix(\n   |                           --------- arguments to this method are incorrect\n20 |         \"set_value\",\n21 |         &(1u64,),\n   |         ^^^^^^^^ expected `&[u8]`, found `&(u64,)`\n   |\n   = note: expected reference `&[u8]`\n              found reference `&(u64,)`\nnote: method defined here\nerror[E0308]: mismatched types\n  --> tests/attempt.rs:52:58\n   |\n52 | ...DataAccount\", &[user, 0u64, 0u8]);\n   |                    ^^^^ expected `u8`, found `Pubkey`\n\nerror[E0308]: mismatched types\n  --> tests/attempt.rs:57:9\n   |\n55 |     let ix_attack = env.anchor_ix(\n   |                         --------- arguments to this method are incorrect\n56 |         \"set_value\",\n57 |         &(999u64,),\n   |         ^^^^^^^^^^ expected `&[u8]`, found `&(u64,)`\n   |\n   = note: expected reference `&[u8]`\n              found reference `&(u64,)`\nnote: method defined here\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 4 previous errors"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2907,
+        "completion_tokens": 947,
+        "latency_s": 4.1
+      },
+      "raw": "{\n  \"plan\": \"Preparamos uma conta DataAccount no PDA canônico derivado de [b\\\"data\\\", user] e um usuário signer. O baseline chama set_value com o PDA canônico e valor 1, provando que o cenário está correto. O ataque tenta usar uma conta com endereço diferente do PDA canônico (bump não canônico ou chave aleatória) para verificar se a validação de PDA é falha. O efeito mede se o ataque foi aceito e se o valor foi alterado para 999, indicando que uma conta não canônica foi aceita.\",\n  \"scenario\": \"let user = Pubkey::new_unique();\\nlet (canonical_pda, _bump) = Pubkey::find_program_address(&[b\\\"data\\\", user.as_ref()], &env.program_id);\\n\\n// Conta DataAccount existente no PDA canônico\\nlet data_account_data = anchor_account_data(\\\"DataAccount\\\", &[user.to_bytes().to_vec(), 0u64.to_le_bytes().to_vec(), vec![0u8]].concat());\\nlet data_account = account(&env.program_id, &data_account_data, None);\\n\\nlet user_account = wallet(1_000_000_000);\\n\\n// Baseline: uso legítimo com o PDA canônico\\nlet ix_baseline = env.anchor_ix(\\n    \\\"set_value\\\",\\n    &1u64.to_le_bytes(),\\n    vec![\\n        AccountMeta::new(canonical_pda, false),\\n        AccountMeta::new_readonly(user, true),\\n    ],\\n);\\nlet contas_baseline = vec![\\n    (canonical_pda, data_account.clone()),\\n    (user, user_account.clone()),\\n];\\nlet r_baseline = env.baseline(\\\"set_value com PDA canônico\\\", &ix_baseline, &contas_baseline);\\n\\n// Ataque: usar uma conta com endereço diferente do PDA canônico\\n// Tentamos um bump não canônico para o mesmo par (data, user)\\nlet mut non_canonical_pda = Pubkey::default();\\nlet mut found = false;\\nfor bump in (0u8..=255).rev() {\\n    if let Ok(pda) = Pubkey::create_program_address(&[b\\\"data\\\", user.as_ref(), &[bump]], &env.program_id) {\\n        if pda != canonical_pda {\\n            non_canonical_pda = pda;\\n            found = true;\\n            break;\\n        }\\n    }\\n}\\n\\nif !found {\\n    // Se não houver bump alternativo, usamos uma conta arbitrária\\n    non_canonical_pda = Pubkey::new_unique();\\n}\\n\\nlet fake_data = anchor_account_data(\\\"DataAccount\\\", &[user.to_bytes().to_vec(), 0u64.to_le_bytes().to_vec(), vec![0u8]].concat());\\nlet fake_account = account(&env.program_id, &fake_data, None);\\n\\nlet ix_attack = env.anchor_ix(\\n    \\\"set_value\\\",\\n    &999u64.to_le_bytes(),\\n    vec![\\n        AccountMeta::new(non_canonical_pda, false),\\n        AccountMeta::new_readonly(user, true),\\n    ],\\n);\\nlet contas_attack = vec![\\n    (non_canonical_pda, fake_account),\\n    (user, user_account),\\n];\\nlet r_attack = env.attack(\\\"set_value com PDA não canônico\\\", &ix_attack, &contas_attack);\\n\\nif r_attack.program_result == ProgramResult::Success {\\n    let data_after = after(&r_attack, &non_canonical_pda).data();\\n    let value_after = read_u64(data_after, 40);\\n    env.effect(\\n        \\\"PDA não canônico aceito e valor alterado para 999\\\",\\n        value_after == 999u64,\\n    );\\n}\"\n}",
+      "plan": "Preparamos uma conta DataAccount no PDA canônico derivado de [b\"data\", user] e um usuário signer. O baseline chama set_value com o PDA canônico e valor 1, provando que o cenário está correto. O ataque tenta usar uma conta com endereço diferente do PDA canônico (bump não canônico ou chave aleatória) para verificar se a validação de PDA é falha. O efeito mede se o ataque foi aceito e se o valor foi alterado para 999, indicando que uma conta não canônica foi aceita.",
+      "scenario": "let user = Pubkey::new_unique();\nlet (canonical_pda, _bump) = Pubkey::find_program_address(&[b\"data\", user.as_ref()], &env.program_id);\n\n// Conta DataAccount existente no PDA canônico\nlet data_account_data = anchor_account_data(\"DataAccount\", &[user.to_bytes().to_vec(), 0u64.to_le_bytes().to_vec(), vec![0u8]].concat());\nlet data_account = account(&env.program_id, &data_account_data, None);\n\nlet user_account = wallet(1_000_000_000);\n\n// Baseline: uso legítimo com o PDA canônico\nlet ix_baseline = env.anchor_ix(\n    \"set_value\",\n    &1u64.to_le_bytes(),\n    vec![\n        AccountMeta::new(canonical_pda, false),\n        AccountMeta::new_readonly(user, true),\n    ],\n);\nlet contas_baseline = vec![\n    (canonical_pda, data_account.clone()),\n    (user, user_account.clone()),\n];\nlet r_baseline = env.baseline(\"set_value com PDA canônico\", &ix_baseline, &contas_baseline);\n\n// Ataque: usar uma conta com endereço diferente do PDA canônico\n// Tentamos um bump não canônico para o mesmo par (data, user)\nlet mut non_canonical_pda = Pubkey::default();\nlet mut found = false;\nfor bump in (0u8..=255).rev() {\n    if let Ok(pda) = Pubkey::create_program_address(&[b\"data\", user.as_ref(), &[bump]], &env.program_id) {\n        if pda != canonical_pda {\n            non_canonical_pda = pda;\n            found = true;\n            break;\n        }\n    }\n}\n\nif !found {\n    // Se não houver bump alternativo, usamos uma conta arbitrária\n    non_canonical_pda = Pubkey::new_unique();\n}\n\nlet fake_data = anchor_account_data(\"DataAccount\", &[user.to_bytes().to_vec(), 0u64.to_le_bytes().to_vec(), vec![0u8]].concat());\nlet fake_account = account(&env.program_id, &fake_data, None);\n\nlet ix_attack = env.anchor_ix(\n    \"set_value\",\n    &999u64.to_le_bytes(),\n    vec![\n        AccountMeta::new(non_canonical_pda, false),\n        AccountMeta::new_readonly(user, true),\n    ],\n);\nlet contas_attack = vec![\n    (non_canonical_pda, fake_account),\n    (user, user_account),\n];\nlet r_attack = env.attack(\"set_value com PDA não canônico\", &ix_attack, &contas_attack);\n\nif r_attack.program_result == ProgramResult::Success {\n    let data_after = after(&r_attack, &non_canonical_pda).data();\n    let value_after = read_u64(data_after, 40);\n    env.effect(\n        \"PDA não canônico aceito e valor alterado para 999\",\n        value_after == 999u64,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "set_value com PDA canônico",
+            "result": "Success",
+            "compute_units": 5160,
+            "account_flags": "-w,sr"
+          },
+          {
+            "step": "attack",
+            "note": "set_value com PDA não canônico",
+            "result": "Failure(Custom(6001))",
+            "compute_units": 6363,
+            "account_flags": "-w,sr"
+          }
+        ],
+        "runtime_trace": [
+          "Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm invoke [1]",
+          "Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm consumed 5160 of 1400000 compute units",
+          "Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm success",
+          "Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm invoke [1]",
+          "Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm consumed 6363 of 1400000 compute units",
+          "Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm failed: custom program error: 0x1771"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "not_confirmed",
+      "reason": "ataque rejeitado: Failure(Custom(6001))"
+    }
+  ],
+  "case_id": "SSP-05-A-S",
+  "static_finding": {
+    "category": "PDA",
+    "evidence": "",
+    "explanation": "",
+    "attack_hypothesis": "Verificar por execucao se a instrucao e vulneravel a Improper PDA Validation / Canonicalization."
+  }
+}

