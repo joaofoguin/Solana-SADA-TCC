@@ -1,0 +1,67 @@
+[
+ {
+  "case": "SSP-01-A-V",
+  "expected_verdict": "confirmed",
+  "scenario": "let authority = Pubkey::new_unique();\nlet attacker = Pubkey::new_unique();\nlet (vault, _bump) = Pubkey::find_program_address(&[b\"vault\", authority.as_ref()], &env.program_id);\nlet mut fields = authority.to_bytes().to_vec();\nfields.extend_from_slice(&500_000u64.to_le_bytes());\nlet vault_acc = account(&env.program_id, &anchor_account_data(\"Vault\", &fields), Some(2_000_000));\nlet accounts = vec![(vault, vault_acc), (authority, wallet(1_000_000)), (attacker, wallet(0))];\nlet args = 100_000u64.to_le_bytes();\nlet legit = env.anchor_ix(\"withdraw\", &args, vec![AccountMeta::new(vault, false), AccountMeta::new_readonly(authority, true), AccountMeta::new(attacker, false)]);\nenv.baseline(\"autoridade assina\", &legit, &accounts);\nlet ix = env.anchor_ix(\"withdraw\", &args, vec![AccountMeta::new(vault, false), AccountMeta::new_readonly(authority, false), AccountMeta::new(attacker, false)]);\nlet r = env.attack(\"autoridade nao assina\", &ix, &accounts);\nif r.program_result == ProgramResult::Success { env.effect(\"atacante recebeu lamports\", after(&r, &attacker).lamports() == 100_000); }"
+ },
+ {
+  "case": "SSP-01-A-S",
+  "expected_verdict": "not_confirmed",
+  "scenario": "let authority = Pubkey::new_unique();\nlet attacker = Pubkey::new_unique();\nlet (vault, _bump) = Pubkey::find_program_address(&[b\"vault\", authority.as_ref()], &env.program_id);\nlet mut fields = authority.to_bytes().to_vec();\nfields.extend_from_slice(&500_000u64.to_le_bytes());\nlet vault_acc = account(&env.program_id, &anchor_account_data(\"Vault\", &fields), Some(2_000_000));\nlet accounts = vec![(vault, vault_acc), (authority, wallet(1_000_000)), (attacker, wallet(0))];\nlet args = 100_000u64.to_le_bytes();\nlet legit = env.anchor_ix(\"withdraw\", &args, vec![AccountMeta::new(vault, false), AccountMeta::new_readonly(authority, true), AccountMeta::new(attacker, false)]);\nenv.baseline(\"autoridade assina\", &legit, &accounts);\nlet ix = env.anchor_ix(\"withdraw\", &args, vec![AccountMeta::new(vault, false), AccountMeta::new_readonly(authority, false), AccountMeta::new(attacker, false)]);\nlet r = env.attack(\"autoridade nao assina\", &ix, &accounts);\nif r.program_result == ProgramResult::Success { env.effect(\"atacante recebeu lamports\", after(&r, &attacker).lamports() == 100_000); }"
+ },
+ {
+  "case": "SSP-02-A-V",
+  "expected_verdict": "confirmed",
+  "scenario": "let authority = Pubkey::new_unique();\nlet treasury = Pubkey::new_unique();\nlet mut f = authority.to_bytes().to_vec(); f.extend_from_slice(&1000u64.to_le_bytes()); f.push(1);\nlet real = vec![(treasury, account(&env.program_id, &anchor_account_data(\"Treasury\", &f), None)), (authority, wallet(1_000_000))];\nlet metas = vec![AccountMeta::new_readonly(treasury, false), AccountMeta::new_readonly(authority, true)];\nenv.baseline(\"tesouraria real\", &env.anchor_ix(\"process\", &(), metas.clone()), &real);\nlet fake_owner = Pubkey::new_unique();\nlet fake = vec![(treasury, account(&fake_owner, &anchor_account_data(\"Treasury\", &f), None)), (authority, wallet(1_000_000))];\nlet r = env.attack(\"tesouraria com dono forjado\", &env.anchor_ix(\"process\", &(), metas), &fake);"
+ },
+ {
+  "case": "SSP-02-A-S",
+  "expected_verdict": "not_confirmed",
+  "scenario": "let authority = Pubkey::new_unique();\nlet treasury = Pubkey::new_unique();\nlet mut f = authority.to_bytes().to_vec(); f.extend_from_slice(&1000u64.to_le_bytes()); f.push(1);\nlet real = vec![(treasury, account(&env.program_id, &anchor_account_data(\"Treasury\", &f), None)), (authority, wallet(1_000_000))];\nlet metas = vec![AccountMeta::new_readonly(treasury, false), AccountMeta::new_readonly(authority, true)];\nenv.baseline(\"tesouraria real\", &env.anchor_ix(\"process\", &(), metas.clone()), &real);\nlet fake_owner = Pubkey::new_unique();\nlet fake = vec![(treasury, account(&fake_owner, &anchor_account_data(\"Treasury\", &f), None)), (authority, wallet(1_000_000))];\nlet r = env.attack(\"tesouraria com dono forjado\", &env.anchor_ix(\"process\", &(), metas), &fake);"
+ },
+ {
+  "case": "SSP-03-A-V1",
+  "expected_verdict": "confirmed",
+  "scenario": "let authority = Pubkey::new_unique();\nlet ledger = Pubkey::new_unique();\nlet start = u64::MAX - 10;\nlet mut f = authority.to_bytes().to_vec(); f.extend_from_slice(&start.to_le_bytes()); f.extend_from_slice(&0u64.to_le_bytes());\nlet accs = vec![(ledger, account(&env.program_id, &anchor_account_data(\"Ledger\", &f), None)), (authority, wallet(1_000_000))];\nlet metas = vec![AccountMeta::new(ledger, false), AccountMeta::new_readonly(authority, true)];\nenv.baseline(\"mint pequeno\", &env.anchor_ix(\"mint\", &5u64.to_le_bytes(), metas.clone()), &accs);\nlet r = env.attack(\"mint que estoura\", &env.anchor_ix(\"mint\", &20u64.to_le_bytes(), metas), &accs);\nif r.program_result == ProgramResult::Success { env.effect(\"total_supply deu a volta\", read_u64(after(&r, &ledger).data(), 40) < start); }"
+ },
+ {
+  "case": "SSP-03-A-S1",
+  "expected_verdict": "not_confirmed",
+  "scenario": "let authority = Pubkey::new_unique();\nlet ledger = Pubkey::new_unique();\nlet start = u64::MAX - 10;\nlet mut f = authority.to_bytes().to_vec(); f.extend_from_slice(&start.to_le_bytes()); f.extend_from_slice(&0u64.to_le_bytes());\nlet accs = vec![(ledger, account(&env.program_id, &anchor_account_data(\"Ledger\", &f), None)), (authority, wallet(1_000_000))];\nlet metas = vec![AccountMeta::new(ledger, false), AccountMeta::new_readonly(authority, true)];\nenv.baseline(\"mint pequeno\", &env.anchor_ix(\"mint\", &5u64.to_le_bytes(), metas.clone()), &accs);\nlet r = env.attack(\"mint que estoura\", &env.anchor_ix(\"mint\", &20u64.to_le_bytes(), metas), &accs);\nif r.program_result == ProgramResult::Success { env.effect(\"total_supply deu a volta\", read_u64(after(&r, &ledger).data(), 40) < start); }"
+ },
+ {
+  "case": "SSP-04-A-V",
+  "expected_verdict": "confirmed",
+  "scenario": "let owner = Pubkey::new_unique();\nlet attacker = Pubkey::new_unique();\nlet config = Pubkey::new_unique();\nlet mut f = Pubkey::default().to_bytes().to_vec(); f.push(0); f.extend_from_slice(&0u64.to_le_bytes());\nlet mut accs = vec![(config, account(&env.program_id, &anchor_account_data(\"Config\", &f), None)), (owner, wallet(1_000_000)), (attacker, wallet(1_000_000))];\nlet r1 = env.baseline(\"primeira inicializacao\", &env.anchor_ix(\"init\", &(), vec![AccountMeta::new(config, false), AccountMeta::new_readonly(owner, true)]), &accs);\nlet state = r1.resulting_accounts.clone();\nlet r = env.attack(\"atacante reinicializa\", &env.anchor_ix(\"init\", &(), vec![AccountMeta::new(config, false), AccountMeta::new_readonly(attacker, true)]), &state);\nif r.program_result == ProgramResult::Success { env.effect(\"autoridade virou o atacante\", read_pubkey(after(&r, &config).data(), 8) == attacker); }"
+ },
+ {
+  "case": "SSP-04-A-S",
+  "expected_verdict": "not_confirmed",
+  "scenario": "let owner = Pubkey::new_unique();\nlet attacker = Pubkey::new_unique();\nlet config = Pubkey::new_unique();\nlet mut f = Pubkey::default().to_bytes().to_vec(); f.push(0); f.extend_from_slice(&0u64.to_le_bytes());\nlet mut accs = vec![(config, account(&env.program_id, &anchor_account_data(\"Config\", &f), None)), (owner, wallet(1_000_000)), (attacker, wallet(1_000_000))];\nlet r1 = env.baseline(\"primeira inicializacao\", &env.anchor_ix(\"init\", &(), vec![AccountMeta::new(config, false), AccountMeta::new_readonly(owner, true)]), &accs);\nlet state = r1.resulting_accounts.clone();\nlet r = env.attack(\"atacante reinicializa\", &env.anchor_ix(\"init\", &(), vec![AccountMeta::new(config, false), AccountMeta::new_readonly(attacker, true)]), &state);\nif r.program_result == ProgramResult::Success { env.effect(\"autoridade virou o atacante\", read_pubkey(after(&r, &config).data(), 8) == attacker); }"
+ },
+ {
+  "case": "SSP-04-A-S2",
+  "expected_verdict": "not_confirmed",
+  "scenario": "let owner = Pubkey::new_unique();\nlet attacker = Pubkey::new_unique();\nlet config = Pubkey::new_unique();\nlet (sp, spa) = system_program_account();\nlet accs = vec![(config, empty_account()), (owner, wallet(1_000_000_000)), (attacker, wallet(1_000_000_000)), (sp, spa.clone())];\nlet r1 = env.baseline(\"criacao com init\", &env.anchor_ix(\"init\", &(), vec![AccountMeta::new(config, true), AccountMeta::new(owner, true), AccountMeta::new_readonly(sp, false)]), &accs);\nlet state = r1.resulting_accounts.clone();\nlet r = env.attack(\"atacante tenta init de novo\", &env.anchor_ix(\"init\", &(), vec![AccountMeta::new(config, true), AccountMeta::new(attacker, true), AccountMeta::new_readonly(sp, false)]), &state);\nif r.program_result == ProgramResult::Success { env.effect(\"autoridade virou o atacante\", read_pubkey(after(&r, &config).data(), 8) == attacker); }"
+ },
+ {
+  "case": "SSP-05-A-V",
+  "expected_verdict": "confirmed",
+  "scenario": "let user = Pubkey::new_unique();\nlet (canon, cb) = Pubkey::find_program_address(&[b\"data\", user.as_ref()], &env.program_id);\nlet mut nb = cb - 1; let alt = loop { if let Ok(a) = Pubkey::create_program_address(&[b\"data\", user.as_ref(), &[nb]], &env.program_id) { break a; } nb -= 1; };\nlet mut f = user.to_bytes().to_vec(); f.extend_from_slice(&0u64.to_le_bytes()); f.push(0);\nlet mk = |k: Pubkey| vec![(k, account(&env.program_id, &anchor_account_data(\"DataAccount\", &f), None)), (user, wallet(1_000_000))];\nlet mut a = vec![cb]; a.extend_from_slice(&7u64.to_le_bytes());\nenv.baseline(\"bump canonico\", &env.anchor_ix(\"set_value\", &a, vec![AccountMeta::new(canon, false), AccountMeta::new_readonly(user, true)]), &mk(canon));\nlet mut b = vec![nb]; b.extend_from_slice(&9u64.to_le_bytes());\nlet r = env.attack(\"bump nao canonico\", &env.anchor_ix(\"set_value\", &b, vec![AccountMeta::new(alt, false), AccountMeta::new_readonly(user, true)]), &mk(alt));\nif r.program_result == ProgramResult::Success { env.effect(\"conta nao canonica gravada\", read_u64(after(&r, &alt).data(), 40) == 9); }"
+ },
+ {
+  "case": "SSP-05-A-S",
+  "expected_verdict": "not_confirmed",
+  "scenario": "let user = Pubkey::new_unique();\nlet (canon, cb) = Pubkey::find_program_address(&[b\"data\", user.as_ref()], &env.program_id);\nlet mut nb = cb - 1; let alt = loop { if let Ok(a) = Pubkey::create_program_address(&[b\"data\", user.as_ref(), &[nb]], &env.program_id) { break a; } nb -= 1; };\nlet mut f = user.to_bytes().to_vec(); f.extend_from_slice(&0u64.to_le_bytes()); f.push(0);\nlet mk = |k: Pubkey| vec![(k, account(&env.program_id, &anchor_account_data(\"DataAccount\", &f), None)), (user, wallet(1_000_000))];\nenv.baseline(\"pda canonico\", &env.anchor_ix(\"set_value\", &7u64.to_le_bytes(), vec![AccountMeta::new(canon, false), AccountMeta::new_readonly(user, true)]), &mk(canon));\nlet r = env.attack(\"pda nao canonico\", &env.anchor_ix(\"set_value\", &9u64.to_le_bytes(), vec![AccountMeta::new(alt, false), AccountMeta::new_readonly(user, true)]), &mk(alt));\nif r.program_result == ProgramResult::Success { env.effect(\"conta nao canonica gravada\", read_u64(after(&r, &alt).data(), 40) == 9); }"
+ },
+ {
+  "case": "SSP-06-A-V",
+  "expected_verdict": "confirmed",
+  "scenario": "let admin = Pubkey::new_unique();\nlet attacker = Pubkey::new_unique();\nlet cfg = Pubkey::new_unique();\nlet mut f = admin.to_bytes().to_vec(); f.extend_from_slice(&100u64.to_le_bytes());\nlet real = vec![(cfg, account(&env.program_id, &anchor_account_data(\"AdminConfig\", &f), None)), (admin, wallet(1_000_000))];\nenv.baseline(\"admin real\", &env.anchor_ix(\"update_fee\", &50u64.to_le_bytes(), vec![AccountMeta::new(cfg, false), AccountMeta::new_readonly(admin, true)]), &real);\nlet ud = Pubkey::new_unique();\nlet mut g = attacker.to_bytes().to_vec(); g.extend_from_slice(&0u64.to_le_bytes());\nlet fake = vec![(ud, account(&env.program_id, &anchor_account_data(\"UserData\", &g), None)), (attacker, wallet(1_000_000))];\nlet r = env.attack(\"UserData no lugar de AdminConfig\", &env.anchor_ix(\"update_fee\", &9999u64.to_le_bytes(), vec![AccountMeta::new(ud, false), AccountMeta::new_readonly(attacker, true)]), &fake);\nif r.program_result == ProgramResult::Success { env.effect(\"taxa gravada na conta de outro tipo\", read_u64(after(&r, &ud).data(), 40) == 9999); }"
+ },
+ {
+  "case": "SSP-06-A-S",
+  "expected_verdict": "not_confirmed",
+  "scenario": "let admin = Pubkey::new_unique();\nlet attacker = Pubkey::new_unique();\nlet cfg = Pubkey::new_unique();\nlet mut f = admin.to_bytes().to_vec(); f.extend_from_slice(&100u64.to_le_bytes());\nlet real = vec![(cfg, account(&env.program_id, &anchor_account_data(\"AdminConfig\", &f), None)), (admin, wallet(1_000_000))];\nenv.baseline(\"admin real\", &env.anchor_ix(\"update_fee\", &50u64.to_le_bytes(), vec![AccountMeta::new(cfg, false), AccountMeta::new_readonly(admin, true)]), &real);\nlet ud = Pubkey::new_unique();\nlet mut g = attacker.to_bytes().to_vec(); g.extend_from_slice(&0u64.to_le_bytes());\nlet fake = vec![(ud, account(&env.program_id, &anchor_account_data(\"UserData\", &g), None)), (attacker, wallet(1_000_000))];\nlet r = env.attack(\"UserData no lugar de AdminConfig\", &env.anchor_ix(\"update_fee\", &9999u64.to_le_bytes(), vec![AccountMeta::new(ud, false), AccountMeta::new_readonly(attacker, true)]), &fake);\nif r.program_result == ProgramResult::Success { env.effect(\"taxa gravada na conta de outro tipo\", read_u64(after(&r, &ud).data(), 40) == 9999); }"
+ }
+]

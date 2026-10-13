@@ -1,0 +1,14 @@
+{
+  "dynamic_prompt_version": "dynamic-v1",
+  "dynamic_prompt_sha256": "852a9a5cb20934df",
+  "llm_base_url": "https://api.groq.com/openai/v1",
+  "llm_model": "llama-3.3-70b-versatile",
+  "llm_json_mode": true,
+  "llm_extra_body": {},
+  "temperature": 0.0,
+  "mode": "forced",
+  "static_run": null,
+  "split": "development",
+  "started": "2026-10-13T20:34:29.345072",
+  "ground_truth_version": "1.3"
+}

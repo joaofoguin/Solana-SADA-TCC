@@ -1,0 +1,17 @@
+[package]
+name = "dynamic-harness"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Harness do Dynamic Agent: executa no Mollusk os cenarios de ataque gerados pelo LLM"
+
+[workspace]
+
+[dependencies]
+mollusk-svm = "0.0.12"
+solana-sdk = "2.1"
+sha2 = "0.10"
+
+[[test]]
+name = "attempt"
+path = "tests/attempt.rs"
