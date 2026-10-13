@@ -35,8 +35,8 @@ RUNS = HERE / "evaluation" / "runs"
 # Versoes congeladas para o Evaluation (atualizar so por decisao registrada).
 FROZEN = {
     "prompt_sha256": "29c3d0e4c72954d7",            # static-v1
-    "dynamic_prompt_sha256": None,      # preencher ao congelar o Dynamic (candidato: dynamic-v4)
-    "synthesis_prompt_sha256": None,    # preencher ao congelar o Synthesis (candidato: synthesis-v1)
+    "dynamic_prompt_sha256": "913eaca528b1cf45",    # dynamic-v5 (congelado em 13/10/2026)
+    "synthesis_prompt_sha256": "24857edf8bf208f5",  # synthesis-v1 (congelado em 13/10/2026)
 }
 
 
