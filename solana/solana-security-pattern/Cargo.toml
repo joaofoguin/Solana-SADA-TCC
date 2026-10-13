@@ -1,0 +1,29 @@
+[workspace]
+members = [
+    "patterns/01-missing-signer-check/anchor",
+    "patterns/02-missing-owner-check/anchor",
+    "patterns/03-integer-overflow/anchor",
+    "patterns/04-reinitialization-attack/anchor",
+    "patterns/05-pda-bump-canonicalization/anchor",
+    "patterns/06-type-cosplay/anchor",
+    "patterns/01-missing-signer-check/tests",
+    "patterns/02-missing-owner-check/tests",
+    "patterns/03-integer-overflow/tests",
+    "patterns/04-reinitialization-attack/tests",
+    "patterns/05-pda-bump-canonicalization/tests",
+    "patterns/06-type-cosplay/tests",
+]
+resolver = "2"
+
+[workspace.dependencies]
+blake3 = "=1.5.5"
+
+[profile.release]
+overflow-checks = true
+lto = "fat"
+codegen-units = 1
+
+[profile.release.build-override]
+opt-level = 3
+incremental = false
+codegen-units = 1
