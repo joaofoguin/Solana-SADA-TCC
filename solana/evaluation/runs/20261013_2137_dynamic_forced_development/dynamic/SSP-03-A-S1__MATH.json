@@ -1,0 +1,78 @@
+{
+  "category": "MATH",
+  "verdict": "not_confirmed",
+  "exploit_successful": false,
+  "attack_result": "Failure(Custom(6000))",
+  "reason": "baseline ok; ataque rejeitado: Failure(Custom(6000)) = variante 0 do enum de erros do programa (#[error_code])",
+  "attempts_used": 2,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2236,
+        "completion_tokens": 839,
+        "latency_s": 4.12
+      },
+      "raw": "{\n  \"plan\": \"O cenário inicializa a conta Ledger com total_supply = u64::MAX - 5 e user_balance = 0 usando a instrução initialize (baseline legítimo). Em seguida, a instrução mint é chamada com amount = 10, que deveria causar overflow em total_supply. O efeito medido é que total_supply sofreu wrap-around (ficou menor que o valor inicial) em vez de a instrução falhar, confirmando a vulnerabilidade de integer overflow.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet ledger_key = Pubkey::new_unique();\\n\\n// Conta ledger ainda não inicializada\\nlet ledger_account = empty_account();\\nlet authority_account = wallet(1_000_000_000);\\nlet (system_program_id, system_program_account) = system_program_account();\\n\\n// Baseline: inicializa o ledger com total_supply = u64::MAX - 5\\nlet init_ix = env.anchor_ix(\\n    \\\"initialize\\\",\\n    &(u64::MAX - 5),\\n    vec![\\n        AccountMeta::new(ledger_key, true),\\n        AccountMeta::new(authority, true),\\n        AccountMeta::new_readonly(system_program_id, false),\\n    ],\\n);\\n\\nlet init_accounts = vec![\\n    (ledger_key, ledger_account),\\n    (authority, authority_account),\\n    (system_program_id, system_program_account),\\n];\\n\\nlet init_result = env.baseline(\\\"initialize ledger with max supply\\\", &init_ix, &init_accounts);\\n\\n// Extrai a conta ledger resultante do baseline\\nlet ledger_after_init = init_result\\n    .resulting_accounts\\n    .iter()\\n    .find(|(k, _)| *k == ledger_key)\\n    .map(|(_, a)| a.clone())\\n    .unwrap_or_else(|| account(&env.program_id, &anchor_account_data(\\\"Ledger\\\", &(authority, u64::MAX - 5, 0u64)), None));\\n\\n// Ataque: mint com amount = 10, que deveria causar overflow em total_supply\\nlet mint_ix = env.anchor_ix(\\n    \\\"mint\\\",\\n    &(10u64),\\n    vec![\\n        AccountMeta::new(ledger_key, false),\\n        AccountMeta::new_readonly(authority, true),\\n    ],\\n);\\n\\nlet mint_accounts = vec![\\n    (ledger_key, ledger_after_init),\\n    (authority, wallet(1_000_000_000)),\\n];\\n\\nlet attack_result = env.attack(\\\"mint with overflow amount\\\", &mint_ix, &mint_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let ledger_data = after(&attack_result, &ledger_key).data();\\n    let total_supply_after = read_u64(ledger_data, 40); // authority(32) + total_supply(8) -> offset 40\\n    let user_balance_after = read_u64(ledger_data, 48);\\n    env.effect(\\n        \\\"total_supply sofreu wrap-around (overflow) em vez de falhar\\\",\\n        total_supply_after < u64::MAX - 5,\\n    );\\n    env.effect(\\n        \\\"user_balance sofreu wrap-around (overflow) em vez de falhar\\\",\\n        user_balance_after < 10,\\n    );\\n}\"\n}",
+      "plan": "O cenário inicializa a conta Ledger com total_supply = u64::MAX - 5 e user_balance = 0 usando a instrução initialize (baseline legítimo). Em seguida, a instrução mint é chamada com amount = 10, que deveria causar overflow em total_supply. O efeito medido é que total_supply sofreu wrap-around (ficou menor que o valor inicial) em vez de a instrução falhar, confirmando a vulnerabilidade de integer overflow.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet ledger_key = Pubkey::new_unique();\n\n// Conta ledger ainda não inicializada\nlet ledger_account = empty_account();\nlet authority_account = wallet(1_000_000_000);\nlet (system_program_id, system_program_account) = system_program_account();\n\n// Baseline: inicializa o ledger com total_supply = u64::MAX - 5\nlet init_ix = env.anchor_ix(\n    \"initialize\",\n    &(u64::MAX - 5),\n    vec![\n        AccountMeta::new(ledger_key, true),\n        AccountMeta::new(authority, true),\n        AccountMeta::new_readonly(system_program_id, false),\n    ],\n);\n\nlet init_accounts = vec![\n    (ledger_key, ledger_account),\n    (authority, authority_account),\n    (system_program_id, system_program_account),\n];\n\nlet init_result = env.baseline(\"initialize ledger with max supply\", &init_ix, &init_accounts);\n\n// Extrai a conta ledger resultante do baseline\nlet ledger_after_init = init_result\n    .resulting_accounts\n    .iter()\n    .find(|(k, _)| *k == ledger_key)\n    .map(|(_, a)| a.clone())\n    .unwrap_or_else(|| account(&env.program_id, &anchor_account_data(\"Ledger\", &(authority, u64::MAX - 5, 0u64)), None));\n\n// Ataque: mint com amount = 10, que deveria causar overflow em total_supply\nlet mint_ix = env.anchor_ix(\n    \"mint\",\n    &(10u64),\n    vec![\n        AccountMeta::new(ledger_key, false),\n        AccountMeta::new_readonly(authority, true),\n    ],\n);\n\nlet mint_accounts = vec![\n    (ledger_key, ledger_after_init),\n    (authority, wallet(1_000_000_000)),\n];\n\nlet attack_result = env.attack(\"mint with overflow amount\", &mint_ix, &mint_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let ledger_data = after(&attack_result, &ledger_key).data();\n    let total_supply_after = read_u64(ledger_data, 40); // authority(32) + total_supply(8) -> offset 40\n    let user_balance_after = read_u64(ledger_data, 48);\n    env.effect(\n        \"total_supply sofreu wrap-around (overflow) em vez de falhar\",\n        total_supply_after < u64::MAX - 5,\n    );\n    env.effect(\n        \"user_balance sofreu wrap-around (overflow) em vez de falhar\",\n        user_balance_after < 10,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "initialize ledger with max supply",
+            "result": "Success",
+            "compute_units": 5933,
+            "account_flags": "sw,sw,-r"
+          },
+          {
+            "step": "attack",
+            "note": "mint with overflow amount",
+            "result": "Failure(Custom(6000))",
+            "compute_units": 2264,
+            "account_flags": "-w,sr"
+          }
+        ],
+        "runtime_trace": [
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA invoke [1]",
+          "Program 11111111111111111111111111111111 invoke [2]",
+          "Program 11111111111111111111111111111111 success",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA consumed 5933 of 1400000 compute units",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA success",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA invoke [1]",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA consumed 2264 of 1400000 compute units",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA failed: custom program error: 0x1770"
+        ],
+        "elapsed_s": 1.9
+      },
+      "verdict": "not_confirmed",
+      "reason": "baseline ok; ataque rejeitado: Failure(Custom(6000)) = variante 0 do enum de erros do programa (#[error_code])"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2950,
+        "completion_tokens": 764,
+        "latency_s": 3.56
+      },
+      "raw": "{\"plan\": \"O programa usa checked_add em mint, entao o overflow e bloqueado com ArithmeticOverflow (6000). A tentativa anterior ja mostrou rejeicao com Custom(6000), exatamente o erro esperado. Vou confirmar com um cenario minimo: inicializar o ledger com total_supply = u64::MAX e tentar mint(1), que deveria dar overflow; o ataque deve ser rejeitado. Como o programa de fato bloqueia a hipotese, concluo blocked.\", \"conclusion\": \"blocked\", \"scenario\": \"let authority = Pubkey::new_unique();\\nlet ledger_key = Pubkey::new_unique();\\n\\nlet ledger_account = empty_account();\\nlet authority_account = wallet(1_000_000_000);\\nlet (system_program_id, system_program_account) = system_program_account();\\n\\nlet init_ix = env.anchor_ix(\\n    \\\"initialize\\\",\\n    &(u64::MAX),\\n    vec![\\n        AccountMeta::new(ledger_key, true),\\n        AccountMeta::new(authority, true),\\n        AccountMeta::new_readonly(system_program_id, false),\\n    ],\\n);\\n\\nlet init_accounts = vec![\\n    (ledger_key, ledger_account),\\n    (authority, authority_account),\\n    (system_program_id, system_program_account),\\n];\\n\\nlet init_result = env.baseline(\\\"initialize ledger with u64::MAX supply\\\", &init_ix, &init_accounts);\\n\\nlet ledger_after_init = init_result\\n    .resulting_accounts\\n    .iter()\\n    .find(|(k, _)| *k == ledger_key)\\n    .map(|(_, a)| a.clone())\\n    .unwrap_or_else(|| account(&env.program_id, &anchor_account_data(\\\"Ledger\\\", &(authority, u64::MAX, 0u64)), None));\\n\\nlet mint_ix = env.anchor_ix(\\n    \\\"mint\\\",\\n    &(1u64),\\n    vec![\\n        AccountMeta::new(ledger_key, false),\\n        AccountMeta::new_readonly(authority, true),\\n    ],\\n);\\n\\nlet mint_accounts = vec![\\n    (ledger_key, ledger_after_init),\\n    (authority, wallet(1_000_000_000)),\\n];\\n\\nlet attack_result = env.attack(\\\"mint 1 with total_supply at u64::MAX\\\", &mint_ix, &mint_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let ledger_data = after(&attack_result, &ledger_key).data();\\n    let total_supply_after = read_u64(ledger_data, 40);\\n    let user_balance_after = read_u64(ledger_data, 48);\\n    env.effect(\\n        \\\"total_supply sofreu wrap-around (overflow) em vez de falhar\\\",\\n        total_supply_after < u64::MAX,\\n    );\\n    env.effect(\\n        \\\"user_balance sofreu wrap-around (overflow) em vez de falhar\\\",\\n        user_balance_after < 1,\\n    );\\n}\"}",
+      "plan": "O programa usa checked_add em mint, entao o overflow e bloqueado com ArithmeticOverflow (6000). A tentativa anterior ja mostrou rejeicao com Custom(6000), exatamente o erro esperado. Vou confirmar com um cenario minimo: inicializar o ledger com total_supply = u64::MAX e tentar mint(1), que deveria dar overflow; o ataque deve ser rejeitado. Como o programa de fato bloqueia a hipotese, concluo blocked.",
+      "verdict": "not_confirmed",
+      "reason": "LLM concluiu que o programa bloqueia o ataque"
+    }
+  ],
+  "case_id": "SSP-03-A-S1",
+  "static_finding": {
+    "category": "MATH",
+    "evidence": "",
+    "explanation": "",
+    "attack_hypothesis": "Verificar por execucao se a instrucao e vulneravel a Integer Overflow / Underflow."
+  }
+}

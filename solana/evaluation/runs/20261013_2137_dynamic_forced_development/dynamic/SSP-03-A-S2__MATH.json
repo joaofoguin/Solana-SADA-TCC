@@ -1,0 +1,78 @@
+{
+  "category": "MATH",
+  "verdict": "not_confirmed",
+  "exploit_successful": false,
+  "attack_result": "Failure(Custom(6001))",
+  "reason": "baseline ok; ataque rejeitado: Failure(Custom(6001)) = variante 1 do enum de erros do programa (#[error_code])",
+  "attempts_used": 2,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2235,
+        "completion_tokens": 698,
+        "latency_s": 3.66
+      },
+      "raw": "{\n  \"plan\": \"O cenário inicializa a conta Ledger com total_supply=100 e user_balance=0 via a instrução initialize (baseline). Em seguida, tenta-se queimar 1 unidade com burn, o que deveria falhar por underflow em user_balance (0 - 1). O efeito medido é se a instrução teve sucesso e se os valores de user_balance e total_supply sofreram wrap-around (ex.: user_balance = u64::MAX).\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet ledger_key = Pubkey::new_unique();\\n\\n// Conta ledger vazia para init\\nlet ledger_account = empty_account();\\nlet authority_account = wallet(1_000_000_000);\\nlet (system_program_id, system_program_account) = system_program_account();\\n\\n// Baseline: initialize com total_supply = 100\\nlet init_ix = env.anchor_ix(\\n    \\\"initialize\\\",\\n    &(100u64,),\\n    vec![\\n        AccountMeta::new(ledger_key, true),\\n        AccountMeta::new(authority, true),\\n        AccountMeta::new_readonly(system_program_id, false),\\n    ],\\n);\\nlet init_accounts = vec![\\n    (ledger_key, ledger_account),\\n    (authority, authority_account),\\n    (system_program_id, system_program_account),\\n];\\nlet init_result = env.baseline(\\\"initialize ledger with supply 100\\\", &init_ix, &init_accounts);\\n\\n// Extrair estado após initialize\\nlet ledger_after_init = after(&init_result, &ledger_key).clone();\\n\\n// Ataque: burn 1 unidade (user_balance = 0, deve underflow)\\nlet burn_ix = env.anchor_ix(\\n    \\\"burn\\\",\\n    &(1u64,),\\n    vec![\\n        AccountMeta::new(ledger_key, false),\\n        AccountMeta::new_readonly(authority, true),\\n    ],\\n);\\nlet burn_accounts = vec![\\n    (ledger_key, ledger_after_init),\\n    (authority, wallet(1_000_000_000)),\\n];\\nlet attack_result = env.attack(\\\"burn 1 from zero balance\\\", &burn_ix, &burn_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let ledger_data = after(&attack_result, &ledger_key).data();\\n    let user_balance = read_u64(ledger_data, 40); // authority (32) + total_supply (8) = offset 40\\n    let total_supply = read_u64(ledger_data, 32);\\n    env.effect(\\\"user_balance wrapped to u64::MAX\\\", user_balance == u64::MAX);\\n    env.effect(\\\"total_supply wrapped to 99\\\", total_supply == 99);\\n}\"\n}",
+      "plan": "O cenário inicializa a conta Ledger com total_supply=100 e user_balance=0 via a instrução initialize (baseline). Em seguida, tenta-se queimar 1 unidade com burn, o que deveria falhar por underflow em user_balance (0 - 1). O efeito medido é se a instrução teve sucesso e se os valores de user_balance e total_supply sofreram wrap-around (ex.: user_balance = u64::MAX).",
+      "scenario": "let authority = Pubkey::new_unique();\nlet ledger_key = Pubkey::new_unique();\n\n// Conta ledger vazia para init\nlet ledger_account = empty_account();\nlet authority_account = wallet(1_000_000_000);\nlet (system_program_id, system_program_account) = system_program_account();\n\n// Baseline: initialize com total_supply = 100\nlet init_ix = env.anchor_ix(\n    \"initialize\",\n    &(100u64,),\n    vec![\n        AccountMeta::new(ledger_key, true),\n        AccountMeta::new(authority, true),\n        AccountMeta::new_readonly(system_program_id, false),\n    ],\n);\nlet init_accounts = vec![\n    (ledger_key, ledger_account),\n    (authority, authority_account),\n    (system_program_id, system_program_account),\n];\nlet init_result = env.baseline(\"initialize ledger with supply 100\", &init_ix, &init_accounts);\n\n// Extrair estado após initialize\nlet ledger_after_init = after(&init_result, &ledger_key).clone();\n\n// Ataque: burn 1 unidade (user_balance = 0, deve underflow)\nlet burn_ix = env.anchor_ix(\n    \"burn\",\n    &(1u64,),\n    vec![\n        AccountMeta::new(ledger_key, false),\n        AccountMeta::new_readonly(authority, true),\n    ],\n);\nlet burn_accounts = vec![\n    (ledger_key, ledger_after_init),\n    (authority, wallet(1_000_000_000)),\n];\nlet attack_result = env.attack(\"burn 1 from zero balance\", &burn_ix, &burn_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let ledger_data = after(&attack_result, &ledger_key).data();\n    let user_balance = read_u64(ledger_data, 40); // authority (32) + total_supply (8) = offset 40\n    let total_supply = read_u64(ledger_data, 32);\n    env.effect(\"user_balance wrapped to u64::MAX\", user_balance == u64::MAX);\n    env.effect(\"total_supply wrapped to 99\", total_supply == 99);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "initialize ledger with supply 100",
+            "result": "Success",
+            "compute_units": 5815,
+            "account_flags": "sw,sw,-r"
+          },
+          {
+            "step": "attack",
+            "note": "burn 1 from zero balance",
+            "result": "Failure(Custom(6001))",
+            "compute_units": 2264,
+            "account_flags": "-w,sr"
+          }
+        ],
+        "runtime_trace": [
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA invoke [1]",
+          "Program 11111111111111111111111111111111 invoke [2]",
+          "Program 11111111111111111111111111111111 success",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA consumed 5815 of 1400000 compute units",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA success",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA invoke [1]",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA consumed 2264 of 1400000 compute units",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA failed: custom program error: 0x1771"
+        ],
+        "elapsed_s": 1.7
+      },
+      "verdict": "not_confirmed",
+      "reason": "baseline ok; ataque rejeitado: Failure(Custom(6001)) = variante 1 do enum de erros do programa (#[error_code])"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2825,
+        "completion_tokens": 110,
+        "latency_s": 1.55
+      },
+      "raw": "{\"plan\": \"O baseline inicializa o ledger com total_supply=100 e user_balance=0. O ataque tenta queimar 1 unidade com user_balance=0, o que deveria causar underflow. A tentativa anterior mostrou que o programa rejeita corretamente com ArithmeticUnderflow (erro 6001), confirmando que checked_sub esta funcionando. Portanto, a hipotese de overflow/underflow esta bloqueada.\", \"conclusion\": \"blocked\"}",
+      "plan": "O baseline inicializa o ledger com total_supply=100 e user_balance=0. O ataque tenta queimar 1 unidade com user_balance=0, o que deveria causar underflow. A tentativa anterior mostrou que o programa rejeita corretamente com ArithmeticUnderflow (erro 6001), confirmando que checked_sub esta funcionando. Portanto, a hipotese de overflow/underflow esta bloqueada.",
+      "verdict": "not_confirmed",
+      "reason": "LLM concluiu que o programa bloqueia o ataque"
+    }
+  ],
+  "case_id": "SSP-03-A-S2",
+  "static_finding": {
+    "category": "MATH",
+    "evidence": "",
+    "explanation": "",
+    "attack_hypothesis": "Verificar por execucao se a instrucao e vulneravel a Integer Overflow / Underflow."
+  }
+}

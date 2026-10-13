@@ -1,0 +1,130 @@
+{
+  "category": "REINIT",
+  "verdict": "not_confirmed",
+  "exploit_successful": false,
+  "attack_result": "Failure(Custom(0))",
+  "reason": "baseline ok; ataque rejeitado: Failure(Custom(0))",
+  "attempts_used": 3,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2045,
+        "completion_tokens": 757,
+        "latency_s": 4.01
+      },
+      "raw": "{\n  \"plan\": \"O cenário monta uma conta `config` já inicializada (com authority, is_initialized=true e vault_balance=0) e uma carteira authority. O baseline chama `init` legitimamente em uma conta nova, provando que o cenário está correto. O ataque chama `init` novamente na mesma conta já inicializada, tentando reinitializá-la. O efeito mede se a conta foi sobrescrita (ex.: authority alterada ou is_initialized permanece true com dados diferentes), demonstrando a reinitialização.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet config_key = Pubkey::new_unique();\\n\\n// Conta config já inicializada (estado anterior)\\nlet config_data = anchor_account_data(\\\"Config\\\", &(authority, true, 0u64));\\nlet config_account = account(&env.program_id, &config_data, None);\\n\\n// Carteira authority\\nlet authority_account = wallet(1_000_000_000);\\n\\n// System program\\nlet (system_program_id, system_program_account) = system_program_account();\\n\\n// Baseline: init em uma conta nova (legítimo)\\nlet new_config_key = Pubkey::new_unique();\\nlet new_config_account = empty_account();\\nlet baseline_ix = env.anchor_ix(\\n    \\\"init\\\",\\n    &(),\\n    vec![\\n        AccountMeta::new(new_config_key, true),\\n        AccountMeta::new(authority, true),\\n        AccountMeta::new_readonly(system_program_id, false),\\n    ],\\n);\\nlet baseline_accounts = vec![\\n    (new_config_key, new_config_account),\\n    (authority, authority_account.clone()),\\n    (system_program_id, system_program_account.clone()),\\n];\\nlet baseline_result = env.baseline(\\\"init legítimo em conta nova\\\", &baseline_ix, &baseline_accounts);\\n\\n// Ataque: init na mesma conta já inicializada\\nlet attack_ix = env.anchor_ix(\\n    \\\"init\\\",\\n    &(),\\n    vec![\\n        AccountMeta::new(config_key, true),\\n        AccountMeta::new(authority, true),\\n        AccountMeta::new_readonly(system_program_id, false),\\n    ],\\n);\\nlet attack_accounts = vec![\\n    (config_key, config_account),\\n    (authority, authority_account),\\n    (system_program_id, system_program_account),\\n];\\nlet attack_result = env.attack(\\\"reinit na conta já inicializada\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let after_config = after(&attack_result, &config_key);\\n    let after_authority = read_pubkey(after_config.data(), 8);\\n    let after_is_init = after_config.data()[40] != 0;\\n    let after_vault = read_u64(after_config.data(), 41);\\n    env.effect(\\n        \\\"conta reinitializada: authority sobrescrita ou estado alterado\\\",\\n        after_authority != authority || !after_is_init || after_vault != 0,\\n    );\\n}\"\n}",
+      "plan": "O cenário monta uma conta `config` já inicializada (com authority, is_initialized=true e vault_balance=0) e uma carteira authority. O baseline chama `init` legitimamente em uma conta nova, provando que o cenário está correto. O ataque chama `init` novamente na mesma conta já inicializada, tentando reinitializá-la. O efeito mede se a conta foi sobrescrita (ex.: authority alterada ou is_initialized permanece true com dados diferentes), demonstrando a reinitialização.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet config_key = Pubkey::new_unique();\n\n// Conta config já inicializada (estado anterior)\nlet config_data = anchor_account_data(\"Config\", &(authority, true, 0u64));\nlet config_account = account(&env.program_id, &config_data, None);\n\n// Carteira authority\nlet authority_account = wallet(1_000_000_000);\n\n// System program\nlet (system_program_id, system_program_account) = system_program_account();\n\n// Baseline: init em uma conta nova (legítimo)\nlet new_config_key = Pubkey::new_unique();\nlet new_config_account = empty_account();\nlet baseline_ix = env.anchor_ix(\n    \"init\",\n    &(),\n    vec![\n        AccountMeta::new(new_config_key, true),\n        AccountMeta::new(authority, true),\n        AccountMeta::new_readonly(system_program_id, false),\n    ],\n);\nlet baseline_accounts = vec![\n    (new_config_key, new_config_account),\n    (authority, authority_account.clone()),\n    (system_program_id, system_program_account.clone()),\n];\nlet baseline_result = env.baseline(\"init legítimo em conta nova\", &baseline_ix, &baseline_accounts);\n\n// Ataque: init na mesma conta já inicializada\nlet attack_ix = env.anchor_ix(\n    \"init\",\n    &(),\n    vec![\n        AccountMeta::new(config_key, true),\n        AccountMeta::new(authority, true),\n        AccountMeta::new_readonly(system_program_id, false),\n    ],\n);\nlet attack_accounts = vec![\n    (config_key, config_account),\n    (authority, authority_account),\n    (system_program_id, system_program_account),\n];\nlet attack_result = env.attack(\"reinit na conta já inicializada\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let after_config = after(&attack_result, &config_key);\n    let after_authority = read_pubkey(after_config.data(), 8);\n    let after_is_init = after_config.data()[40] != 0;\n    let after_vault = read_u64(after_config.data(), 41);\n    env.effect(\n        \"conta reinitializada: authority sobrescrita ou estado alterado\",\n        after_authority != authority || !after_is_init || after_vault != 0,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "init legítimo em conta nova",
+            "result": "Success",
+            "compute_units": 12634,
+            "account_flags": "sw,sw,-r"
+          },
+          {
+            "step": "attack",
+            "note": "reinit na conta já inicializada",
+            "result": "Failure(Custom(0))",
+            "compute_units": 3447,
+            "account_flags": "sw,sw,-r"
+          }
+        ],
+        "runtime_trace": [
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg invoke [1]",
+          "Program 11111111111111111111111111111111 invoke [2]",
+          "Program 11111111111111111111111111111111 success",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg consumed 12634 of 1400000 compute units",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg success",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg invoke [1]",
+          "Program 11111111111111111111111111111111 invoke [2]",
+          "Program 11111111111111111111111111111111 failed: custom program error: 0x0",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg consumed 3447 of 1400000 compute units",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg failed: custom program error: 0x0"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "not_confirmed",
+      "reason": "baseline ok; ataque rejeitado: Failure(Custom(0))"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2650,
+        "completion_tokens": 828,
+        "latency_s": 4.48
+      },
+      "raw": "{\"plan\": \"A tentativa anterior usou uma conta config com dados fabricados (anchor_account_data) e um endereço aleatório, mas o ataque foi rejeitado com Custom(0). Isso indica que o programa Anchor rejeita a reinicialização porque a conta já existe e a constraint `init` falha. Para confirmar que o bloqueio é real e não um erro de montagem, vou preparar o estado inicializando a conta via baseline legítimo (com a mesma authority), e então tentar chamar `init` novamente sobre a conta resultante. O efeito medido será a sobrescrita do estado (authority, is_initialized, vault_balance) caso o ataque suceda.\", \"scenario\": \"let authority = Pubkey::new_unique();\\nlet config_key = Pubkey::new_unique();\\n\\nlet authority_account = wallet(1_000_000_000);\\nlet (system_program_id, system_program_account) = system_program_account();\\n\\n// Baseline: init legítimo em conta nova (cria o estado)\\nlet baseline_ix = env.anchor_ix(\\n    \\\"init\\\",\\n    &(),\\n    vec![\\n        AccountMeta::new(config_key, true),\\n        AccountMeta::new(authority, true),\\n        AccountMeta::new_readonly(system_program_id, false),\\n    ],\\n);\\nlet baseline_accounts = vec![\\n    (config_key, empty_account()),\\n    (authority, authority_account.clone()),\\n    (system_program_id, system_program_account.clone()),\\n];\\nlet baseline_result = env.baseline(\\\"init legítimo em conta nova\\\", &baseline_ix, &baseline_accounts);\\n\\n// Recupera a conta config já inicializada do resultado do baseline\\nlet mut config_after_baseline = None;\\nfor (key, acc) in &baseline_result.resulting_accounts {\\n    if *key == config_key {\\n        config_after_baseline = Some(acc.clone());\\n    }\\n}\\nlet config_account = match config_after_baseline {\\n    Some(acc) => acc,\\n    None => account(&env.program_id, &anchor_account_data(\\\"Config\\\", &(authority, true, 0u64)), None),\\n};\\n\\n// Ataque: chamar init novamente na mesma conta já inicializada\\nlet attack_ix = env.anchor_ix(\\n    \\\"init\\\",\\n    &(),\\n    vec![\\n        AccountMeta::new(config_key, true),\\n        AccountMeta::new(authority, true),\\n        AccountMeta::new_readonly(system_program_id, false),\\n    ],\\n);\\nlet attack_accounts = vec![\\n    (config_key, config_account),\\n    (authority, authority_account),\\n    (system_program_id, system_program_account),\\n];\\nlet attack_result = env.attack(\\\"reinit na conta já inicializada\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let after_config = after(&attack_result, &config_key);\\n    let after_authority = read_pubkey(after_config.data(), 8);\\n    let after_is_init = after_config.data()[40] != 0;\\n    let after_vault = read_u64(after_config.data(), 41);\\n    env.effect(\\n        \\\"conta reinitializada: estado sobrescrito\\\",\\n        after_authority != authority || !after_is_init || after_vault != 0,\\n    );\\n}\"}",
+      "plan": "A tentativa anterior usou uma conta config com dados fabricados (anchor_account_data) e um endereço aleatório, mas o ataque foi rejeitado com Custom(0). Isso indica que o programa Anchor rejeita a reinicialização porque a conta já existe e a constraint `init` falha. Para confirmar que o bloqueio é real e não um erro de montagem, vou preparar o estado inicializando a conta via baseline legítimo (com a mesma authority), e então tentar chamar `init` novamente sobre a conta resultante. O efeito medido será a sobrescrita do estado (authority, is_initialized, vault_balance) caso o ataque suceda.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet config_key = Pubkey::new_unique();\n\nlet authority_account = wallet(1_000_000_000);\nlet (system_program_id, system_program_account) = system_program_account();\n\n// Baseline: init legítimo em conta nova (cria o estado)\nlet baseline_ix = env.anchor_ix(\n    \"init\",\n    &(),\n    vec![\n        AccountMeta::new(config_key, true),\n        AccountMeta::new(authority, true),\n        AccountMeta::new_readonly(system_program_id, false),\n    ],\n);\nlet baseline_accounts = vec![\n    (config_key, empty_account()),\n    (authority, authority_account.clone()),\n    (system_program_id, system_program_account.clone()),\n];\nlet baseline_result = env.baseline(\"init legítimo em conta nova\", &baseline_ix, &baseline_accounts);\n\n// Recupera a conta config já inicializada do resultado do baseline\nlet mut config_after_baseline = None;\nfor (key, acc) in &baseline_result.resulting_accounts {\n    if *key == config_key {\n        config_after_baseline = Some(acc.clone());\n    }\n}\nlet config_account = match config_after_baseline {\n    Some(acc) => acc,\n    None => account(&env.program_id, &anchor_account_data(\"Config\", &(authority, true, 0u64)), None),\n};\n\n// Ataque: chamar init novamente na mesma conta já inicializada\nlet attack_ix = env.anchor_ix(\n    \"init\",\n    &(),\n    vec![\n        AccountMeta::new(config_key, true),\n        AccountMeta::new(authority, true),\n        AccountMeta::new_readonly(system_program_id, false),\n    ],\n);\nlet attack_accounts = vec![\n    (config_key, config_account),\n    (authority, authority_account),\n    (system_program_id, system_program_account),\n];\nlet attack_result = env.attack(\"reinit na conta já inicializada\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let after_config = after(&attack_result, &config_key);\n    let after_authority = read_pubkey(after_config.data(), 8);\n    let after_is_init = after_config.data()[40] != 0;\n    let after_vault = read_u64(after_config.data(), 41);\n    env.effect(\n        \"conta reinitializada: estado sobrescrito\",\n        after_authority != authority || !after_is_init || after_vault != 0,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "init legítimo em conta nova",
+            "result": "Success",
+            "compute_units": 12634,
+            "account_flags": "sw,sw,-r"
+          },
+          {
+            "step": "attack",
+            "note": "reinit na conta já inicializada",
+            "result": "Failure(Custom(0))",
+            "compute_units": 3447,
+            "account_flags": "sw,sw,-r"
+          }
+        ],
+        "runtime_trace": [
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg invoke [1]",
+          "Program 11111111111111111111111111111111 invoke [2]",
+          "Program 11111111111111111111111111111111 success",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg consumed 12634 of 1400000 compute units",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg success",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg invoke [1]",
+          "Program 11111111111111111111111111111111 invoke [2]",
+          "Program 11111111111111111111111111111111 failed: custom program error: 0x0",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg consumed 3447 of 1400000 compute units",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg failed: custom program error: 0x0"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "not_confirmed",
+      "reason": "baseline ok; ataque rejeitado: Failure(Custom(0))"
+    },
+    {
+      "attempt": 3,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2688,
+        "completion_tokens": 141,
+        "latency_s": 2.1
+      },
+      "raw": "{\"plan\": \"O cenário anterior montou corretamente o baseline (init legítimo em conta nova) e o ataque (segundo init na mesma conta), mas o ataque foi rejeitado com Custom(0). Isso indica que o programa Anchor já bloqueia a reinitialização: a constraint `init` do Anchor falha se a conta já existe (o discriminador já está presente), retornando o erro custom 0 (AlreadyInitialized). Como o ataque foi rejeitado exatamente na hipótese de reinit e o baseline funcionou, a hipótese está bloqueada pelo programa.\", \"conclusion\": \"blocked\"}",
+      "plan": "O cenário anterior montou corretamente o baseline (init legítimo em conta nova) e o ataque (segundo init na mesma conta), mas o ataque foi rejeitado com Custom(0). Isso indica que o programa Anchor já bloqueia a reinitialização: a constraint `init` do Anchor falha se a conta já existe (o discriminador já está presente), retornando o erro custom 0 (AlreadyInitialized). Como o ataque foi rejeitado exatamente na hipótese de reinit e o baseline funcionou, a hipótese está bloqueada pelo programa.",
+      "verdict": "not_confirmed",
+      "reason": "LLM concluiu que o programa bloqueia o ataque"
+    }
+  ],
+  "case_id": "SSP-04-A-S2",
+  "static_finding": {
+    "category": "REINIT",
+    "evidence": "",
+    "explanation": "",
+    "attack_hypothesis": "Verificar por execucao se a instrucao e vulneravel a Reinitialization Attacks."
+  }
+}

