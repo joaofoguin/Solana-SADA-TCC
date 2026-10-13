@@ -1,0 +1,99 @@
+{
+  "global": {
+    "TP": 15,
+    "FP": 34,
+    "FN": 1,
+    "TN": 18,
+    "precision": 0.30612244897959184,
+    "recall": 0.9375,
+    "f1": 0.46153846153846156
+  },
+  "by_category": {
+    "Arbitrary CPI": {
+      "TP": 1,
+      "FP": 1,
+      "FN": 0,
+      "TN": 2,
+      "precision": 0.5,
+      "recall": 1.0,
+      "f1": 0.6666666666666666
+    },
+    "Improper Owner Check": {
+      "TP": 2,
+      "FP": 18,
+      "FN": 0,
+      "TN": 2,
+      "precision": 0.1,
+      "recall": 1.0,
+      "f1": 0.18181818181818182
+    },
+    "Improper PDA Validation / Canonicalization": {
+      "TP": 2,
+      "FP": 0,
+      "FN": 0,
+      "TN": 3,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "Integer Overflow / Underflow": {
+      "TP": 2,
+      "FP": 1,
+      "FN": 0,
+      "TN": 2,
+      "precision": 0.6666666666666666,
+      "recall": 1.0,
+      "f1": 0.8
+    },
+    "Missing Signer Check": {
+      "TP": 1,
+      "FP": 3,
+      "FN": 1,
+      "TN": 3,
+      "precision": 0.25,
+      "recall": 0.5,
+      "f1": 0.3333333333333333
+    },
+    "Reinitialization Attacks": {
+      "TP": 4,
+      "FP": 1,
+      "FN": 0,
+      "TN": 1,
+      "precision": 0.8,
+      "recall": 1.0,
+      "f1": 0.888888888888889
+    },
+    "Sysvar Account Check": {
+      "TP": 1,
+      "FP": 0,
+      "FN": 0,
+      "TN": 2,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "Type Cosplay": {
+      "TP": 2,
+      "FP": 10,
+      "FN": 0,
+      "TN": 3,
+      "precision": 0.16666666666666666,
+      "recall": 1.0,
+      "f1": 0.2857142857142857
+    }
+  },
+  "cases_scored": 37,
+  "run_id": "20261013_2313_static_evaluation",
+  "prompt_version": "static-v1",
+  "prompt_sha256": "29c3d0e4c72954d7",
+  "llm_base_url": "https://api.deepseek.com",
+  "llm_model": "deepseek-flash",
+  "llm_json_mode": true,
+  "llm_extra_body": {
+    "thinking": {
+      "type": "disabled"
+    }
+  },
+  "temperature": 0.0,
+  "tokens_this_session": 0
+}

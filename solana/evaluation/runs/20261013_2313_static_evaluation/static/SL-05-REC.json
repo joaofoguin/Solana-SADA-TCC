@@ -1,0 +1,17 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2495,
+    "completion_tokens": 67,
+    "latency_s": 1.53,
+    "attempts": 1
+  },
+  "raw": "{\n  \"instruction\": \"cpi\",\n  \"findings\": [],\n  \"summary\": \"A instrucao cpi realiza uma CPI para o programa de token usando o tipo Program<'info, Token>, que valida automaticamente a chave publica do programa destino, sem vulnerabilidades de CPI arbitraria.\"\n}",
+  "instruction": "cpi",
+  "findings": [],
+  "dropped": [],
+  "summary": "A instrucao cpi realiza uma CPI para o programa de token usando o tipo Program<'info, Token>, que valida automaticamente a chave publica do programa destino, sem vulnerabilidades de CPI arbitraria.",
+  "predicted": [],
+  "parse_error": null,
+  "case_id": "SL-05-REC"
+}

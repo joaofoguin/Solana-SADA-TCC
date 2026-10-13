@@ -1,0 +1,43 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2585,
+    "completion_tokens": 726,
+    "latency_s": 4.8,
+    "attempts": 1
+  },
+  "raw": "{\"instruction\": \"init\", \"findings\": [{\"category\": \"SIGNER\", \"confidence\": \"high\", \"evidence\": \"let authority = &accounts[1];\\n...\\ndata[8..40].copy_from_slice(authority.key().as_ref());\", \"explanation\": \"A conta `authority` e recebida como `AccountInfo` e sua chave publica e gravada como autoridade da config sem qualquer verificacao de que ela assinou a transacao (`authority.is_signer`). Nao ha tipo `Signer` nem `require!(authority.is_signer, ...)`.\", \"attack_hypothesis\": \"Um atacante fornece a chave publica de uma autoridade legitima (ou qualquer chave) como `accounts[1]` sem possuir a chave privada correspondente, inicializando a config com uma autoridade que ele nao controla ou, pior, definindo-se como autoridade sem assinar.\"}, {\"category\": \"OWNER\", \"confidence\": \"high\", \"evidence\": \"let config = &accounts[0];\\nlet mut data = config.try_borrow_mut_data()?;\", \"explanation\": \"A conta `config` e acessada e modificada via `AccountInfo` sem verificar `config.owner == program_id`. Nao ha uso de `Account<'info, T>` nem checagem manual de proprietario, permitindo passar uma conta arbitraria cujos dados serao sobrescritos.\", \"attack_hypothesis\": \"Um atacante fornece uma conta cujo proprietario nao e o programa (por exemplo, uma conta de outro programa ou uma conta de sistema) como `accounts[0]`, e o programa grava o discriminador, a autoridade e o saldo nela, corrompendo dados de terceiros ou contornando a logica de estado.\"}, {\"category\": \"REINIT\", \"confidence\": \"medium\", \"evidence\": \"let is_initialized = data[40] != 0;\\n\\nif is_initialized {\\n    return Err(ProgramError::Custom(ERR_ALREADY_INITIALIZED));\\n}\", \"explanation\": \"A flag de inicializacao e lida de `data[40]` sem validar que a conta foi criada por este programa (sem `init` do Anchor nem verificacao de owner). Como o owner nao e checado, um atacante pode fornecer uma conta cujo byte 40 seja 0 e reexecutar a inicializacao, sobrescrevendo autoridade e saldo. A mitigacao de reinit depende da checagem de owner ausente.\", \"attack_hypothesis\": \"Um atacante fornece uma conta controlada por ele (owner arbitrario) com o byte 40 zerado como `accounts[0]`, fazendo o programa reexecutar a inicializacao e sobrescrever a autoridade/saldo de uma conta que ele controla ou de uma conta forjada.\"}], \"summary\": \"A instrucao `init` nao verifica assinatura da autoridade, nao valida o proprietario da conta de config e depende de uma flag de inicializacao sem checagem de owner, permitindo SIGNER, OWNER e REINIT.\"}",
+  "instruction": "init",
+  "findings": [
+    {
+      "category": "SIGNER",
+      "confidence": "high",
+      "evidence": "let authority = &accounts[1];\n...\ndata[8..40].copy_from_slice(authority.key().as_ref());",
+      "explanation": "A conta `authority` e recebida como `AccountInfo` e sua chave publica e gravada como autoridade da config sem qualquer verificacao de que ela assinou a transacao (`authority.is_signer`). Nao ha tipo `Signer` nem `require!(authority.is_signer, ...)`.",
+      "attack_hypothesis": "Um atacante fornece a chave publica de uma autoridade legitima (ou qualquer chave) como `accounts[1]` sem possuir a chave privada correspondente, inicializando a config com uma autoridade que ele nao controla ou, pior, definindo-se como autoridade sem assinar."
+    },
+    {
+      "category": "OWNER",
+      "confidence": "high",
+      "evidence": "let config = &accounts[0];\nlet mut data = config.try_borrow_mut_data()?;",
+      "explanation": "A conta `config` e acessada e modificada via `AccountInfo` sem verificar `config.owner == program_id`. Nao ha uso de `Account<'info, T>` nem checagem manual de proprietario, permitindo passar uma conta arbitraria cujos dados serao sobrescritos.",
+      "attack_hypothesis": "Um atacante fornece uma conta cujo proprietario nao e o programa (por exemplo, uma conta de outro programa ou uma conta de sistema) como `accounts[0]`, e o programa grava o discriminador, a autoridade e o saldo nela, corrompendo dados de terceiros ou contornando a logica de estado."
+    },
+    {
+      "category": "REINIT",
+      "confidence": "medium",
+      "evidence": "let is_initialized = data[40] != 0;\n\nif is_initialized {\n    return Err(ProgramError::Custom(ERR_ALREADY_INITIALIZED));\n}",
+      "explanation": "A flag de inicializacao e lida de `data[40]` sem validar que a conta foi criada por este programa (sem `init` do Anchor nem verificacao de owner). Como o owner nao e checado, um atacante pode fornecer uma conta cujo byte 40 seja 0 e reexecutar a inicializacao, sobrescrevendo autoridade e saldo. A mitigacao de reinit depende da checagem de owner ausente.",
+      "attack_hypothesis": "Um atacante fornece uma conta controlada por ele (owner arbitrario) com o byte 40 zerado como `accounts[0]`, fazendo o programa reexecutar a inicializacao e sobrescrever a autoridade/saldo de uma conta que ele controla ou de uma conta forjada."
+    }
+  ],
+  "dropped": [],
+  "summary": "A instrucao `init` nao verifica assinatura da autoridade, nao valida o proprietario da conta de config e depende de uma flag de inicializacao sem checagem de owner, permitindo SIGNER, OWNER e REINIT.",
+  "predicted": [
+    "OWNER",
+    "REINIT",
+    "SIGNER"
+  ],
+  "parse_error": null,
+  "case_id": "SSP-04-P-S"
+}

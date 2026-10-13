@@ -1,0 +1,34 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 1289,
+    "completion_tokens": 443,
+    "latency_s": 3.55,
+    "attempts": 1
+  },
+  "raw": "{\n  \"summary\": \"A instrução `update_fee` apresenta uma falha crítica de verificação de owner: a conta `config` é lida e modificada sem validar `config.owner`, permitindo que uma conta forjada com o discriminador correto seja aceita. A análise dinâmica foi inconclusiva porque o ataque tentou gravar em conta de outro owner, mas o erro de runtime não refuta a vulnerabilidade; a evidência estática é forte e suficiente para reportar.\",\n  \"findings\": [\n    {\n      \"category\": \"OWNER\",\n      \"decision\": \"report\",\n      \"severity\": \"critica\",\n      \"confidence\": \"alta\",\n      \"justification\": \"A análise estática mostra que `config` é recebida como `AccountInfo` e seus dados são lidos e gravados (`data[40..48].copy_from_slice(...)`) sem qualquer verificação de `config.owner`. O único controle é um discriminador de 8 bytes, que pode ser forjado por um atacante ao criar uma conta cujo owner é um programa malicioso. A análise dinâmica foi inconclusiva: o ataque parou com `UnknownError(ExternalAccountDataModified)`, erro do runtime da Solana, não do programa, indicando que o programa aceitou a conta forjada e tentou gravar nela. Esse erro não refuta a vulnerabilidade; apenas mostra que o dano deve ser demonstrado por outra via (ex.: decisão tomada a partir dos dados forjados). A ausência de verificação de owner é uma falha crítica de autorização.\",\n      \"recommendation\": \"Adicionar verificação explícita de que `config.owner == program_id` antes de ler ou modificar os dados da conta. Alternativamente, usar o tipo `Account<'info, Config>` do framework (ou equivalente) que valida automaticamente o owner. Nunca confiar apenas em discriminador de dados para autenticar a conta.\"\n    }\n  ]\n}",
+  "summary": "A instrução `update_fee` apresenta uma falha crítica de verificação de owner: a conta `config` é lida e modificada sem validar `config.owner`, permitindo que uma conta forjada com o discriminador correto seja aceita. A análise dinâmica foi inconclusiva porque o ataque tentou gravar em conta de outro owner, mas o erro de runtime não refuta a vulnerabilidade; a evidência estática é forte e suficiente para reportar.",
+  "findings": [
+    {
+      "category": "OWNER",
+      "decision": "report",
+      "severity": "critica",
+      "confidence": "alta",
+      "justification": "A análise estática mostra que `config` é recebida como `AccountInfo` e seus dados são lidos e gravados (`data[40..48].copy_from_slice(...)`) sem qualquer verificação de `config.owner`. O único controle é um discriminador de 8 bytes, que pode ser forjado por um atacante ao criar uma conta cujo owner é um programa malicioso. A análise dinâmica foi inconclusiva: o ataque parou com `UnknownError(ExternalAccountDataModified)`, erro do runtime da Solana, não do programa, indicando que o programa aceitou a conta forjada e tentou gravar nela. Esse erro não refuta a vulnerabilidade; apenas mostra que o dano deve ser demonstrado por outra via (ex.: decisão tomada a partir dos dados forjados). A ausência de verificação de owner é uma falha crítica de autorização.",
+      "recommendation": "Adicionar verificação explícita de que `config.owner == program_id` antes de ler ou modificar os dados da conta. Alternativamente, usar o tipo `Account<'info, Config>` do framework (ou equivalente) que valida automaticamente o owner. Nunca confiar apenas em discriminador de dados para autenticar a conta."
+    }
+  ],
+  "predicted": [
+    "OWNER"
+  ],
+  "extra_categories": [],
+  "omitted": [],
+  "parse_error": null,
+  "inputs": [
+    {
+      "category": "OWNER",
+      "dynamic_verdict": "inconclusive"
+    }
+  ],
+  "case_id": "SSP-06-P-S"
+}

@@ -1,0 +1,35 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2591,
+    "completion_tokens": 478,
+    "latency_s": 3.3,
+    "attempts": 1
+  },
+  "raw": "{\"instruction\": \"burn\", \"findings\": [{\"category\": \"OWNER\", \"confidence\": \"high\", \"evidence\": \"let ledger = &accounts[0];\\n\\nlet mut data = ledger.try_borrow_mut_data()?;\", \"explanation\": \"A conta `ledger` e recebida como `AccountInfo` generica e seus dados sao lidos e modificados diretamente sem verificar `ledger.owner` contra o program_id esperado. Nao ha uso de `Account<'info, T>` nem checagem manual de proprietario, permitindo que uma conta forjada de outro programa seja passada.\", \"attack_hypothesis\": \"Um atacante fornece uma conta cujos dados sao controlados por ele (pertencente a outro programa ou criada por ele) como `accounts[0]`. O programa le e sobrescreve os bytes 40..56 dessa conta, permitindo manipular supply/balance arbitrarios sem que a conta seja autentica.\"}, {\"category\": \"MATH\", \"confidence\": \"high\", \"evidence\": \"let new_supply = supply.wrapping_sub(amount);\\nlet new_balance = balance.wrapping_sub(amount);\", \"explanation\": \"As subtracoes usam `wrapping_sub`, que silenciosamente reinicia o valor em caso de underflow, em vez de `checked_sub` ou de uma pre-condicao `require!(balance >= amount)`. Isso permite que `amount` maior que `supply`/`balance` produza valores enormes por wrap-around.\", \"attack_hypothesis\": \"Um atacante chama `burn` com `amount` maior que o `balance` ou `supply` atual. O `wrapping_sub` faz o valor reiniciar para um numero proximo de `u64::MAX`, gravando um saldo/supply inflado na conta.\"}], \"summary\": \"A instrucao `burn` nao valida o proprietario da conta `ledger` e usa `wrapping_sub` para subtrair `amount`, permitindo manipulacao de contas forjadas e underflow aritmetico.\"}",
+  "instruction": "burn",
+  "findings": [
+    {
+      "category": "OWNER",
+      "confidence": "high",
+      "evidence": "let ledger = &accounts[0];\n\nlet mut data = ledger.try_borrow_mut_data()?;",
+      "explanation": "A conta `ledger` e recebida como `AccountInfo` generica e seus dados sao lidos e modificados diretamente sem verificar `ledger.owner` contra o program_id esperado. Nao ha uso de `Account<'info, T>` nem checagem manual de proprietario, permitindo que uma conta forjada de outro programa seja passada.",
+      "attack_hypothesis": "Um atacante fornece uma conta cujos dados sao controlados por ele (pertencente a outro programa ou criada por ele) como `accounts[0]`. O programa le e sobrescreve os bytes 40..56 dessa conta, permitindo manipular supply/balance arbitrarios sem que a conta seja autentica."
+    },
+    {
+      "category": "MATH",
+      "confidence": "high",
+      "evidence": "let new_supply = supply.wrapping_sub(amount);\nlet new_balance = balance.wrapping_sub(amount);",
+      "explanation": "As subtracoes usam `wrapping_sub`, que silenciosamente reinicia o valor em caso de underflow, em vez de `checked_sub` ou de uma pre-condicao `require!(balance >= amount)`. Isso permite que `amount` maior que `supply`/`balance` produza valores enormes por wrap-around.",
+      "attack_hypothesis": "Um atacante chama `burn` com `amount` maior que o `balance` ou `supply` atual. O `wrapping_sub` faz o valor reiniciar para um numero proximo de `u64::MAX`, gravando um saldo/supply inflado na conta."
+    }
+  ],
+  "dropped": [],
+  "summary": "A instrucao `burn` nao valida o proprietario da conta `ledger` e usa `wrapping_sub` para subtrair `amount`, permitindo manipulacao de contas forjadas e underflow aritmetico.",
+  "predicted": [
+    "MATH",
+    "OWNER"
+  ],
+  "parse_error": null,
+  "case_id": "SSP-03-P-V2"
+}

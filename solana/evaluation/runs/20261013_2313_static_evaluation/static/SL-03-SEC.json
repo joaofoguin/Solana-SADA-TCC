@@ -1,0 +1,17 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2533,
+    "completion_tokens": 64,
+    "latency_s": 1.39,
+    "attempts": 1
+  },
+  "raw": "{\n  \"instruction\": \"update_user\",\n  \"findings\": [],\n  \"summary\": \"A instrução update_user valida corretamente o proprietário da conta, a assinatura da autoridade e o discriminador de tipo, não apresentando vulnerabilidades das categorias analisadas.\"\n}",
+  "instruction": "update_user",
+  "findings": [],
+  "dropped": [],
+  "summary": "A instrução update_user valida corretamente o proprietário da conta, a assinatura da autoridade e o discriminador de tipo, não apresentando vulnerabilidades das categorias analisadas.",
+  "predicted": [],
+  "parse_error": null,
+  "case_id": "SL-03-SEC"
+}

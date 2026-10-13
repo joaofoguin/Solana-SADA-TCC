@@ -1,0 +1,43 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2648,
+    "completion_tokens": 620,
+    "latency_s": 4.28,
+    "attempts": 1
+  },
+  "raw": "{\"instruction\": \"burn\", \"findings\": [{\"category\": \"OWNER\", \"confidence\": \"high\", \"evidence\": \"let ledger = &accounts[0];\\n\\nlet mut data = ledger.try_borrow_mut_data()?;\", \"explanation\": \"A conta `ledger` e recebida como `AccountInfo` generica e seus dados sao lidos e modificados diretamente sem verificar `ledger.owner` contra o program_id esperado. Um atacante pode fornecer uma conta arbitraria cujos dados ele controla.\", \"attack_hypothesis\": \"O atacante fornece uma conta cujo owner nao e o programa, com bytes 40..56 forjados, e a instrucao grava novos valores de supply/balance nessa conta forjada, corrompendo estado arbitrario ou contornando a logica de saldo.\"}, {\"category\": \"SIGNER\", \"confidence\": \"high\", \"evidence\": \"fn burn(accounts: &[AccountInfo], amount: u64) -> ProgramResult {\\n    let ledger = &accounts[0];\\n    let mut data = ledger.try_borrow_mut_data()?;\", \"explanation\": \"A instrucao debita saldo (balance) e supply da conta `ledger` sem exigir que qualquer conta tenha assinado a transacao. Nao ha verificacao de `is_signer` em nenhuma conta.\", \"attack_hypothesis\": \"Qualquer usuario pode enviar a instrucao burn referenciando a conta ledger de outro usuario (ou qualquer conta) e reduzir seu balance/supply sem possuir a chave correspondente, pois nenhuma assinatura e exigida.\"}, {\"category\": \"COSPLAY\", \"confidence\": \"medium\", \"evidence\": \"let supply = u64::from_le_bytes(data[40..48].try_into().unwrap());\\nlet balance = u64::from_le_bytes(data[48..56].try_into().unwrap());\", \"explanation\": \"Os dados da conta sao desserializados manualmente por offsets fixos a partir de `AccountInfo`, sem verificar nenhum discriminador/tag de tipo no inicio do buffer. Uma conta de outro tipo com layout compativel nos offsets 40..56 seria aceita.\", \"attack_hypothesis\": \"O atacante fornece uma conta de tipo diferente (com dados estruturados distintos) cujos bytes 40..56 sao interpretados como supply/balance, fazendo a instrucao operar sobre dados que nao representam o ledger esperado.\"}], \"summary\": \"A instrucao burn le e grava dados de uma conta AccountInfo sem validar owner, sem exigir assinatura e sem discriminador de tipo, permitindo manipulacao de estado por contas forjadas.\"}",
+  "instruction": "burn",
+  "findings": [
+    {
+      "category": "OWNER",
+      "confidence": "high",
+      "evidence": "let ledger = &accounts[0];\n\nlet mut data = ledger.try_borrow_mut_data()?;",
+      "explanation": "A conta `ledger` e recebida como `AccountInfo` generica e seus dados sao lidos e modificados diretamente sem verificar `ledger.owner` contra o program_id esperado. Um atacante pode fornecer uma conta arbitraria cujos dados ele controla.",
+      "attack_hypothesis": "O atacante fornece uma conta cujo owner nao e o programa, com bytes 40..56 forjados, e a instrucao grava novos valores de supply/balance nessa conta forjada, corrompendo estado arbitrario ou contornando a logica de saldo."
+    },
+    {
+      "category": "SIGNER",
+      "confidence": "high",
+      "evidence": "fn burn(accounts: &[AccountInfo], amount: u64) -> ProgramResult {\n    let ledger = &accounts[0];\n    let mut data = ledger.try_borrow_mut_data()?;",
+      "explanation": "A instrucao debita saldo (balance) e supply da conta `ledger` sem exigir que qualquer conta tenha assinado a transacao. Nao ha verificacao de `is_signer` em nenhuma conta.",
+      "attack_hypothesis": "Qualquer usuario pode enviar a instrucao burn referenciando a conta ledger de outro usuario (ou qualquer conta) e reduzir seu balance/supply sem possuir a chave correspondente, pois nenhuma assinatura e exigida."
+    },
+    {
+      "category": "COSPLAY",
+      "confidence": "medium",
+      "evidence": "let supply = u64::from_le_bytes(data[40..48].try_into().unwrap());\nlet balance = u64::from_le_bytes(data[48..56].try_into().unwrap());",
+      "explanation": "Os dados da conta sao desserializados manualmente por offsets fixos a partir de `AccountInfo`, sem verificar nenhum discriminador/tag de tipo no inicio do buffer. Uma conta de outro tipo com layout compativel nos offsets 40..56 seria aceita.",
+      "attack_hypothesis": "O atacante fornece uma conta de tipo diferente (com dados estruturados distintos) cujos bytes 40..56 sao interpretados como supply/balance, fazendo a instrucao operar sobre dados que nao representam o ledger esperado."
+    }
+  ],
+  "dropped": [],
+  "summary": "A instrucao burn le e grava dados de uma conta AccountInfo sem validar owner, sem exigir assinatura e sem discriminador de tipo, permitindo manipulacao de estado por contas forjadas.",
+  "predicted": [
+    "COSPLAY",
+    "OWNER",
+    "SIGNER"
+  ],
+  "parse_error": null,
+  "case_id": "SSP-03-P-S2"
+}

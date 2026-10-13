@@ -1,0 +1,575 @@
+{
+  "category": "CPI",
+  "verdict": "inconclusive",
+  "exploit_successful": false,
+  "attack_result": "Failure(IncorrectProgramId)",
+  "reason": "o baseline 'cpi legitimo com SPL Token' falhou com Failure(InvalidAccountData); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)",
+  "attempts_used": 5,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2319,
+        "completion_tokens": 1061,
+        "latency_s": 5.9
+      },
+      "raw": "{\n  \"plan\": \"Preparo contas source, destination e authority como carteiras validas e um token_program legitimo (SPL Token) para o baseline. O baseline chama a instrucao `cpi` com o token_program oficial, provando que o cenario esta correto. O ataque substitui apenas a conta token_program pelo programa do atacante (env.attacker_program), mantendo as demais contas iguais. O efeito mede que a CPI foi feita para o programa do atacante, verificando que a conta token_program resultante e o programa do atacante (owner executavel) e nao o SPL Token.\",\n  \"scenario\": \"let source = Pubkey::new_unique();\\nlet destination = Pubkey::new_unique();\\nlet authority = Pubkey::new_unique();\\nlet spl_token_id = Pubkey::new_unique(); // usado apenas como placeholder; o baseline usa o token program real\\n\\n// Contas de token (source/destination) precisam existir como contas de token validas para o SPL Token.\\n// Como nao temos o SPL Token real carregado, usamos contas genericas; o baseline pode falhar se o SPL Token nao estiver disponivel.\\n// Para garantir que o baseline tenha sucesso, usamos o proprio program_id como token_program? Nao: o baseline precisa ser um uso legitimo.\\n// O harness carrega o SPL Token? A instrucao-alvo e o programa alvo; o SPL Token pode nao estar carregado.\\n// Estrategia: usar o program_id do alvo como token_program no baseline? Isso nao e legitimo.\\n// Alternativa: o baseline usa o token_program oficial (spl_token::id()), que deve estar carregado no Mollusk.\\n// Se nao estiver, o baseline falha e o cenario esta errado.\\n\\nlet token_program_id = spl_token::id();\\n\\nlet source_acc = account(&token_program_id, &[0u8; 165], None);\\nlet destination_acc = account(&token_program_id, &[0u8; 165], None);\\nlet authority_acc = wallet(1_000_000_000);\\nlet token_program_acc = program_account(&token_program_id);\\n\\nlet contas_baseline = vec![\\n    (source, source_acc.clone()),\\n    (destination, destination_acc.clone()),\\n    (authority, authority_acc.clone()),\\n    (token_program_id, token_program_acc.clone()),\\n];\\n\\nlet ix_baseline = env.anchor_ix(\\\"cpi\\\", &(&100u64,), vec![\\n    AccountMeta::new(source, false),\\n    AccountMeta::new(destination, false),\\n    AccountMeta::new_readonly(authority, true),\\n    AccountMeta::new_readonly(token_program_id, false),\\n]);\\n\\nlet r_base = env.baseline(\\\"cpi legitimo com SPL Token\\\", &ix_baseline, &contas_baseline);\\n\\n// Ataque: substitui token_program pelo programa do atacante\\nlet attacker_program = env.attacker_program.expect(\\\"attacker_program necessario\\\");\\nlet attacker_acc = program_account(&attacker_program);\\n\\nlet contas_ataque = vec![\\n    (source, source_acc),\\n    (destination, destination_acc),\\n    (authority, authority_acc),\\n    (attacker_program, attacker_acc),\\n];\\n\\nlet ix_ataque = env.anchor_ix(\\\"cpi\\\", &(&100u64,), vec![\\n    AccountMeta::new(source, false),\\n    AccountMeta::new(destination, false),\\n    AccountMeta::new_readonly(authority, true),\\n    AccountMeta::new_readonly(attacker_program, false),\\n]);\\n\\nlet r = env.attack(\\\"cpi com token_program do atacante\\\", &ix_ataque, &contas_ataque);\\n\\nif r.program_result == ProgramResult::Success {\\n    // O dano: a CPI foi feita para o programa do atacante, nao para o SPL Token.\\n    // Verificamos que a conta token_program resultante e o programa do atacante.\\n    let tp_after = after(&r, &attacker_program);\\n    env.effect(\\\"CPI invocou o programa do atacante em vez do SPL Token\\\", tp_after.executable() && tp_after.owner() == &solana_sdk::bpf_loader::id());\\n}\"\n}",
+      "plan": "Preparo contas source, destination e authority como carteiras validas e um token_program legitimo (SPL Token) para o baseline. O baseline chama a instrucao `cpi` com o token_program oficial, provando que o cenario esta correto. O ataque substitui apenas a conta token_program pelo programa do atacante (env.attacker_program), mantendo as demais contas iguais. O efeito mede que a CPI foi feita para o programa do atacante, verificando que a conta token_program resultante e o programa do atacante (owner executavel) e nao o SPL Token.",
+      "scenario": "let source = Pubkey::new_unique();\nlet destination = Pubkey::new_unique();\nlet authority = Pubkey::new_unique();\nlet spl_token_id = Pubkey::new_unique(); // usado apenas como placeholder; o baseline usa o token program real\n\n// Contas de token (source/destination) precisam existir como contas de token validas para o SPL Token.\n// Como nao temos o SPL Token real carregado, usamos contas genericas; o baseline pode falhar se o SPL Token nao estiver disponivel.\n// Para garantir que o baseline tenha sucesso, usamos o proprio program_id como token_program? Nao: o baseline precisa ser um uso legitimo.\n// O harness carrega o SPL Token? A instrucao-alvo e o programa alvo; o SPL Token pode nao estar carregado.\n// Estrategia: usar o program_id do alvo como token_program no baseline? Isso nao e legitimo.\n// Alternativa: o baseline usa o token_program oficial (spl_token::id()), que deve estar carregado no Mollusk.\n// Se nao estiver, o baseline falha e o cenario esta errado.\n\nlet token_program_id = spl_token::id();\n\nlet source_acc = account(&token_program_id, &[0u8; 165], None);\nlet destination_acc = account(&token_program_id, &[0u8; 165], None);\nlet authority_acc = wallet(1_000_000_000);\nlet token_program_acc = program_account(&token_program_id);\n\nlet contas_baseline = vec![\n    (source, source_acc.clone()),\n    (destination, destination_acc.clone()),\n    (authority, authority_acc.clone()),\n    (token_program_id, token_program_acc.clone()),\n];\n\nlet ix_baseline = env.anchor_ix(\"cpi\", &(&100u64,), vec![\n    AccountMeta::new(source, false),\n    AccountMeta::new(destination, false),\n    AccountMeta::new_readonly(authority, true),\n    AccountMeta::new_readonly(token_program_id, false),\n]);\n\nlet r_base = env.baseline(\"cpi legitimo com SPL Token\", &ix_baseline, &contas_baseline);\n\n// Ataque: substitui token_program pelo programa do atacante\nlet attacker_program = env.attacker_program.expect(\"attacker_program necessario\");\nlet attacker_acc = program_account(&attacker_program);\n\nlet contas_ataque = vec![\n    (source, source_acc),\n    (destination, destination_acc),\n    (authority, authority_acc),\n    (attacker_program, attacker_acc),\n];\n\nlet ix_ataque = env.anchor_ix(\"cpi\", &(&100u64,), vec![\n    AccountMeta::new(source, false),\n    AccountMeta::new(destination, false),\n    AccountMeta::new_readonly(authority, true),\n    AccountMeta::new_readonly(attacker_program, false),\n]);\n\nlet r = env.attack(\"cpi com token_program do atacante\", &ix_ataque, &contas_ataque);\n\nif r.program_result == ProgramResult::Success {\n    // O dano: a CPI foi feita para o programa do atacante, nao para o SPL Token.\n    // Verificamos que a conta token_program resultante e o programa do atacante.\n    let tp_after = after(&r, &attacker_program);\n    env.effect(\"CPI invocou o programa do atacante em vez do SPL Token\", tp_after.executable() && tp_after.owner() == &solana_sdk::bpf_loader::id());\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0433]: cannot find module or crate `spl_token` in this scope\n  --> tests/attempt.rs:22:28\n   |\n22 |     let token_program_id = spl_token::id();\n   |                            ^^^^^^^^^ use of unresolved module or unlinked crate `spl_token`\n   |\n   = help: if you wanted to use a crate named `spl_token`, use `cargo add spl_token` to add it to your `Cargo.toml`\n\nFor more information about this error, try `rustc --explain E0433`.\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 1 previous error",
+        "elapsed_s": 0.6
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0433]: cannot find module or crate `spl_token` in this scope\n  --> tests/attempt.rs:22:28\n   |\n22 |     let token_program_id = spl_token::id();\n   |                            ^^^^^^^^^ use of unresolved module or unlinked crate `spl_token`\n   |\n   = help: if you wanted to use a crate named `spl_token`, use `cargo add spl_token` to add it to your `Cargo.toml`\n\nFor more information about this error, try `rustc --explain E0433`.\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 1 previous error"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3337,
+        "completion_tokens": 913,
+        "latency_s": 4.59
+      },
+      "raw": "{\n  \"plan\": \"Preparamos contas source/destination/authority e usamos o SPL Token oficial como token_program no baseline. Como o crate spl_token nao esta disponivel, usamos o ID canonico do SPL Token (TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA) e carregamos a conta executavel correspondente. O baseline chama a instrucao cpi com o token_program legitimo. O ataque substitui apenas token_program pelo programa do atacante; se a CPI for aceita, o dano e que o programa alvo invocou o programa do atacante em vez do SPL Token.\",\n  \"scenario\": \"let source = Pubkey::new_unique();\\nlet destination = Pubkey::new_unique();\\nlet authority = Pubkey::new_unique();\\n\\n// ID canonico do SPL Token Program (mainnet/devnet)\\nlet token_program_id = Pubkey::new_from_array([\\n    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172,\\n    28, 180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169,\\n]);\\n\\nlet source_acc = account(&token_program_id, &[0u8; 165], None);\\nlet destination_acc = account(&token_program_id, &[0u8; 165], None);\\nlet authority_acc = wallet(1_000_000_000);\\nlet token_program_acc = program_account(&token_program_id);\\n\\nlet contas_baseline = vec![\\n    (source, source_acc.clone()),\\n    (destination, destination_acc.clone()),\\n    (authority, authority_acc.clone()),\\n    (token_program_id, token_program_acc.clone()),\\n];\\n\\nlet ix_baseline = env.anchor_ix(\\\"cpi\\\", &(&100u64,), vec![\\n    AccountMeta::new(source, false),\\n    AccountMeta::new(destination, false),\\n    AccountMeta::new_readonly(authority, true),\\n    AccountMeta::new_readonly(token_program_id, false),\\n]);\\n\\nlet _r_base = env.baseline(\\\"cpi legitimo com SPL Token\\\", &ix_baseline, &contas_baseline);\\n\\n// Ataque: substitui token_program pelo programa do atacante\\nlet attacker_program = match env.attacker_program {\\n    Some(p) => p,\\n    None => return,\\n};\\nlet attacker_acc = program_account(&attacker_program);\\n\\nlet contas_ataque = vec![\\n    (source, source_acc),\\n    (destination, destination_acc),\\n    (authority, authority_acc),\\n    (attacker_program, attacker_acc),\\n];\\n\\nlet ix_ataque = env.anchor_ix(\\\"cpi\\\", &(&100u64,), vec![\\n    AccountMeta::new(source, false),\\n    AccountMeta::new(destination, false),\\n    AccountMeta::new_readonly(authority, true),\\n    AccountMeta::new_readonly(attacker_program, false),\\n]);\\n\\nlet r = env.attack(\\\"cpi com token_program do atacante\\\", &ix_ataque, &contas_ataque);\\n\\nif r.program_result == ProgramResult::Success {\\n    let tp_after = after(&r, &attacker_program);\\n    env.effect(\\n        \\\"CPI invocou o programa do atacante em vez do SPL Token\\\",\\n        tp_after.executable() && tp_after.owner() == &solana_sdk::bpf_loader::id(),\\n    );\\n}\"\n}",
+      "plan": "Preparamos contas source/destination/authority e usamos o SPL Token oficial como token_program no baseline. Como o crate spl_token nao esta disponivel, usamos o ID canonico do SPL Token (TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA) e carregamos a conta executavel correspondente. O baseline chama a instrucao cpi com o token_program legitimo. O ataque substitui apenas token_program pelo programa do atacante; se a CPI for aceita, o dano e que o programa alvo invocou o programa do atacante em vez do SPL Token.",
+      "scenario": "let source = Pubkey::new_unique();\nlet destination = Pubkey::new_unique();\nlet authority = Pubkey::new_unique();\n\n// ID canonico do SPL Token Program (mainnet/devnet)\nlet token_program_id = Pubkey::new_from_array([\n    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172,\n    28, 180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169,\n]);\n\nlet source_acc = account(&token_program_id, &[0u8; 165], None);\nlet destination_acc = account(&token_program_id, &[0u8; 165], None);\nlet authority_acc = wallet(1_000_000_000);\nlet token_program_acc = program_account(&token_program_id);\n\nlet contas_baseline = vec![\n    (source, source_acc.clone()),\n    (destination, destination_acc.clone()),\n    (authority, authority_acc.clone()),\n    (token_program_id, token_program_acc.clone()),\n];\n\nlet ix_baseline = env.anchor_ix(\"cpi\", &(&100u64,), vec![\n    AccountMeta::new(source, false),\n    AccountMeta::new(destination, false),\n    AccountMeta::new_readonly(authority, true),\n    AccountMeta::new_readonly(token_program_id, false),\n]);\n\nlet _r_base = env.baseline(\"cpi legitimo com SPL Token\", &ix_baseline, &contas_baseline);\n\n// Ataque: substitui token_program pelo programa do atacante\nlet attacker_program = match env.attacker_program {\n    Some(p) => p,\n    None => return,\n};\nlet attacker_acc = program_account(&attacker_program);\n\nlet contas_ataque = vec![\n    (source, source_acc),\n    (destination, destination_acc),\n    (authority, authority_acc),\n    (attacker_program, attacker_acc),\n];\n\nlet ix_ataque = env.anchor_ix(\"cpi\", &(&100u64,), vec![\n    AccountMeta::new(source, false),\n    AccountMeta::new(destination, false),\n    AccountMeta::new_readonly(authority, true),\n    AccountMeta::new_readonly(attacker_program, false),\n]);\n\nlet r = env.attack(\"cpi com token_program do atacante\", &ix_ataque, &contas_ataque);\n\nif r.program_result == ProgramResult::Success {\n    let tp_after = after(&r, &attacker_program);\n    env.effect(\n        \"CPI invocou o programa do atacante em vez do SPL Token\",\n        tp_after.executable() && tp_after.owner() == &solana_sdk::bpf_loader::id(),\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "cpi legitimo com SPL Token",
+            "result": "Failure(InvalidAccountData)",
+            "compute_units": 3407,
+            "account_flags": "-w,-w,sr,-r",
+            "ix_head": "4cad065fb55d53ce",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 165,
+                "head": "0000000000000000",
+                "digest": "2aa1fd6b1e4d7e43",
+                "post": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 165,
+                "head": "0000000000000000",
+                "digest": "2aa1fd6b1e4d7e43",
+                "post": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "signer": false,
+                "writable": false,
+                "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+                "data_len": 36,
+                "head": "0200000027f190b1",
+                "digest": "5b31219b7bc4060b",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "cpi com token_program do atacante",
+            "result": "Failure(IncorrectProgramId)",
+            "compute_units": 2873,
+            "account_flags": "-w,-w,sr,-r",
+            "ix_head": "4cad065fb55d53ce",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 165,
+                "head": "0000000000000000",
+                "digest": "2aa1fd6b1e4d7e43",
+                "post": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 165,
+                "head": "0000000000000000",
+                "digest": "2aa1fd6b1e4d7e43",
+                "post": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": false,
+                "writable": false,
+                "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+                "data_len": 36,
+                "head": "02000000d9b33eab",
+                "digest": "2358ab3601f0524c",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA failed: invalid account data for instruction",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3407 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: invalid account data for instruction",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 2873 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: incorrect program id for instruction"
+        ],
+        "elapsed_s": 1.7
+      },
+      "verdict": null,
+      "reason": "o baseline 'cpi legitimo com SPL Token' falhou com Failure(InvalidAccountData); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)"
+    },
+    {
+      "attempt": 3,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3083,
+        "completion_tokens": 1099,
+        "latency_s": 5.11
+      },
+      "raw": "{\"plan\": \"O baseline falhou porque as contas source/destination nao tinham dados validos de token SPL (o SPL Token rejeita contas com dados invalidos). Preciso montar contas de token validas: mint, source e destination com layout de Account do SPL Token (165 bytes) e authority como owner. O uso legitimo chama cpi com o token_program canonico. O ataque substitui token_program pelo programa do atacante; o efeito mede se a CPI invocou o programa do atacante (conta executavel do atacante presente no resultado).\", \"scenario\": \"let source = Pubkey::new_unique();\\nlet destination = Pubkey::new_unique();\\nlet authority = Pubkey::new_unique();\\nlet mint = Pubkey::new_unique();\\n\\n// ID canonico do SPL Token Program\\nlet token_program_id = Pubkey::new_from_array([\\n    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172,\\n    28, 180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169,\\n]);\\n\\n// Layout de Account do SPL Token (165 bytes):\\n// mint(32) owner(32) amount(8) delegate(36) state(1) is_native(12) delegated_amount(8) close_authority(36)\\nfn token_account_data(mint: &Pubkey, owner: &Pubkey, amount: u64) -> Vec<u8> {\\n    let mut d = vec![0u8; 165];\\n    d[0..32].copy_from_slice(mint.as_ref());\\n    d[32..64].copy_from_slice(owner.as_ref());\\n    d[64..72].copy_from_slice(&amount.to_le_bytes());\\n    // state = Initialized (1) no offset 108\\n    d[108] = 1;\\n    d\\n}\\n\\nlet source_acc = account(&token_program_id, &token_account_data(&mint, &authority, 1_000_000), None);\\nlet destination_acc = account(&token_program_id, &token_account_data(&mint, &authority, 0), None);\\nlet authority_acc = wallet(1_000_000_000);\\nlet token_program_acc = program_account(&token_program_id);\\n\\nlet contas_baseline = vec![\\n    (source, source_acc.clone()),\\n    (destination, destination_acc.clone()),\\n    (authority, authority_acc.clone()),\\n    (token_program_id, token_program_acc.clone()),\\n];\\n\\nlet ix_baseline = env.anchor_ix(\\\"cpi\\\", &(&100u64,), vec![\\n    AccountMeta::new(source, false),\\n    AccountMeta::new(destination, false),\\n    AccountMeta::new_readonly(authority, true),\\n    AccountMeta::new_readonly(token_program_id, false),\\n]);\\n\\nlet _r_base = env.baseline(\\\"cpi legitimo com SPL Token\\\", &ix_baseline, &contas_baseline);\\n\\n// Ataque: substitui token_program pelo programa do atacante\\nlet attacker_program = match env.attacker_program {\\n    Some(p) => p,\\n    None => return,\\n};\\nlet attacker_acc = program_account(&attacker_program);\\n\\nlet contas_ataque = vec![\\n    (source, source_acc),\\n    (destination, destination_acc),\\n    (authority, authority_acc),\\n    (attacker_program, attacker_acc),\\n];\\n\\nlet ix_ataque = env.anchor_ix(\\\"cpi\\\", &(&100u64,), vec![\\n    AccountMeta::new(source, false),\\n    AccountMeta::new(destination, false),\\n    AccountMeta::new_readonly(authority, true),\\n    AccountMeta::new_readonly(attacker_program, false),\\n]);\\n\\nlet r = env.attack(\\\"cpi com token_program do atacante\\\", &ix_ataque, &contas_ataque);\\n\\nif r.program_result == ProgramResult::Success {\\n    let tp_after = after(&r, &attacker_program);\\n    env.effect(\\n        \\\"CPI invocou o programa do atacante em vez do SPL Token\\\",\\n        tp_after.executable() && tp_after.owner() == &solana_sdk::bpf_loader::id(),\\n    );\\n}\"}",
+      "plan": "O baseline falhou porque as contas source/destination nao tinham dados validos de token SPL (o SPL Token rejeita contas com dados invalidos). Preciso montar contas de token validas: mint, source e destination com layout de Account do SPL Token (165 bytes) e authority como owner. O uso legitimo chama cpi com o token_program canonico. O ataque substitui token_program pelo programa do atacante; o efeito mede se a CPI invocou o programa do atacante (conta executavel do atacante presente no resultado).",
+      "scenario": "let source = Pubkey::new_unique();\nlet destination = Pubkey::new_unique();\nlet authority = Pubkey::new_unique();\nlet mint = Pubkey::new_unique();\n\n// ID canonico do SPL Token Program\nlet token_program_id = Pubkey::new_from_array([\n    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172,\n    28, 180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169,\n]);\n\n// Layout de Account do SPL Token (165 bytes):\n// mint(32) owner(32) amount(8) delegate(36) state(1) is_native(12) delegated_amount(8) close_authority(36)\nfn token_account_data(mint: &Pubkey, owner: &Pubkey, amount: u64) -> Vec<u8> {\n    let mut d = vec![0u8; 165];\n    d[0..32].copy_from_slice(mint.as_ref());\n    d[32..64].copy_from_slice(owner.as_ref());\n    d[64..72].copy_from_slice(&amount.to_le_bytes());\n    // state = Initialized (1) no offset 108\n    d[108] = 1;\n    d\n}\n\nlet source_acc = account(&token_program_id, &token_account_data(&mint, &authority, 1_000_000), None);\nlet destination_acc = account(&token_program_id, &token_account_data(&mint, &authority, 0), None);\nlet authority_acc = wallet(1_000_000_000);\nlet token_program_acc = program_account(&token_program_id);\n\nlet contas_baseline = vec![\n    (source, source_acc.clone()),\n    (destination, destination_acc.clone()),\n    (authority, authority_acc.clone()),\n    (token_program_id, token_program_acc.clone()),\n];\n\nlet ix_baseline = env.anchor_ix(\"cpi\", &(&100u64,), vec![\n    AccountMeta::new(source, false),\n    AccountMeta::new(destination, false),\n    AccountMeta::new_readonly(authority, true),\n    AccountMeta::new_readonly(token_program_id, false),\n]);\n\nlet _r_base = env.baseline(\"cpi legitimo com SPL Token\", &ix_baseline, &contas_baseline);\n\n// Ataque: substitui token_program pelo programa do atacante\nlet attacker_program = match env.attacker_program {\n    Some(p) => p,\n    None => return,\n};\nlet attacker_acc = program_account(&attacker_program);\n\nlet contas_ataque = vec![\n    (source, source_acc),\n    (destination, destination_acc),\n    (authority, authority_acc),\n    (attacker_program, attacker_acc),\n];\n\nlet ix_ataque = env.anchor_ix(\"cpi\", &(&100u64,), vec![\n    AccountMeta::new(source, false),\n    AccountMeta::new(destination, false),\n    AccountMeta::new_readonly(authority, true),\n    AccountMeta::new_readonly(attacker_program, false),\n]);\n\nlet r = env.attack(\"cpi com token_program do atacante\", &ix_ataque, &contas_ataque);\n\nif r.program_result == ProgramResult::Success {\n    let tp_after = after(&r, &attacker_program);\n    env.effect(\n        \"CPI invocou o programa do atacante em vez do SPL Token\",\n        tp_after.executable() && tp_after.owner() == &solana_sdk::bpf_loader::id(),\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "cpi legitimo com SPL Token",
+            "result": "Failure(InvalidAccountData)",
+            "compute_units": 3407,
+            "account_flags": "-w,-w,sr,-r",
+            "ix_head": "4cad065fb55d53ce",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 165,
+                "head": "0000000000000005",
+                "digest": "25dbfaaa84d21ac5",
+                "post": "0000000000000005000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000040420f0000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 165,
+                "head": "0000000000000005",
+                "digest": "51ceaf2f4747e913",
+                "post": "000000000000000500000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "signer": false,
+                "writable": false,
+                "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+                "data_len": 36,
+                "head": "0200000027f190b1",
+                "digest": "5b31219b7bc4060b",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "cpi com token_program do atacante",
+            "result": "Failure(IncorrectProgramId)",
+            "compute_units": 2873,
+            "account_flags": "-w,-w,sr,-r",
+            "ix_head": "4cad065fb55d53ce",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 165,
+                "head": "0000000000000005",
+                "digest": "25dbfaaa84d21ac5",
+                "post": "0000000000000005000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000040420f0000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 165,
+                "head": "0000000000000005",
+                "digest": "51ceaf2f4747e913",
+                "post": "000000000000000500000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": false,
+                "writable": false,
+                "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+                "data_len": 36,
+                "head": "02000000d9b33eab",
+                "digest": "2358ab3601f0524c",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA failed: invalid account data for instruction",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3407 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: invalid account data for instruction",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 2873 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: incorrect program id for instruction"
+        ],
+        "elapsed_s": 1.7
+      },
+      "verdict": null,
+      "reason": "o baseline 'cpi legitimo com SPL Token' falhou com Failure(InvalidAccountData); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)"
+    },
+    {
+      "attempt": 4,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3273,
+        "completion_tokens": 1030,
+        "latency_s": 4.48
+      },
+      "raw": "{\"plan\": \"O baseline falhou com InvalidAccountData porque o SPL Token Program real rejeita contas cujo dono nao e ele mesmo ou cujo layout nao bate. Vou montar contas de token validas (dono = SPL Token Program, layout de 165 bytes com state=Initialized) e usar o ID canonico do SPL Token. O baseline chama `cpi` com o token_program legitimo; o ataque substitui apenas a conta token_program pelo programa do atacante, mantendo as demais contas iguais. O efeito mede que a CPI foi direcionada ao programa do atacante (conta executavel do atacante presente no resultado).\", \"scenario\": \"let source = Pubkey::new_unique();\\nlet destination = Pubkey::new_unique();\\nlet authority = Pubkey::new_unique();\\nlet mint = Pubkey::new_unique();\\n\\nlet token_program_id = Pubkey::new_from_array([\\n    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172,\\n    28, 180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169,\\n]);\\n\\nfn token_account_data(mint: &Pubkey, owner: &Pubkey, amount: u64) -> Vec<u8> {\\n    let mut d = vec![0u8; 165];\\n    d[0..32].copy_from_slice(mint.as_ref());\\n    d[32..64].copy_from_slice(owner.as_ref());\\n    d[64..72].copy_from_slice(&amount.to_le_bytes());\\n    d[108] = 1; // state = Initialized\\n    d\\n}\\n\\nlet source_acc = account(&token_program_id, &token_account_data(&mint, &authority, 1_000_000), None);\\nlet destination_acc = account(&token_program_id, &token_account_data(&mint, &authority, 0), None);\\nlet authority_acc = wallet(1_000_000_000);\\nlet token_program_acc = program_account(&token_program_id);\\n\\nlet contas_baseline = vec![\\n    (source, source_acc.clone()),\\n    (destination, destination_acc.clone()),\\n    (authority, authority_acc.clone()),\\n    (token_program_id, token_program_acc.clone()),\\n];\\n\\nlet ix_baseline = env.anchor_ix(\\\"cpi\\\", &(&100u64,), vec![\\n    AccountMeta::new(source, false),\\n    AccountMeta::new(destination, false),\\n    AccountMeta::new_readonly(authority, true),\\n    AccountMeta::new_readonly(token_program_id, false),\\n]);\\n\\nlet _r_base = env.baseline(\\\"cpi legitimo com SPL Token\\\", &ix_baseline, &contas_baseline);\\n\\nlet attacker_program = match env.attacker_program {\\n    Some(p) => p,\\n    None => return,\\n};\\nlet attacker_acc = program_account(&attacker_program);\\n\\nlet contas_ataque = vec![\\n    (source, source_acc),\\n    (destination, destination_acc),\\n    (authority, authority_acc),\\n    (attacker_program, attacker_acc),\\n];\\n\\nlet ix_ataque = env.anchor_ix(\\\"cpi\\\", &(&100u64,), vec![\\n    AccountMeta::new(source, false),\\n    AccountMeta::new(destination, false),\\n    AccountMeta::new_readonly(authority, true),\\n    AccountMeta::new_readonly(attacker_program, false),\\n]);\\n\\nlet r = env.attack(\\\"cpi com token_program do atacante\\\", &ix_ataque, &contas_ataque);\\n\\nif r.program_result == ProgramResult::Success {\\n    let tp_after = after(&r, &attacker_program);\\n    env.effect(\\n        \\\"CPI invocou o programa do atacante em vez do SPL Token\\\",\\n        tp_after.executable() && tp_after.owner() == &solana_sdk::bpf_loader::id(),\\n    );\\n}\"}",
+      "plan": "O baseline falhou com InvalidAccountData porque o SPL Token Program real rejeita contas cujo dono nao e ele mesmo ou cujo layout nao bate. Vou montar contas de token validas (dono = SPL Token Program, layout de 165 bytes com state=Initialized) e usar o ID canonico do SPL Token. O baseline chama `cpi` com o token_program legitimo; o ataque substitui apenas a conta token_program pelo programa do atacante, mantendo as demais contas iguais. O efeito mede que a CPI foi direcionada ao programa do atacante (conta executavel do atacante presente no resultado).",
+      "scenario": "let source = Pubkey::new_unique();\nlet destination = Pubkey::new_unique();\nlet authority = Pubkey::new_unique();\nlet mint = Pubkey::new_unique();\n\nlet token_program_id = Pubkey::new_from_array([\n    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172,\n    28, 180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169,\n]);\n\nfn token_account_data(mint: &Pubkey, owner: &Pubkey, amount: u64) -> Vec<u8> {\n    let mut d = vec![0u8; 165];\n    d[0..32].copy_from_slice(mint.as_ref());\n    d[32..64].copy_from_slice(owner.as_ref());\n    d[64..72].copy_from_slice(&amount.to_le_bytes());\n    d[108] = 1; // state = Initialized\n    d\n}\n\nlet source_acc = account(&token_program_id, &token_account_data(&mint, &authority, 1_000_000), None);\nlet destination_acc = account(&token_program_id, &token_account_data(&mint, &authority, 0), None);\nlet authority_acc = wallet(1_000_000_000);\nlet token_program_acc = program_account(&token_program_id);\n\nlet contas_baseline = vec![\n    (source, source_acc.clone()),\n    (destination, destination_acc.clone()),\n    (authority, authority_acc.clone()),\n    (token_program_id, token_program_acc.clone()),\n];\n\nlet ix_baseline = env.anchor_ix(\"cpi\", &(&100u64,), vec![\n    AccountMeta::new(source, false),\n    AccountMeta::new(destination, false),\n    AccountMeta::new_readonly(authority, true),\n    AccountMeta::new_readonly(token_program_id, false),\n]);\n\nlet _r_base = env.baseline(\"cpi legitimo com SPL Token\", &ix_baseline, &contas_baseline);\n\nlet attacker_program = match env.attacker_program {\n    Some(p) => p,\n    None => return,\n};\nlet attacker_acc = program_account(&attacker_program);\n\nlet contas_ataque = vec![\n    (source, source_acc),\n    (destination, destination_acc),\n    (authority, authority_acc),\n    (attacker_program, attacker_acc),\n];\n\nlet ix_ataque = env.anchor_ix(\"cpi\", &(&100u64,), vec![\n    AccountMeta::new(source, false),\n    AccountMeta::new(destination, false),\n    AccountMeta::new_readonly(authority, true),\n    AccountMeta::new_readonly(attacker_program, false),\n]);\n\nlet r = env.attack(\"cpi com token_program do atacante\", &ix_ataque, &contas_ataque);\n\nif r.program_result == ProgramResult::Success {\n    let tp_after = after(&r, &attacker_program);\n    env.effect(\n        \"CPI invocou o programa do atacante em vez do SPL Token\",\n        tp_after.executable() && tp_after.owner() == &solana_sdk::bpf_loader::id(),\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "cpi legitimo com SPL Token",
+            "result": "Failure(InvalidAccountData)",
+            "compute_units": 3407,
+            "account_flags": "-w,-w,sr,-r",
+            "ix_head": "4cad065fb55d53ce",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 165,
+                "head": "0000000000000005",
+                "digest": "25dbfaaa84d21ac5",
+                "post": "0000000000000005000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000040420f0000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 165,
+                "head": "0000000000000005",
+                "digest": "51ceaf2f4747e913",
+                "post": "000000000000000500000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "signer": false,
+                "writable": false,
+                "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+                "data_len": 36,
+                "head": "0200000027f190b1",
+                "digest": "5b31219b7bc4060b",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "cpi com token_program do atacante",
+            "result": "Failure(IncorrectProgramId)",
+            "compute_units": 2873,
+            "account_flags": "-w,-w,sr,-r",
+            "ix_head": "4cad065fb55d53ce",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 165,
+                "head": "0000000000000005",
+                "digest": "25dbfaaa84d21ac5",
+                "post": "0000000000000005000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000040420f0000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 165,
+                "head": "0000000000000005",
+                "digest": "51ceaf2f4747e913",
+                "post": "000000000000000500000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": false,
+                "writable": false,
+                "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+                "data_len": 36,
+                "head": "02000000d9b33eab",
+                "digest": "2358ab3601f0524c",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA failed: invalid account data for instruction",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3407 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: invalid account data for instruction",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 2873 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: incorrect program id for instruction"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": null,
+      "reason": "o baseline 'cpi legitimo com SPL Token' falhou com Failure(InvalidAccountData); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)"
+    },
+    {
+      "attempt": 5,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3187,
+        "completion_tokens": 1068,
+        "latency_s": 4.52
+      },
+      "raw": "{\"plan\": \"O baseline falhou com InvalidAccountData porque as contas source/destination nao tinham o layout SPL Token correto (faltava o discriminador de 1 byte de AccountType no inicio, exigido pelo SPL Token moderno). Corrijo o layout colocando o byte de AccountType (2 = Account) no offset 0, o mint em 1..33, owner em 33..65, amount em 65..73 e state em 109. O baseline usa o SPL Token real; o ataque substitui token_program pelo programa do atacante, mantendo as mesmas contas source/destination/authority. O efeito mede que a conta do programa do atacante foi de fato invocada (executavel e dona do bpf_loader) apos o ataque.\", \"scenario\": \"let source = Pubkey::new_unique();\\nlet destination = Pubkey::new_unique();\\nlet authority = Pubkey::new_unique();\\nlet mint = Pubkey::new_unique();\\n\\nlet token_program_id = Pubkey::new_from_array([\\n    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172,\\n    28, 180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169,\\n]);\\n\\nfn token_account_data(mint: &Pubkey, owner: &Pubkey, amount: u64) -> Vec<u8> {\\n    let mut d = vec![0u8; 165];\\n    d[0] = 2; // AccountType::Account\\n    d[1..33].copy_from_slice(mint.as_ref());\\n    d[33..65].copy_from_slice(owner.as_ref());\\n    d[65..73].copy_from_slice(&amount.to_le_bytes());\\n    d[109] = 1; // state = Initialized\\n    d\\n}\\n\\nlet source_acc = account(&token_program_id, &token_account_data(&mint, &authority, 1_000_000), None);\\nlet destination_acc = account(&token_program_id, &token_account_data(&mint, &authority, 0), None);\\nlet authority_acc = wallet(1_000_000_000);\\nlet token_program_acc = program_account(&token_program_id);\\n\\nlet contas_baseline = vec![\\n    (source, source_acc.clone()),\\n    (destination, destination_acc.clone()),\\n    (authority, authority_acc.clone()),\\n    (token_program_id, token_program_acc.clone()),\\n];\\n\\nlet ix_baseline = env.anchor_ix(\\\"cpi\\\", &(&100u64,), vec![\\n    AccountMeta::new(source, false),\\n    AccountMeta::new(destination, false),\\n    AccountMeta::new_readonly(authority, true),\\n    AccountMeta::new_readonly(token_program_id, false),\\n]);\\n\\nlet _r_base = env.baseline(\\\"cpi legitimo com SPL Token\\\", &ix_baseline, &contas_baseline);\\n\\nlet attacker_program = match env.attacker_program {\\n    Some(p) => p,\\n    None => return,\\n};\\nlet attacker_acc = program_account(&attacker_program);\\n\\nlet contas_ataque = vec![\\n    (source, source_acc),\\n    (destination, destination_acc),\\n    (authority, authority_acc),\\n    (attacker_program, attacker_acc),\\n];\\n\\nlet ix_ataque = env.anchor_ix(\\\"cpi\\\", &(&100u64,), vec![\\n    AccountMeta::new(source, false),\\n    AccountMeta::new(destination, false),\\n    AccountMeta::new_readonly(authority, true),\\n    AccountMeta::new_readonly(attacker_program, false),\\n]);\\n\\nlet r = env.attack(\\\"cpi com token_program do atacante\\\", &ix_ataque, &contas_ataque);\\n\\nif r.program_result == ProgramResult::Success {\\n    let tp_after = after(&r, &attacker_program);\\n    env.effect(\\n        \\\"CPI invocou o programa do atacante em vez do SPL Token\\\",\\n        tp_after.executable() && tp_after.owner() == &solana_sdk::bpf_loader::id(),\\n    );\\n}\"}",
+      "plan": "O baseline falhou com InvalidAccountData porque as contas source/destination nao tinham o layout SPL Token correto (faltava o discriminador de 1 byte de AccountType no inicio, exigido pelo SPL Token moderno). Corrijo o layout colocando o byte de AccountType (2 = Account) no offset 0, o mint em 1..33, owner em 33..65, amount em 65..73 e state em 109. O baseline usa o SPL Token real; o ataque substitui token_program pelo programa do atacante, mantendo as mesmas contas source/destination/authority. O efeito mede que a conta do programa do atacante foi de fato invocada (executavel e dona do bpf_loader) apos o ataque.",
+      "scenario": "let source = Pubkey::new_unique();\nlet destination = Pubkey::new_unique();\nlet authority = Pubkey::new_unique();\nlet mint = Pubkey::new_unique();\n\nlet token_program_id = Pubkey::new_from_array([\n    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172,\n    28, 180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169,\n]);\n\nfn token_account_data(mint: &Pubkey, owner: &Pubkey, amount: u64) -> Vec<u8> {\n    let mut d = vec![0u8; 165];\n    d[0] = 2; // AccountType::Account\n    d[1..33].copy_from_slice(mint.as_ref());\n    d[33..65].copy_from_slice(owner.as_ref());\n    d[65..73].copy_from_slice(&amount.to_le_bytes());\n    d[109] = 1; // state = Initialized\n    d\n}\n\nlet source_acc = account(&token_program_id, &token_account_data(&mint, &authority, 1_000_000), None);\nlet destination_acc = account(&token_program_id, &token_account_data(&mint, &authority, 0), None);\nlet authority_acc = wallet(1_000_000_000);\nlet token_program_acc = program_account(&token_program_id);\n\nlet contas_baseline = vec![\n    (source, source_acc.clone()),\n    (destination, destination_acc.clone()),\n    (authority, authority_acc.clone()),\n    (token_program_id, token_program_acc.clone()),\n];\n\nlet ix_baseline = env.anchor_ix(\"cpi\", &(&100u64,), vec![\n    AccountMeta::new(source, false),\n    AccountMeta::new(destination, false),\n    AccountMeta::new_readonly(authority, true),\n    AccountMeta::new_readonly(token_program_id, false),\n]);\n\nlet _r_base = env.baseline(\"cpi legitimo com SPL Token\", &ix_baseline, &contas_baseline);\n\nlet attacker_program = match env.attacker_program {\n    Some(p) => p,\n    None => return,\n};\nlet attacker_acc = program_account(&attacker_program);\n\nlet contas_ataque = vec![\n    (source, source_acc),\n    (destination, destination_acc),\n    (authority, authority_acc),\n    (attacker_program, attacker_acc),\n];\n\nlet ix_ataque = env.anchor_ix(\"cpi\", &(&100u64,), vec![\n    AccountMeta::new(source, false),\n    AccountMeta::new(destination, false),\n    AccountMeta::new_readonly(authority, true),\n    AccountMeta::new_readonly(attacker_program, false),\n]);\n\nlet r = env.attack(\"cpi com token_program do atacante\", &ix_ataque, &contas_ataque);\n\nif r.program_result == ProgramResult::Success {\n    let tp_after = after(&r, &attacker_program);\n    env.effect(\n        \"CPI invocou o programa do atacante em vez do SPL Token\",\n        tp_after.executable() && tp_after.owner() == &solana_sdk::bpf_loader::id(),\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "cpi legitimo com SPL Token",
+            "result": "Failure(InvalidAccountData)",
+            "compute_units": 3407,
+            "account_flags": "-w,-w,sr,-r",
+            "ix_head": "4cad065fb55d53ce",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 165,
+                "head": "0200000000000000",
+                "digest": "cab82e82c98d4690",
+                "post": "020000000000000005000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000040420f00000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 165,
+                "head": "0200000000000000",
+                "digest": "7ab76491ef86adfb",
+                "post": "020000000000000005000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "signer": false,
+                "writable": false,
+                "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+                "data_len": 36,
+                "head": "0200000027f190b1",
+                "digest": "5b31219b7bc4060b",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "cpi com token_program do atacante",
+            "result": "Failure(IncorrectProgramId)",
+            "compute_units": 2873,
+            "account_flags": "-w,-w,sr,-r",
+            "ix_head": "4cad065fb55d53ce",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 165,
+                "head": "0200000000000000",
+                "digest": "cab82e82c98d4690",
+                "post": "020000000000000005000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000040420f00000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 165,
+                "head": "0200000000000000",
+                "digest": "7ab76491ef86adfb",
+                "post": "020000000000000005000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": false,
+                "writable": false,
+                "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+                "data_len": 36,
+                "head": "02000000d9b33eab",
+                "digest": "2358ab3601f0524c",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA failed: invalid account data for instruction",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3407 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: invalid account data for instruction",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 2873 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: incorrect program id for instruction"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": null,
+      "reason": "o baseline 'cpi legitimo com SPL Token' falhou com Failure(InvalidAccountData); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)"
+    }
+  ],
+  "case_id": "SL-05-INS",
+  "static_finding": {
+    "category": "CPI",
+    "confidence": "high",
+    "evidence": "token_program: AccountInfo<'info>,\n...\nsolana_program::program::invoke(\n    &spl_token::instruction::transfer(\n        ctx.accounts.token_program.key,\n        ...",
+    "explanation": "A conta do programa destino (`token_program`) e recebida como `AccountInfo` generica e sua chave publica e usada diretamente na construcao da instrucao de transferencia sem qualquer verificacao de que corresponde ao programa SPL Token esperado. Um atacante pode fornecer um programa malicioso no lugar do token_program.",
+    "attack_hypothesis": "O atacante fornece uma conta `token_program` controlada por um programa malicioso. Como a chave nao e validada contra o ID oficial do SPL Token, a CPI invoca o programa do atacante, que pode executar logica arbitraria (ex: desviar fundos ou falsificar transferencias) em vez da transferencia legitima de tokens.",
+    "mitigation": "Usar o tipo `Program<'info, Token>` do Anchor ou validar explicitamente `require_keys_eq!(ctx.accounts.token_program.key(), spl_token::ID)` antes da invocacao."
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2341,
+    "completion_tokens": 215,
+    "latency_s": 2.37,
+    "attempts": 1
+  },
+  "raw": "{\"instruction\": \"check_sysvar_address\", \"findings\": [{\"category\": \"SYSVAR\", \"confidence\": \"high\", \"evidence\": \"rent: AccountInfo<'info>,\", \"explanation\": \"A conta de Sysvar 'rent' e recebida como AccountInfo generico, sem validacao de que sua chave publica corresponde ao ID oficial do Sysvar Rent (solana_program::sysvar::rent::ID). O Anchor nao valida automaticamente o ID de Sysvar quando o tipo e AccountInfo.\", \"attack_hypothesis\": \"Um atacante forneceria uma conta arbitraria no lugar do Sysvar Rent. Se o handler lesse os dados dessa conta (ex: taxa de rent), obteria valores controlados pelo atacante, podendo manipular a logica do programa que depende do Rent.\"}], \"summary\": \"A instrucao recebe o Sysvar Rent como AccountInfo sem validar seu ID oficial, configurando SYSVAR.\"}",
+  "instruction": "check_sysvar_address",
+  "findings": [
+    {
+      "category": "SYSVAR",
+      "confidence": "high",
+      "evidence": "rent: AccountInfo<'info>,",
+      "explanation": "A conta de Sysvar 'rent' e recebida como AccountInfo generico, sem validacao de que sua chave publica corresponde ao ID oficial do Sysvar Rent (solana_program::sysvar::rent::ID). O Anchor nao valida automaticamente o ID de Sysvar quando o tipo e AccountInfo.",
+      "attack_hypothesis": "Um atacante forneceria uma conta arbitraria no lugar do Sysvar Rent. Se o handler lesse os dados dessa conta (ex: taxa de rent), obteria valores controlados pelo atacante, podendo manipular a logica do programa que depende do Rent."
+    }
+  ],
+  "dropped": [],
+  "summary": "A instrucao recebe o Sysvar Rent como AccountInfo sem validar seu ID oficial, configurando SYSVAR.",
+  "predicted": [
+    "SYSVAR"
+  ],
+  "parse_error": null,
+  "case_id": "SL-10-INS"
+}

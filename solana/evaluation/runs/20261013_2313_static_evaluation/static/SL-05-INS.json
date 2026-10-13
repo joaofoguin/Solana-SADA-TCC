@@ -1,0 +1,46 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2485,
+    "completion_tokens": 927,
+    "latency_s": 5.87,
+    "attempts": 1
+  },
+  "raw": "{\n  \"instruction\": \"cpi\",\n  \"findings\": [\n    {\n      \"category\": \"CPI\",\n      \"confidence\": \"high\",\n      \"evidence\": \"token_program: AccountInfo<'info>,\\n...\\nsolana_program::program::invoke(\\n    &spl_token::instruction::transfer(\\n        ctx.accounts.token_program.key,\\n        ...\",\n      \"explanation\": \"A conta do programa destino (`token_program`) e recebida como `AccountInfo` generica e sua chave publica e usada diretamente na construcao da instrucao de transferencia sem qualquer verificacao de que corresponde ao programa SPL Token esperado. Um atacante pode fornecer um programa malicioso no lugar do token_program.\",\n      \"attack_hypothesis\": \"O atacante fornece uma conta `token_program` controlada por um programa malicioso. Como a chave nao e validada contra o ID oficial do SPL Token, a CPI invoca o programa do atacante, que pode executar logica arbitraria (ex: desviar fundos ou falsificar transferencias) em vez da transferencia legitima de tokens.\",\n      \"mitigation\": \"Usar o tipo `Program<'info, Token>` do Anchor ou validar explicitamente `require_keys_eq!(ctx.accounts.token_program.key(), spl_token::ID)` antes da invocacao.\"\n    },\n    {\n      \"category\": \"SIGNER\",\n      \"confidence\": \"high\",\n      \"evidence\": \"authority: AccountInfo<'info>,\\n...\\nctx.accounts.authority.key,\\n&[],\\n...\\nctx.accounts.authority.clone(),\",\n      \"explanation\": \"A conta `authority` e recebida como `AccountInfo` generica e usada como autoridade da transferencia SPL sem verificar `is_signer`. Nao ha `Signer<'info>` nem `require!(authority.is_signer)`. A instrucao de transferencia do SPL Token exige que a autoridade assine, mas o programa nao valida essa flag antes de montar a CPI.\",\n      \"attack_hypothesis\": \"O atacante fornece uma conta `authority` que nao assinou a transacao (ou cuja chave publica e conhecida) e tenta executar a transferencia. Sem a checagem de assinatura, o programa pode aceitar a autoridade forjada, permitindo movimentar tokens de uma conta `source` sem o consentimento do verdadeiro dono.\",\n      \"mitigation\": \"Usar `Signer<'info>` para a conta `authority` ou validar explicitamente `require!(ctx.accounts.authority.is_signer, ...)`.\"\n    },\n    {\n      \"category\": \"OWNER\",\n      \"confidence\": \"medium\",\n      \"evidence\": \"source: AccountInfo<'info>,\\ndestination: AccountInfo<'info>,\\nauthority: AccountInfo<'info>,\",\n      \"explanation\": \"As contas `source`, `destination` e `authority` sao recebidas como `AccountInfo` genericas sem verificar que pertencem ao programa SPL Token (`account.owner == spl_token::ID`). O programa assume que sao contas de token validas sem checar o proprietario.\",\n      \"attack_hypothesis\": \"O atacante fornece contas `source`/`destination` que nao pertencem ao SPL Token (ex: contas de outro programa com layout forjado). Como o proprietario nao e validado, a CPI pode operar sobre dados inesperados ou o programa pode ser induzido a aceitar contas invalidas.\",\n      \"mitigation\": \"Usar `Account<'info, TokenAccount>` do Anchor (que valida o owner) ou verificar explicitamente `ctx.accounts.source.owner == spl_token::ID`.\"\n    }\n  ],\n  \"summary\": \"A instrucao `cpi` realiza uma CPI para o SPL Token sem validar a chave publica do programa destino (CPI arbitraria), sem exigir assinatura da autoridade (SIGNER) e sem verificar o proprietario das contas de token (OWNER).\"\n}",
+  "instruction": "cpi",
+  "findings": [
+    {
+      "category": "CPI",
+      "confidence": "high",
+      "evidence": "token_program: AccountInfo<'info>,\n...\nsolana_program::program::invoke(\n    &spl_token::instruction::transfer(\n        ctx.accounts.token_program.key,\n        ...",
+      "explanation": "A conta do programa destino (`token_program`) e recebida como `AccountInfo` generica e sua chave publica e usada diretamente na construcao da instrucao de transferencia sem qualquer verificacao de que corresponde ao programa SPL Token esperado. Um atacante pode fornecer um programa malicioso no lugar do token_program.",
+      "attack_hypothesis": "O atacante fornece uma conta `token_program` controlada por um programa malicioso. Como a chave nao e validada contra o ID oficial do SPL Token, a CPI invoca o programa do atacante, que pode executar logica arbitraria (ex: desviar fundos ou falsificar transferencias) em vez da transferencia legitima de tokens.",
+      "mitigation": "Usar o tipo `Program<'info, Token>` do Anchor ou validar explicitamente `require_keys_eq!(ctx.accounts.token_program.key(), spl_token::ID)` antes da invocacao."
+    },
+    {
+      "category": "SIGNER",
+      "confidence": "high",
+      "evidence": "authority: AccountInfo<'info>,\n...\nctx.accounts.authority.key,\n&[],\n...\nctx.accounts.authority.clone(),",
+      "explanation": "A conta `authority` e recebida como `AccountInfo` generica e usada como autoridade da transferencia SPL sem verificar `is_signer`. Nao ha `Signer<'info>` nem `require!(authority.is_signer)`. A instrucao de transferencia do SPL Token exige que a autoridade assine, mas o programa nao valida essa flag antes de montar a CPI.",
+      "attack_hypothesis": "O atacante fornece uma conta `authority` que nao assinou a transacao (ou cuja chave publica e conhecida) e tenta executar a transferencia. Sem a checagem de assinatura, o programa pode aceitar a autoridade forjada, permitindo movimentar tokens de uma conta `source` sem o consentimento do verdadeiro dono.",
+      "mitigation": "Usar `Signer<'info>` para a conta `authority` ou validar explicitamente `require!(ctx.accounts.authority.is_signer, ...)`."
+    },
+    {
+      "category": "OWNER",
+      "confidence": "medium",
+      "evidence": "source: AccountInfo<'info>,\ndestination: AccountInfo<'info>,\nauthority: AccountInfo<'info>,",
+      "explanation": "As contas `source`, `destination` e `authority` sao recebidas como `AccountInfo` genericas sem verificar que pertencem ao programa SPL Token (`account.owner == spl_token::ID`). O programa assume que sao contas de token validas sem checar o proprietario.",
+      "attack_hypothesis": "O atacante fornece contas `source`/`destination` que nao pertencem ao SPL Token (ex: contas de outro programa com layout forjado). Como o proprietario nao e validado, a CPI pode operar sobre dados inesperados ou o programa pode ser induzido a aceitar contas invalidas.",
+      "mitigation": "Usar `Account<'info, TokenAccount>` do Anchor (que valida o owner) ou verificar explicitamente `ctx.accounts.source.owner == spl_token::ID`."
+    }
+  ],
+  "dropped": [],
+  "summary": "A instrucao `cpi` realiza uma CPI para o SPL Token sem validar a chave publica do programa destino (CPI arbitraria), sem exigir assinatura da autoridade (SIGNER) e sem verificar o proprietario das contas de token (OWNER).",
+  "predicted": [
+    "CPI",
+    "OWNER",
+    "SIGNER"
+  ],
+  "parse_error": null,
+  "case_id": "SL-05-INS"
+}

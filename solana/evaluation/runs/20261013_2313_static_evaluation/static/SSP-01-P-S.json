@@ -1,0 +1,35 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2855,
+    "completion_tokens": 579,
+    "latency_s": 4.19,
+    "attempts": 1
+  },
+  "raw": "{\"instruction\": \"withdraw\", \"findings\": [{\"category\": \"OWNER\", \"confidence\": \"high\", \"evidence\": \"let vault_data = vault.try_borrow_data()?;\\nlet stored_authority = read_pubkey(&vault_data[8..40]);\", \"explanation\": \"A conta `vault` e recebida como `AccountInfo` e seus dados sao lidos diretamente sem verificar `vault.owner`. Um atacante pode fornecer uma conta forjada cujo campo `owner` aponta para outro programa (ou nenhum), contendo dados arbitrarios que satisfacam a checagem de `stored_authority`, permitindo manipular o saldo lido e a logica de saque.\", \"attack_hypothesis\": \"O atacante cria uma conta cujos dados colocam sua propria chave em `vault_data[8..40]` e um saldo alto em `vault_data[40..48]`, e a passa como `vault`. Como nao ha checagem de `owner`, o programa aceita os dados forjados e prossegue com o saque, drenando lamports da conta real de vault (ou de qualquer conta cujos lamports sejam debitados via `borrow_mut_lamports_unchecked`).\"}, {\"category\": \"COSPLAY\", \"confidence\": \"medium\", \"evidence\": \"let vault_data = vault.try_borrow_data()?;\\nlet stored_authority = read_pubkey(&vault_data[8..40]);\\nlet balance = u64::from_le_bytes(vault_data[40..48].try_into()...);\", \"explanation\": \"Os dados da conta `vault` sao desserializados manualmente por offsets fixos (8..40 para autoridade, 40..48 para saldo) sem validar nenhum discriminador/tag de tipo no inicio do buffer. Uma conta de outro tipo com layout compativel poderia ser passada como vault e interpretada incorretamente.\", \"attack_hypothesis\": \"O atacante fornece uma conta de um tipo diferente (por exemplo, uma conta de configuracao ou de outro usuario) cujo layout de bytes nos offsets 8..40 e 40..48 coincida com os campos esperados, fazendo o programa tratar dados de outro tipo como um vault valido.\"}], \"summary\": \"A instrucao withdraw valida o signer e a autoridade armazenada, mas nao verifica o owner da conta vault nem um discriminador de tipo, permitindo contas forjadas ou de tipo incorreto.\"}",
+  "instruction": "withdraw",
+  "findings": [
+    {
+      "category": "OWNER",
+      "confidence": "high",
+      "evidence": "let vault_data = vault.try_borrow_data()?;\nlet stored_authority = read_pubkey(&vault_data[8..40]);",
+      "explanation": "A conta `vault` e recebida como `AccountInfo` e seus dados sao lidos diretamente sem verificar `vault.owner`. Um atacante pode fornecer uma conta forjada cujo campo `owner` aponta para outro programa (ou nenhum), contendo dados arbitrarios que satisfacam a checagem de `stored_authority`, permitindo manipular o saldo lido e a logica de saque.",
+      "attack_hypothesis": "O atacante cria uma conta cujos dados colocam sua propria chave em `vault_data[8..40]` e um saldo alto em `vault_data[40..48]`, e a passa como `vault`. Como nao ha checagem de `owner`, o programa aceita os dados forjados e prossegue com o saque, drenando lamports da conta real de vault (ou de qualquer conta cujos lamports sejam debitados via `borrow_mut_lamports_unchecked`)."
+    },
+    {
+      "category": "COSPLAY",
+      "confidence": "medium",
+      "evidence": "let vault_data = vault.try_borrow_data()?;\nlet stored_authority = read_pubkey(&vault_data[8..40]);\nlet balance = u64::from_le_bytes(vault_data[40..48].try_into()...);",
+      "explanation": "Os dados da conta `vault` sao desserializados manualmente por offsets fixos (8..40 para autoridade, 40..48 para saldo) sem validar nenhum discriminador/tag de tipo no inicio do buffer. Uma conta de outro tipo com layout compativel poderia ser passada como vault e interpretada incorretamente.",
+      "attack_hypothesis": "O atacante fornece uma conta de um tipo diferente (por exemplo, uma conta de configuracao ou de outro usuario) cujo layout de bytes nos offsets 8..40 e 40..48 coincida com os campos esperados, fazendo o programa tratar dados de outro tipo como um vault valido."
+    }
+  ],
+  "dropped": [],
+  "summary": "A instrucao withdraw valida o signer e a autoridade armazenada, mas nao verifica o owner da conta vault nem um discriminador de tipo, permitindo contas forjadas ou de tipo incorreto.",
+  "predicted": [
+    "COSPLAY",
+    "OWNER"
+  ],
+  "parse_error": null,
+  "case_id": "SSP-01-P-S"
+}

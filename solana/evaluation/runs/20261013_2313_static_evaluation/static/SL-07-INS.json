@@ -1,0 +1,27 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2452,
+    "completion_tokens": 453,
+    "latency_s": 3.45,
+    "attempts": 1
+  },
+  "raw": "{\n  \"instruction\": \"set_value\",\n  \"findings\": [\n    {\n      \"category\": \"PDA\",\n      \"confidence\": \"high\",\n      \"evidence\": \"let address = Pubkey::create_program_address(&[key.to_le_bytes().as_ref(), &[bump]], ctx.program_id).map_err(|_| ProgramError::InvalidSeeds)?; if address != ctx.accounts.data.key() { return Err(ProgramError::InvalidArgument.into()); }\",\n      \"explanation\": \"O codigo usa `Pubkey::create_program_address` com um `bump` fornecido pelo usuario (argumento `bump: u8`) em vez de derivar o bump canonico com `Pubkey::find_program_address`. Embora compare o endereco resultante com a chave da conta, nao valida se o bump e o canonico; um atacante pode fornecer um bump nao canonico que ainda produza um endereco valido (off-curve) e passe na comparacao, desde que a conta correspondente exista e seja controlada. A mitigacao correta seria usar `find_program_address` ou a constraint `#[account(seeds = [...], bump)]` do Anchor.\",\n      \"attack_hypothesis\": \"Um atacante fornece um `bump` nao canonico que gera um endereco off-curve diferente do PDA canonico esperado. Se conseguir criar ou controlar uma conta `Data` nesse endereco alternativo (por exemplo, via uma instrucao de inicializacao que aceite o mesmo bump), pode passar essa conta como `data` e sobrescrever seu `value` sem que o programa detecte que nao e o PDA canonico, contornando a logica de autorizacao baseada em PDA.\"\n    }\n  ],\n  \"summary\": \"A instrucao `set_value` valida o endereco derivado, mas aceita um bump fornecido pelo usuario sem garantir que seja o bump canonico do PDA, configurando uma falha de canonicalizacao de PDA.\"\n}",
+  "instruction": "set_value",
+  "findings": [
+    {
+      "category": "PDA",
+      "confidence": "high",
+      "evidence": "let address = Pubkey::create_program_address(&[key.to_le_bytes().as_ref(), &[bump]], ctx.program_id).map_err(|_| ProgramError::InvalidSeeds)?; if address != ctx.accounts.data.key() { return Err(ProgramError::InvalidArgument.into()); }",
+      "explanation": "O codigo usa `Pubkey::create_program_address` com um `bump` fornecido pelo usuario (argumento `bump: u8`) em vez de derivar o bump canonico com `Pubkey::find_program_address`. Embora compare o endereco resultante com a chave da conta, nao valida se o bump e o canonico; um atacante pode fornecer um bump nao canonico que ainda produza um endereco valido (off-curve) e passe na comparacao, desde que a conta correspondente exista e seja controlada. A mitigacao correta seria usar `find_program_address` ou a constraint `#[account(seeds = [...], bump)]` do Anchor.",
+      "attack_hypothesis": "Um atacante fornece um `bump` nao canonico que gera um endereco off-curve diferente do PDA canonico esperado. Se conseguir criar ou controlar uma conta `Data` nesse endereco alternativo (por exemplo, via uma instrucao de inicializacao que aceite o mesmo bump), pode passar essa conta como `data` e sobrescrever seu `value` sem que o programa detecte que nao e o PDA canonico, contornando a logica de autorizacao baseada em PDA."
+    }
+  ],
+  "dropped": [],
+  "summary": "A instrucao `set_value` valida o endereco derivado, mas aceita um bump fornecido pelo usuario sem garantir que seja o bump canonico do PDA, configurando uma falha de canonicalizacao de PDA.",
+  "predicted": [
+    "PDA"
+  ],
+  "parse_error": null,
+  "case_id": "SL-07-INS"
+}

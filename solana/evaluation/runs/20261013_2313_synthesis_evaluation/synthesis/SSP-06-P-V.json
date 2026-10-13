@@ -1,0 +1,47 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 1631,
+    "completion_tokens": 595,
+    "latency_s": 4.27,
+    "attempts": 1
+  },
+  "raw": "{\n  \"summary\": \"A instrução `update_fee` apresenta falhas críticas de validação de contas: não verifica o owner da conta de configuração e não valida um discriminador de tipo, permitindo que contas forjadas ou de tipos diferentes sejam aceitas. A análise dinâmica confirmou a exploração do type cosplay, enquanto a falha de owner foi inconclusiva por limitação do runtime, mas permanece uma vulnerabilidade latente. Recomenda-se corrigir ambas as validações para garantir a integridade das operações.\",\n  \"findings\": [\n    {\n      \"category\": \"OWNER\",\n      \"decision\": \"report\",\n      \"severity\": \"critica\",\n      \"confidence\": \"alta\",\n      \"justification\": \"A análise estática identificou que a conta `config` é lida sem verificar seu owner, permitindo que um atacante forneça uma conta de outro programa com dados forjados. A análise dinâmica foi inconclusiva devido a um erro de runtime (ExternalAccountDataModified) que impediu a demonstração do dano, mas o erro ocorreu porque o programa tentou escrever em uma conta de outro owner, confirmando que a checagem de owner está ausente. A falha é crítica pois pode levar à corrupção de contas de terceiros ou bypass de autoridade.\",\n      \"recommendation\": \"Adicionar verificação explícita de que `config.owner == program_id` antes de ler ou modificar os dados da conta. Utilizar a função `check_owner` do framework Pinocchio ou comparar diretamente `config.owner` com o ID do programa.\"\n    },\n    {\n      \"category\": \"COSPLAY\",\n      \"decision\": \"report\",\n      \"severity\": \"alta\",\n      \"confidence\": \"alta\",\n      \"justification\": \"A análise estática apontou a ausência de validação de discriminador de tipo, permitindo que contas de outros tipos sejam interpretadas como configuração. A análise dinâmica confirmou o ataque: uma conta do tipo Vault foi aceita como config e o fee foi gravado nela, demonstrando o dano. A falha é alta pois permite a alteração indevida de dados em contas de tipos incorretos, potencialmente afetando a lógica do programa.\",\n      \"recommendation\": \"Incluir um discriminador único (ex.: 8 bytes mágicos) no início dos dados da conta de configuração e validá-lo antes de qualquer leitura. Alternativamente, utilizar uma biblioteca de desserialização que imponha verificação de tipo, como `bytemuck` com um campo de tipo explícito.\"\n    }\n  ]\n}",
+  "summary": "A instrução `update_fee` apresenta falhas críticas de validação de contas: não verifica o owner da conta de configuração e não valida um discriminador de tipo, permitindo que contas forjadas ou de tipos diferentes sejam aceitas. A análise dinâmica confirmou a exploração do type cosplay, enquanto a falha de owner foi inconclusiva por limitação do runtime, mas permanece uma vulnerabilidade latente. Recomenda-se corrigir ambas as validações para garantir a integridade das operações.",
+  "findings": [
+    {
+      "category": "OWNER",
+      "decision": "report",
+      "severity": "critica",
+      "confidence": "alta",
+      "justification": "A análise estática identificou que a conta `config` é lida sem verificar seu owner, permitindo que um atacante forneça uma conta de outro programa com dados forjados. A análise dinâmica foi inconclusiva devido a um erro de runtime (ExternalAccountDataModified) que impediu a demonstração do dano, mas o erro ocorreu porque o programa tentou escrever em uma conta de outro owner, confirmando que a checagem de owner está ausente. A falha é crítica pois pode levar à corrupção de contas de terceiros ou bypass de autoridade.",
+      "recommendation": "Adicionar verificação explícita de que `config.owner == program_id` antes de ler ou modificar os dados da conta. Utilizar a função `check_owner` do framework Pinocchio ou comparar diretamente `config.owner` com o ID do programa."
+    },
+    {
+      "category": "COSPLAY",
+      "decision": "report",
+      "severity": "alta",
+      "confidence": "alta",
+      "justification": "A análise estática apontou a ausência de validação de discriminador de tipo, permitindo que contas de outros tipos sejam interpretadas como configuração. A análise dinâmica confirmou o ataque: uma conta do tipo Vault foi aceita como config e o fee foi gravado nela, demonstrando o dano. A falha é alta pois permite a alteração indevida de dados em contas de tipos incorretos, potencialmente afetando a lógica do programa.",
+      "recommendation": "Incluir um discriminador único (ex.: 8 bytes mágicos) no início dos dados da conta de configuração e validá-lo antes de qualquer leitura. Alternativamente, utilizar uma biblioteca de desserialização que imponha verificação de tipo, como `bytemuck` com um campo de tipo explícito."
+    }
+  ],
+  "predicted": [
+    "COSPLAY",
+    "OWNER"
+  ],
+  "extra_categories": [],
+  "omitted": [],
+  "parse_error": null,
+  "inputs": [
+    {
+      "category": "OWNER",
+      "dynamic_verdict": "inconclusive"
+    },
+    {
+      "category": "COSPLAY",
+      "dynamic_verdict": "confirmed"
+    }
+  ],
+  "case_id": "SSP-06-P-V"
+}

@@ -1,0 +1,51 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2701,
+    "completion_tokens": 905,
+    "latency_s": 5.63,
+    "attempts": 1
+  },
+  "raw": "{\"instruction\": \"set_value\", \"findings\": [{\"category\": \"SIGNER\", \"confidence\": \"high\", \"evidence\": \"let user = &accounts[1];\\n...\\ndata[8..40].copy_from_slice(user.key().as_ref());\", \"explanation\": \"A conta `user` e usada como autoridade (sua chave e gravada no estado da conta de dados), mas nao ha nenhuma verificacao de que ela assinou a transacao. Nao ha uso de `Signer` nem checagem de `user.is_signer`.\", \"attack_hypothesis\": \"Um atacante fornece a pubkey de qualquer usuario como `accounts[1]` sem que essa conta assine a transacao, e grava seu proprio `value` no estado associado a esse usuario, pois o PDA e derivado da pubkey fornecida e nao exige assinatura.\"}, {\"category\": \"PDA\", \"confidence\": \"high\", \"evidence\": \"let bump = instruction_data[1];\\nlet seeds: &[&[u8]] = &[b\\\"data\\\", user.key().as_ref(), &[bump]];\\nlet expected_pda = create_program_address(seeds, program_id)\\n    .map_err(|_| ProgramError::Custom(ERR_INVALID_BUMP))?;\", \"explanation\": \"O bump e fornecido pelo usuario via `instruction_data[1]` e validado apenas com `create_program_address`, que aceita qualquer bump que produza um endereco valido fora da curva. Nao ha uso de `find_program_address` nem verificacao de que o bump e o canonico, permitindo bumps nao-canonicos.\", \"attack_hypothesis\": \"Um atacante fornece um bump nao-canonico que ainda gera um endereco valido, criando/derivando um PDA alternativo para a mesma seed logica e potencialmente contornando a unicidade esperada do PDA canonico.\"}, {\"category\": \"OWNER\", \"confidence\": \"high\", \"evidence\": \"let data_account = &accounts[0];\\n...\\nlet mut data = data_account.try_borrow_mut_data()?;\\ndata[8..40].copy_from_slice(user.key().as_ref());\", \"explanation\": \"Os dados da conta `data_account` sao lidos e modificados sem verificar `data_account.owner == program_id`. A unica checagem e a igualdade de chave com o PDA derivado, mas nao ha validacao de que a conta pertence ao programa.\", \"attack_hypothesis\": \"Um atacante fornece uma conta cujo endereco coincide com o PDA esperado mas cujo owner e outro programa, ou explora a ausencia de checagem de owner para manipular dados de uma conta nao pertencente ao programa.\"}, {\"category\": \"COSPLAY\", \"confidence\": \"medium\", \"evidence\": \"let mut data = data_account.try_borrow_mut_data()?;\\ndata[8..40].copy_from_slice(user.key().as_ref());\\ndata[40..48].copy_from_slice(&value.to_le_bytes());\\ndata[48] = bump;\", \"explanation\": \"Os dados da conta sao acessados e escritos diretamente por offsets, sem verificar um discriminador de tipo no inicio do buffer. Nao ha validacao de que a conta contem a estrutura esperada, permitindo que uma conta de layout diferente seja tratada como a conta de dados.\", \"attack_hypothesis\": \"Um atacante fornece uma conta com layout de dados diferente (de outro tipo) cujo endereco corresponda ao PDA, e o programa sobrescreve campos interpretando-os como `user`/`value`/`bump`, corrompendo o estado.\"}], \"summary\": \"A instrucao set_value nao verifica assinatura do usuario, aceita bump nao-canonico via create_program_address, nao valida o owner da conta de dados e nao usa discriminador de tipo.\"}",
+  "instruction": "set_value",
+  "findings": [
+    {
+      "category": "SIGNER",
+      "confidence": "high",
+      "evidence": "let user = &accounts[1];\n...\ndata[8..40].copy_from_slice(user.key().as_ref());",
+      "explanation": "A conta `user` e usada como autoridade (sua chave e gravada no estado da conta de dados), mas nao ha nenhuma verificacao de que ela assinou a transacao. Nao ha uso de `Signer` nem checagem de `user.is_signer`.",
+      "attack_hypothesis": "Um atacante fornece a pubkey de qualquer usuario como `accounts[1]` sem que essa conta assine a transacao, e grava seu proprio `value` no estado associado a esse usuario, pois o PDA e derivado da pubkey fornecida e nao exige assinatura."
+    },
+    {
+      "category": "PDA",
+      "confidence": "high",
+      "evidence": "let bump = instruction_data[1];\nlet seeds: &[&[u8]] = &[b\"data\", user.key().as_ref(), &[bump]];\nlet expected_pda = create_program_address(seeds, program_id)\n    .map_err(|_| ProgramError::Custom(ERR_INVALID_BUMP))?;",
+      "explanation": "O bump e fornecido pelo usuario via `instruction_data[1]` e validado apenas com `create_program_address`, que aceita qualquer bump que produza um endereco valido fora da curva. Nao ha uso de `find_program_address` nem verificacao de que o bump e o canonico, permitindo bumps nao-canonicos.",
+      "attack_hypothesis": "Um atacante fornece um bump nao-canonico que ainda gera um endereco valido, criando/derivando um PDA alternativo para a mesma seed logica e potencialmente contornando a unicidade esperada do PDA canonico."
+    },
+    {
+      "category": "OWNER",
+      "confidence": "high",
+      "evidence": "let data_account = &accounts[0];\n...\nlet mut data = data_account.try_borrow_mut_data()?;\ndata[8..40].copy_from_slice(user.key().as_ref());",
+      "explanation": "Os dados da conta `data_account` sao lidos e modificados sem verificar `data_account.owner == program_id`. A unica checagem e a igualdade de chave com o PDA derivado, mas nao ha validacao de que a conta pertence ao programa.",
+      "attack_hypothesis": "Um atacante fornece uma conta cujo endereco coincide com o PDA esperado mas cujo owner e outro programa, ou explora a ausencia de checagem de owner para manipular dados de uma conta nao pertencente ao programa."
+    },
+    {
+      "category": "COSPLAY",
+      "confidence": "medium",
+      "evidence": "let mut data = data_account.try_borrow_mut_data()?;\ndata[8..40].copy_from_slice(user.key().as_ref());\ndata[40..48].copy_from_slice(&value.to_le_bytes());\ndata[48] = bump;",
+      "explanation": "Os dados da conta sao acessados e escritos diretamente por offsets, sem verificar um discriminador de tipo no inicio do buffer. Nao ha validacao de que a conta contem a estrutura esperada, permitindo que uma conta de layout diferente seja tratada como a conta de dados.",
+      "attack_hypothesis": "Um atacante fornece uma conta com layout de dados diferente (de outro tipo) cujo endereco corresponda ao PDA, e o programa sobrescreve campos interpretando-os como `user`/`value`/`bump`, corrompendo o estado."
+    }
+  ],
+  "dropped": [],
+  "summary": "A instrucao set_value nao verifica assinatura do usuario, aceita bump nao-canonico via create_program_address, nao valida o owner da conta de dados e nao usa discriminador de tipo.",
+  "predicted": [
+    "COSPLAY",
+    "OWNER",
+    "PDA",
+    "SIGNER"
+  ],
+  "parse_error": null,
+  "case_id": "SSP-05-P-V"
+}

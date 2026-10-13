@@ -1,0 +1,143 @@
+{
+  "category": "OWNER",
+  "verdict": "not_confirmed",
+  "exploit_successful": false,
+  "attack_result": "Failure(Custom(2001))",
+  "reason": "baseline ok; ataque rejeitado: Failure(Custom(2001)) = ConstraintHasOne (erro do Anchor)",
+  "attempts_used": 3,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2746,
+        "completion_tokens": 726,
+        "latency_s": 4.26
+      },
+      "raw": "{\n  \"plan\": \"O programa `process` (IX_PROCESS = 1) espera duas contas: treasury (dono = program_id, dados com authority em [8..40], balance em [40..48], is_active em [48]) e authority (signer, igual ao stored_authority). O baseline usa uma treasury legítima com dono = program_id e authority correta, e deve ter sucesso. O ataque tenta a mesma instrução, mas com uma treasury forjada cujo dono é um Pubkey diferente (atacante), mantendo os mesmos dados e a authority correta. O efeito medido é que a conta forjada foi aceita e usada: o ataque retorna sucesso e a conta forjada (com dono diferente do programa) permanece com seu dono original, demonstrando que a checagem de owner não bloqueou a conta forjada.\",\n  \"scenario\": \"let program_id = env.program_id;\\nlet authority = Pubkey::new_unique();\\nlet attacker_owner = Pubkey::new_unique();\\n\\nlet mut treasury_data = vec![0u8; 49];\\ntreasury_data[8..40].copy_from_slice(authority.as_ref());\\ntreasury_data[40..48].copy_from_slice(&1000u64.to_le_bytes());\\ntreasury_data[48] = 1;\\n\\nlet legit_treasury = account(&program_id, &treasury_data, None);\\nlet forged_treasury = account(&attacker_owner, &treasury_data, None);\\nlet authority_account = wallet(1_000_000_000);\\n\\nlet metas = vec![\\n    AccountMeta::new_readonly(legit_treasury_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n];\\n\\nlet ix_data = vec![1u8];\\nlet ix = env.raw_ix(&ix_data, metas);\\n\\nlet contas = vec![\\n    (legit_treasury_key, legit_treasury.clone()),\\n    (authority, authority_account.clone()),\\n];\\n\\nlet baseline = env.baseline(\\\"process legitimo com treasury do programa\\\", &ix, &contas);\\n\\nlet forged_key = Pubkey::new_unique();\\nlet attack_metas = vec![\\n    AccountMeta::new_readonly(forged_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n];\\nlet attack_ix = env.raw_ix(&ix_data, attack_metas);\\nlet attack_contas = vec![\\n    (forged_key, forged_treasury.clone()),\\n    (authority, authority_account.clone()),\\n];\\n\\nlet r = env.attack(\\\"process com treasury forjada de dono diferente\\\", &attack_ix, &attack_contas);\\nif r.program_result == ProgramResult::Success {\\n    let after_forged = after(&r, &forged_key);\\n    env.effect(\\\"conta forjada com dono diferente foi aceita e usada\\\", after_forged.owner() == &attacker_owner);\\n}\"\n}",
+      "plan": "O programa `process` (IX_PROCESS = 1) espera duas contas: treasury (dono = program_id, dados com authority em [8..40], balance em [40..48], is_active em [48]) e authority (signer, igual ao stored_authority). O baseline usa uma treasury legítima com dono = program_id e authority correta, e deve ter sucesso. O ataque tenta a mesma instrução, mas com uma treasury forjada cujo dono é um Pubkey diferente (atacante), mantendo os mesmos dados e a authority correta. O efeito medido é que a conta forjada foi aceita e usada: o ataque retorna sucesso e a conta forjada (com dono diferente do programa) permanece com seu dono original, demonstrando que a checagem de owner não bloqueou a conta forjada.",
+      "scenario": "let program_id = env.program_id;\nlet authority = Pubkey::new_unique();\nlet attacker_owner = Pubkey::new_unique();\n\nlet mut treasury_data = vec![0u8; 49];\ntreasury_data[8..40].copy_from_slice(authority.as_ref());\ntreasury_data[40..48].copy_from_slice(&1000u64.to_le_bytes());\ntreasury_data[48] = 1;\n\nlet legit_treasury = account(&program_id, &treasury_data, None);\nlet forged_treasury = account(&attacker_owner, &treasury_data, None);\nlet authority_account = wallet(1_000_000_000);\n\nlet metas = vec![\n    AccountMeta::new_readonly(legit_treasury_key, false),\n    AccountMeta::new_readonly(authority, true),\n];\n\nlet ix_data = vec![1u8];\nlet ix = env.raw_ix(&ix_data, metas);\n\nlet contas = vec![\n    (legit_treasury_key, legit_treasury.clone()),\n    (authority, authority_account.clone()),\n];\n\nlet baseline = env.baseline(\"process legitimo com treasury do programa\", &ix, &contas);\n\nlet forged_key = Pubkey::new_unique();\nlet attack_metas = vec![\n    AccountMeta::new_readonly(forged_key, false),\n    AccountMeta::new_readonly(authority, true),\n];\nlet attack_ix = env.raw_ix(&ix_data, attack_metas);\nlet attack_contas = vec![\n    (forged_key, forged_treasury.clone()),\n    (authority, authority_account.clone()),\n];\n\nlet r = env.attack(\"process com treasury forjada de dono diferente\", &attack_ix, &attack_contas);\nif r.program_result == ProgramResult::Success {\n    let after_forged = after(&r, &forged_key);\n    env.effect(\"conta forjada com dono diferente foi aceita e usada\", after_forged.owner() == &attacker_owner);\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0425]: cannot find value `legit_treasury_key` in this scope\n  --> tests/attempt.rs:23:35\n   |\n23 |         AccountMeta::new_readonly(legit_treasury_key, false),\n   |                                   ^^^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n23 -         AccountMeta::new_readonly(legit_treasury_key, false),\n23 +         AccountMeta::new_readonly(legit_treasury, false),\n   |\n\nerror[E0425]: cannot find value `legit_treasury_key` in this scope\n  --> tests/attempt.rs:31:10\n   |\n31 |         (legit_treasury_key, legit_treasury.clone()),\n   |          ^^^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n31 -         (legit_treasury_key, legit_treasury.clone()),\n31 +         (legit_treasury, legit_treasury.clone()),\n   |\n\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors",
+        "elapsed_s": 0.6
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0425]: cannot find value `legit_treasury_key` in this scope\n  --> tests/attempt.rs:23:35\n   |\n23 |         AccountMeta::new_readonly(legit_treasury_key, false),\n   |                                   ^^^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n23 -         AccountMeta::new_readonly(legit_treasury_key, false),\n23 +         AccountMeta::new_readonly(legit_treasury, false),\n   |\n\nerror[E0425]: cannot find value `legit_treasury_key` in this scope\n  --> tests/attempt.rs:31:10\n   |\n31 |         (legit_treasury_key, legit_treasury.clone()),\n   |          ^^^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n31 -         (legit_treasury_key, legit_treasury.clone()),\n31 +         (legit_treasury, legit_treasury.clone()),\n   |\n\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3497,
+        "completion_tokens": 677,
+        "latency_s": 3.54
+      },
+      "raw": "{\"plan\": \"Preparo uma treasury legitima com dono = program_id e dados validos (authority armazenada, balance, is_active=1), e uma treasury forjada com os mesmos dados mas dono = attacker_owner. O baseline chama `process` com a treasury legitima e a authority signer, provando que o cenario esta correto. O ataque chama `process` com a treasury forjada (dono diferente) mantendo a mesma authority signer. Se o programa aceitar a conta forjada, o efeito registra que a conta com dono diferente foi usada com sucesso.\", \"scenario\": \"let program_id = env.program_id;\\nlet authority = Pubkey::new_unique();\\nlet attacker_owner = Pubkey::new_unique();\\n\\nlet mut treasury_data = vec![0u8; 49];\\ntreasury_data[8..40].copy_from_slice(authority.as_ref());\\ntreasury_data[40..48].copy_from_slice(&1000u64.to_le_bytes());\\ntreasury_data[48] = 1;\\n\\nlet legit_treasury_key = Pubkey::new_unique();\\nlet legit_treasury = account(&program_id, &treasury_data, None);\\nlet forged_key = Pubkey::new_unique();\\nlet forged_treasury = account(&attacker_owner, &treasury_data, None);\\nlet authority_account = wallet(1_000_000_000);\\n\\nlet ix_data = vec![1u8];\\n\\nlet metas = vec![\\n    AccountMeta::new_readonly(legit_treasury_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n];\\nlet ix = env.raw_ix(&ix_data, metas);\\nlet contas = vec![\\n    (legit_treasury_key, legit_treasury.clone()),\\n    (authority, authority_account.clone()),\\n];\\n\\nlet _baseline = env.baseline(\\\"process legitimo com treasury do programa\\\", &ix, &contas);\\n\\nlet attack_metas = vec![\\n    AccountMeta::new_readonly(forged_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n];\\nlet attack_ix = env.raw_ix(&ix_data, attack_metas);\\nlet attack_contas = vec![\\n    (forged_key, forged_treasury.clone()),\\n    (authority, authority_account.clone()),\\n];\\n\\nlet r = env.attack(\\\"process com treasury forjada de dono diferente\\\", &attack_ix, &attack_contas);\\nif r.program_result == ProgramResult::Success {\\n    let after_forged = after(&r, &forged_key);\\n    env.effect(\\\"conta forjada com dono diferente foi aceita e usada\\\", after_forged.owner() == &attacker_owner);\\n}\"}",
+      "plan": "Preparo uma treasury legitima com dono = program_id e dados validos (authority armazenada, balance, is_active=1), e uma treasury forjada com os mesmos dados mas dono = attacker_owner. O baseline chama `process` com a treasury legitima e a authority signer, provando que o cenario esta correto. O ataque chama `process` com a treasury forjada (dono diferente) mantendo a mesma authority signer. Se o programa aceitar a conta forjada, o efeito registra que a conta com dono diferente foi usada com sucesso.",
+      "scenario": "let program_id = env.program_id;\nlet authority = Pubkey::new_unique();\nlet attacker_owner = Pubkey::new_unique();\n\nlet mut treasury_data = vec![0u8; 49];\ntreasury_data[8..40].copy_from_slice(authority.as_ref());\ntreasury_data[40..48].copy_from_slice(&1000u64.to_le_bytes());\ntreasury_data[48] = 1;\n\nlet legit_treasury_key = Pubkey::new_unique();\nlet legit_treasury = account(&program_id, &treasury_data, None);\nlet forged_key = Pubkey::new_unique();\nlet forged_treasury = account(&attacker_owner, &treasury_data, None);\nlet authority_account = wallet(1_000_000_000);\n\nlet ix_data = vec![1u8];\n\nlet metas = vec![\n    AccountMeta::new_readonly(legit_treasury_key, false),\n    AccountMeta::new_readonly(authority, true),\n];\nlet ix = env.raw_ix(&ix_data, metas);\nlet contas = vec![\n    (legit_treasury_key, legit_treasury.clone()),\n    (authority, authority_account.clone()),\n];\n\nlet _baseline = env.baseline(\"process legitimo com treasury do programa\", &ix, &contas);\n\nlet attack_metas = vec![\n    AccountMeta::new_readonly(forged_key, false),\n    AccountMeta::new_readonly(authority, true),\n];\nlet attack_ix = env.raw_ix(&ix_data, attack_metas);\nlet attack_contas = vec![\n    (forged_key, forged_treasury.clone()),\n    (authority, authority_account.clone()),\n];\n\nlet r = env.attack(\"process com treasury forjada de dono diferente\", &attack_ix, &attack_contas);\nif r.program_result == ProgramResult::Success {\n    let after_forged = after(&r, &forged_key);\n    env.effect(\"conta forjada com dono diferente foi aceita e usada\", after_forged.owner() == &attacker_owner);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "process legitimo com treasury do programa",
+            "result": "Success",
+            "compute_units": 328,
+            "account_flags": "-r,sr",
+            "ix_head": "01",
+            "accounts": [
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": false,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 49,
+                "head": "0000000000000000",
+                "digest": "977e0ad69f0ab141",
+                "post": ""
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "process com treasury forjada de dono diferente",
+            "result": "Failure(Custom(2001))",
+            "compute_units": 264,
+            "account_flags": "-r,sr",
+            "ix_head": "01",
+            "accounts": [
+              {
+                "key": "111111131h1vYVSYuKP6AhS86fbRdMw9XHiZAvAaj",
+                "signer": false,
+                "writable": false,
+                "owner": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "data_len": 49,
+                "head": "0000000000000000",
+                "digest": "977e0ad69f0ab141",
+                "post": ""
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 328 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 264 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: custom program error: 0x7d1"
+        ],
+        "elapsed_s": 1.7
+      },
+      "verdict": "not_confirmed",
+      "reason": "baseline ok; ataque rejeitado: Failure(Custom(2001)) = ConstraintHasOne (erro do Anchor)"
+    },
+    {
+      "attempt": 3,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3287,
+        "completion_tokens": 122,
+        "latency_s": 1.83
+      },
+      "raw": "{\"plan\": \"O baseline usa uma treasury cujo dono é o program_id, com authority assinante e is_active=1, e deve ter sucesso. O ataque repete a mesma instrução, mas substitui a treasury por uma conta forjada cujo dono é um Pubkey arbitrário do atacante. Como o programa compara o owner com program_id e retorna ERR_INVALID_OWNER (2001), o ataque é rejeitado; a hipótese de OWNER está bloqueada.\", \"conclusion\": \"blocked\"}",
+      "plan": "O baseline usa uma treasury cujo dono é o program_id, com authority assinante e is_active=1, e deve ter sucesso. O ataque repete a mesma instrução, mas substitui a treasury por uma conta forjada cujo dono é um Pubkey arbitrário do atacante. Como o programa compara o owner com program_id e retorna ERR_INVALID_OWNER (2001), o ataque é rejeitado; a hipótese de OWNER está bloqueada.",
+      "verdict": "not_confirmed",
+      "reason": "LLM concluiu que o programa bloqueia o ataque"
+    }
+  ],
+  "case_id": "SSP-02-P-S",
+  "static_finding": {
+    "category": "OWNER",
+    "confidence": "low",
+    "evidence": "let treasury_owner = unsafe { treasury.owner() };\nif treasury_owner != program_id {\n    return Err(ProgramError::Custom(ERR_INVALID_OWNER));\n}",
+    "explanation": "A verificacao de owner existe e compara com program_id, mas usa `unsafe { treasury.owner() }` em vez do metodo seguro `treasury.owner()`. O uso de `unsafe` aqui e desnecessario e pode indicar manipulacao indevida do ponteiro de owner; no entanto, a logica de comparacao com program_id esta presente, entao a mitigacao essencial existe. O risco e baixo porque a checagem de owner e feita, mas o uso de unsafe e um sinal de alerta.",
+    "attack_hypothesis": "Um atacante poderia explorar o uso de `unsafe` se o ponteiro de owner for manipulado, mas como a comparacao e feita com program_id, o impacto pratico e limitado. O atacante precisaria de uma conta cujo owner seja o program_id, o que ja e esperado."
+  }
+}

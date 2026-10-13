@@ -43,10 +43,19 @@ SSP = HERE / "solana-security-pattern"
 NAME_TO_KEY = {v: k for k, v in KEY_TO_NAME.items()}
 
 
+# Program id usado quando o codigo nao tem declare_id! (Pinocchio e nativo recebem o id
+# como parametro do entrypoint; qualquer id serve no Mollusk).
+DEFAULT_PROGRAM_ID = "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"
+
+
 def so_for_case(case: dict) -> Path:
     if case.get("ported_path"):  # programs/<fonte>/<dir>/src/lib.rs
         d = Path(case["ported_path"]).parts
         return DATASET / "programs" / "deploy" / f"{d[2]}.so"
+    if case["framework"] == "pinocchio":
+        # SSP Pinocchio: copia sem alteracao em dataset/programs/pinocchio/ssp_NN_p (prepare.sh)
+        nn = re.match(r"SSP-(\d\d)-P-", case["id"]).group(1)
+        return DATASET / "programs" / "deploy" / f"ssp_{nn}_p.so"
     pattern_dir = SSP / Path(case["program_path"]).parent.parent  # patterns/<p>/anchor
     toml = (pattern_dir / "Cargo.toml").read_text()
     lib = re.search(r'^\[lib\]\s*$(?:\n(?!\[).*)*?\nname\s*=\s*"([^"]+)"', toml, re.M)
@@ -58,7 +67,7 @@ def so_for_case(case: dict) -> Path:
 
 def target_for_case(case: dict, code: str, sanitized_name: str) -> dict:
     m = re.search(r'declare_id!\(\s*"(\w{32,44})"\s*\)', code)
-    if not m:
+    if not m and case["framework"] == "anchor":
         raise ValueError(f"{case['id']}: declare_id! nao encontrado no codigo sanitizado")
     disc = None
     if case["framework"] == "anchor":
@@ -67,7 +76,7 @@ def target_for_case(case: dict, code: str, sanitized_name: str) -> dict:
     so = so_for_case(case)
     if not so.exists():
         raise FileNotFoundError(f"{case['id']}: binario nao encontrado: {so}")
-    return {"so_path": so, "program_id": m.group(1), "target_name": sanitized_name, "target_disc": disc,
+    return {"so_path": so, "program_id": m.group(1) if m else DEFAULT_PROGRAM_ID, "target_name": sanitized_name, "target_disc": disc,
             "attacker_so": attacker if Path(attacker).exists() else None}
 
 

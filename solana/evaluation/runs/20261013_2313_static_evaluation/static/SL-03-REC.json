@@ -1,0 +1,17 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2377,
+    "completion_tokens": 70,
+    "latency_s": 1.45,
+    "attempts": 1
+  },
+  "raw": "{\"instruction\": \"update_user\", \"findings\": [], \"summary\": \"A instrucao update_user nao apresenta vulnerabilidades: a conta user usa Account<'info, User> (validando owner e discriminador) com constraint has_one = authority, e authority e Signer<'info>, garantindo a assinatura.\"}",
+  "instruction": "update_user",
+  "findings": [],
+  "dropped": [],
+  "summary": "A instrucao update_user nao apresenta vulnerabilidades: a conta user usa Account<'info, User> (validando owner e discriminador) com constraint has_one = authority, e authority e Signer<'info>, garantindo a assinatura.",
+  "predicted": [],
+  "parse_error": null,
+  "case_id": "SL-03-REC"
+}

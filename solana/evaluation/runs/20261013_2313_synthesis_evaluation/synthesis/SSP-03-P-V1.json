@@ -1,0 +1,73 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2216,
+    "completion_tokens": 873,
+    "latency_s": 5.52,
+    "attempts": 1
+  },
+  "raw": "{\n  \"summary\": \"A instrucao `mint` apresenta falhas criticas de seguranca: nao verifica a assinatura da autoridade, nao valida o owner da conta ledger, nao usa aritmetica segura e nao possui discriminador de tipo. As analises dinamicas confirmaram exploracoes bem-sucedidas para SIGNER, MATH e COSPLAY, enquanto o achado OWNER ficou inconclusivo por falha no cenario baseline, mas a evidencia estatica e forte o suficiente para reporta-lo.\",\n  \"findings\": [\n    {\n      \"category\": \"OWNER\",\n      \"decision\": \"report\",\n      \"severity\": \"critica\",\n      \"confidence\": \"alta\",\n      \"justification\": \"A analise estatica mostra que a conta `ledger` e usada sem verificar `ledger.owner`, permitindo que um atacante forneca uma conta arbitraria com dados forjados. A analise dinamica foi inconclusiva porque o baseline falhou com ProgramFailedToComplete, mas isso nao invalida a evidencia estatica; a ausencia de verificacao de owner e uma vulnerabilidade critica que permite corrupcao de estado arbitrario.\",\n      \"recommendation\": \"Adicionar verificacao explicita de que `ledger.owner == program_id` antes de ler ou modificar os dados da conta. Exemplo: `if ledger.owner != program_id { return Err(ProgramError::IncorrectProgramId); }`.\"\n    },\n    {\n      \"category\": \"SIGNER\",\n      \"decision\": \"report\",\n      \"severity\": \"critica\",\n      \"confidence\": \"alta\",\n      \"justification\": \"A analise estatica aponta ausencia de verificacao de assinatura em `accounts[0]` ou qualquer outra conta. A analise dinamica confirmou o ataque: mint sem assinatura foi aceito e o supply/balance foram incrementados, comprovando que qualquer pessoa pode mintar tokens sem autorizacao.\",\n      \"recommendation\": \"Exigir que a conta da autoridade (ou a conta ledger, conforme o design) seja signer: `if !ledger.is_signer { return Err(ProgramError::MissingRequiredSignature); }` ou verificar uma conta de autoridade separada com `is_signer`.\"\n    },\n    {\n      \"category\": \"MATH\",\n      \"decision\": \"report\",\n      \"severity\": \"alta\",\n      \"confidence\": \"alta\",\n      \"justification\": \"A analise estatica identifica uso de `wrapping_add` para supply e balance, permitindo overflow silencioso. A analise dinamica confirmou o ataque: com valores proximos de u64::MAX, um mint de 10 causou wrap-around, reduzindo supply e balance, quebrando a invariante do ledger.\",\n      \"recommendation\": \"Substituir `wrapping_add` por `checked_add` e retornar erro em caso de overflow: `let new_supply = supply.checked_add(amount).ok_or(ProgramError::InvalidArgument)?;` e analogamente para balance.\"\n    },\n    {\n      \"category\": \"COSPLAY\",\n      \"decision\": \"report\",\n      \"severity\": \"alta\",\n      \"confidence\": \"alta\",\n      \"justification\": \"A analise estatica mostra desserializacao manual de offsets fixos sem discriminador de tipo. A analise dinamica confirmou o ataque: uma conta de outro tipo com bytes 40..56 interpretaveis como supply/balance foi aceita e teve seus dados corrompidos pelo mint, demonstrando type cosplay.\",\n      \"recommendation\": \"Adicionar um discriminador de tipo (ex.: primeiros 8 bytes) e verifica-lo antes de desserializar. Alternativamente, usar uma biblioteca de serializacao com validacao de tipo (ex.: Borsh) e garantir que apenas contas com o layout esperado sejam aceitas.\"\n    }\n  ]\n}",
+  "summary": "A instrucao `mint` apresenta falhas criticas de seguranca: nao verifica a assinatura da autoridade, nao valida o owner da conta ledger, nao usa aritmetica segura e nao possui discriminador de tipo. As analises dinamicas confirmaram exploracoes bem-sucedidas para SIGNER, MATH e COSPLAY, enquanto o achado OWNER ficou inconclusivo por falha no cenario baseline, mas a evidencia estatica e forte o suficiente para reporta-lo.",
+  "findings": [
+    {
+      "category": "OWNER",
+      "decision": "report",
+      "severity": "critica",
+      "confidence": "alta",
+      "justification": "A analise estatica mostra que a conta `ledger` e usada sem verificar `ledger.owner`, permitindo que um atacante forneca uma conta arbitraria com dados forjados. A analise dinamica foi inconclusiva porque o baseline falhou com ProgramFailedToComplete, mas isso nao invalida a evidencia estatica; a ausencia de verificacao de owner e uma vulnerabilidade critica que permite corrupcao de estado arbitrario.",
+      "recommendation": "Adicionar verificacao explicita de que `ledger.owner == program_id` antes de ler ou modificar os dados da conta. Exemplo: `if ledger.owner != program_id { return Err(ProgramError::IncorrectProgramId); }`."
+    },
+    {
+      "category": "SIGNER",
+      "decision": "report",
+      "severity": "critica",
+      "confidence": "alta",
+      "justification": "A analise estatica aponta ausencia de verificacao de assinatura em `accounts[0]` ou qualquer outra conta. A analise dinamica confirmou o ataque: mint sem assinatura foi aceito e o supply/balance foram incrementados, comprovando que qualquer pessoa pode mintar tokens sem autorizacao.",
+      "recommendation": "Exigir que a conta da autoridade (ou a conta ledger, conforme o design) seja signer: `if !ledger.is_signer { return Err(ProgramError::MissingRequiredSignature); }` ou verificar uma conta de autoridade separada com `is_signer`."
+    },
+    {
+      "category": "MATH",
+      "decision": "report",
+      "severity": "alta",
+      "confidence": "alta",
+      "justification": "A analise estatica identifica uso de `wrapping_add` para supply e balance, permitindo overflow silencioso. A analise dinamica confirmou o ataque: com valores proximos de u64::MAX, um mint de 10 causou wrap-around, reduzindo supply e balance, quebrando a invariante do ledger.",
+      "recommendation": "Substituir `wrapping_add` por `checked_add` e retornar erro em caso de overflow: `let new_supply = supply.checked_add(amount).ok_or(ProgramError::InvalidArgument)?;` e analogamente para balance."
+    },
+    {
+      "category": "COSPLAY",
+      "decision": "report",
+      "severity": "alta",
+      "confidence": "alta",
+      "justification": "A analise estatica mostra desserializacao manual de offsets fixos sem discriminador de tipo. A analise dinamica confirmou o ataque: uma conta de outro tipo com bytes 40..56 interpretaveis como supply/balance foi aceita e teve seus dados corrompidos pelo mint, demonstrando type cosplay.",
+      "recommendation": "Adicionar um discriminador de tipo (ex.: primeiros 8 bytes) e verifica-lo antes de desserializar. Alternativamente, usar uma biblioteca de serializacao com validacao de tipo (ex.: Borsh) e garantir que apenas contas com o layout esperado sejam aceitas."
+    }
+  ],
+  "predicted": [
+    "COSPLAY",
+    "MATH",
+    "OWNER",
+    "SIGNER"
+  ],
+  "extra_categories": [],
+  "omitted": [],
+  "parse_error": null,
+  "inputs": [
+    {
+      "category": "OWNER",
+      "dynamic_verdict": "inconclusive"
+    },
+    {
+      "category": "SIGNER",
+      "dynamic_verdict": "confirmed"
+    },
+    {
+      "category": "MATH",
+      "dynamic_verdict": "confirmed"
+    },
+    {
+      "category": "COSPLAY",
+      "dynamic_verdict": "confirmed"
+    }
+  ],
+  "case_id": "SSP-03-P-V1"
+}

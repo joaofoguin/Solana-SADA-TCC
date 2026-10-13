@@ -1,0 +1,17 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2372,
+    "completion_tokens": 55,
+    "latency_s": 1.34,
+    "attempts": 1
+  },
+  "raw": "{\"instruction\": \"check_sysvar_address\", \"findings\": [], \"summary\": \"A instrucao valida explicitamente a chave publica da conta contra o ID oficial do Sysvar Rent, portanto nao ha achado de SYSVAR.\"}",
+  "instruction": "check_sysvar_address",
+  "findings": [],
+  "dropped": [],
+  "summary": "A instrucao valida explicitamente a chave publica da conta contra o ID oficial do Sysvar Rent, portanto nao ha achado de SYSVAR.",
+  "predicted": [],
+  "parse_error": null,
+  "case_id": "SL-10-SEC"
+}

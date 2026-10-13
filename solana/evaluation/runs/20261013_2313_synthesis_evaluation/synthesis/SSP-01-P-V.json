@@ -1,0 +1,60 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2122,
+    "completion_tokens": 614,
+    "latency_s": 3.94,
+    "attempts": 1
+  },
+  "raw": "{\n  \"summary\": \"A instrução `withdraw` apresenta falhas críticas de autenticação e validação de contas: não verifica assinatura da autoridade (SIGNER) e não valida o dono nem o discriminador de tipo da conta vault (OWNER/COSPLAY). A exploração bem-sucedida nos testes dinâmicos confirma que um atacante pode drenar os lamports do vault sem autorização, tornando a instrução insegura para uso em produção.\",\n  \"findings\": [\n    {\n      \"category\": \"SIGNER\",\n      \"decision\": \"report\",\n      \"severity\": \"critica\",\n      \"confidence\": \"alta\",\n      \"justification\": \"A análise estática aponta ausência de verificação `authority.is_signer`, permitindo que qualquer pessoa use a chave pública da autoridade sem assinar. O teste dinâmico confirmou o ataque: o saque foi aceito sem assinatura e os lamports foram transferidos do vault para o recipient do atacante.\",\n      \"recommendation\": \"Adicionar verificação explícita `if !authority.is_signer { return Err(ProgramError::MissingRequiredSignature); }` antes de comparar a chave pública com a autoridade armazenada.\"\n    },\n    {\n      \"category\": \"OWNER\",\n      \"decision\": \"report\",\n      \"severity\": \"alta\",\n      \"confidence\": \"media\",\n      \"justification\": \"A análise estática indica que os dados do vault são lidos sem verificar `vault.owner == program_id`, permitindo contas forjadas com layout imitado. O teste dinâmico foi inconclusivo devido a erro de compilação no harness, mas a falha é evidente no código e representa risco real de aceitação de dados não autenticados.\",\n      \"recommendation\": \"Verificar se `vault.owner == program_id` antes de ler os dados da conta, retornando erro caso contrário.\"\n    },\n    {\n      \"category\": \"COSPLAY\",\n      \"decision\": \"report\",\n      \"severity\": \"alta\",\n      \"confidence\": \"alta\",\n      \"justification\": \"A análise estática aponta ausência de discriminador de tipo no início do buffer, permitindo que contas de outros tipos com layout compatível sejam interpretadas como vault. O teste dinâmico confirmou o ataque: uma conta de outro tipo foi aceita, seus lamports foram debitados e o recipient creditado, demonstrando o type cosplay.\",\n      \"recommendation\": \"Incluir um discriminador de tipo (ex.: primeiros 8 bytes) no layout da conta vault e validá-lo antes de interpretar os dados, rejeitando contas com discriminador incorreto.\"\n    }\n  ]\n}",
+  "summary": "A instrução `withdraw` apresenta falhas críticas de autenticação e validação de contas: não verifica assinatura da autoridade (SIGNER) e não valida o dono nem o discriminador de tipo da conta vault (OWNER/COSPLAY). A exploração bem-sucedida nos testes dinâmicos confirma que um atacante pode drenar os lamports do vault sem autorização, tornando a instrução insegura para uso em produção.",
+  "findings": [
+    {
+      "category": "SIGNER",
+      "decision": "report",
+      "severity": "critica",
+      "confidence": "alta",
+      "justification": "A análise estática aponta ausência de verificação `authority.is_signer`, permitindo que qualquer pessoa use a chave pública da autoridade sem assinar. O teste dinâmico confirmou o ataque: o saque foi aceito sem assinatura e os lamports foram transferidos do vault para o recipient do atacante.",
+      "recommendation": "Adicionar verificação explícita `if !authority.is_signer { return Err(ProgramError::MissingRequiredSignature); }` antes de comparar a chave pública com a autoridade armazenada."
+    },
+    {
+      "category": "OWNER",
+      "decision": "report",
+      "severity": "alta",
+      "confidence": "media",
+      "justification": "A análise estática indica que os dados do vault são lidos sem verificar `vault.owner == program_id`, permitindo contas forjadas com layout imitado. O teste dinâmico foi inconclusivo devido a erro de compilação no harness, mas a falha é evidente no código e representa risco real de aceitação de dados não autenticados.",
+      "recommendation": "Verificar se `vault.owner == program_id` antes de ler os dados da conta, retornando erro caso contrário."
+    },
+    {
+      "category": "COSPLAY",
+      "decision": "report",
+      "severity": "alta",
+      "confidence": "alta",
+      "justification": "A análise estática aponta ausência de discriminador de tipo no início do buffer, permitindo que contas de outros tipos com layout compatível sejam interpretadas como vault. O teste dinâmico confirmou o ataque: uma conta de outro tipo foi aceita, seus lamports foram debitados e o recipient creditado, demonstrando o type cosplay.",
+      "recommendation": "Incluir um discriminador de tipo (ex.: primeiros 8 bytes) no layout da conta vault e validá-lo antes de interpretar os dados, rejeitando contas com discriminador incorreto."
+    }
+  ],
+  "predicted": [
+    "COSPLAY",
+    "OWNER",
+    "SIGNER"
+  ],
+  "extra_categories": [],
+  "omitted": [],
+  "parse_error": null,
+  "inputs": [
+    {
+      "category": "SIGNER",
+      "dynamic_verdict": "confirmed"
+    },
+    {
+      "category": "OWNER",
+      "dynamic_verdict": "inconclusive"
+    },
+    {
+      "category": "COSPLAY",
+      "dynamic_verdict": "confirmed"
+    }
+  ],
+  "case_id": "SSP-01-P-V"
+}

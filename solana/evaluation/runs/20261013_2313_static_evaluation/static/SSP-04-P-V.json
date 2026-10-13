@@ -1,0 +1,51 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2524,
+    "completion_tokens": 912,
+    "latency_s": 5.41,
+    "attempts": 1
+  },
+  "raw": "{\"instruction\": \"init\", \"findings\": [{\"category\": \"SIGNER\", \"confidence\": \"high\", \"evidence\": \"let authority = &accounts[1];\\n...\\ndata[8..40].copy_from_slice(authority.key().as_ref());\", \"explanation\": \"A conta `authority` e lida de `accounts[1]` como `AccountInfo` e sua chave e gravada como autoridade da config sem qualquer verificacao de `authority.is_signer`. Nao ha tipo `Signer` nem `require!(authority.is_signer, ...)`.\", \"attack_hypothesis\": \"Um atacante fornece a chave publica de qualquer autoridade (por exemplo, a de uma vitima ou uma chave arbitraria) como `accounts[1]` sem assinar a transacao, gravando-a como autoridade da config e assumindo o controle da conta.\"}, {\"category\": \"OWNER\", \"confidence\": \"high\", \"evidence\": \"let config = &accounts[0];\\nlet mut data = config.try_borrow_mut_data()?;\\ndata[0..8].copy_from_slice(&[1, 2, 3, 4, 5, 6, 7, 8]);\", \"explanation\": \"A conta `config` e recebida como `AccountInfo` e seus dados sao escritos diretamente sem verificar `config.owner == program_id`. Nao ha uso de `Account<'info, T>` nem constraint de owner.\", \"attack_hypothesis\": \"Um atacante fornece uma conta cujo owner e outro programa (ou uma conta de sistema) como `accounts[0]`, fazendo o programa sobrescrever dados de uma conta que nao lhe pertence.\"}, {\"category\": \"REINIT\", \"confidence\": \"high\", \"evidence\": \"data[40] = 1;\\n...\\nfn init(accounts: &[AccountInfo]) -> ProgramResult {\\n    let config = &accounts[0];\\n    let mut data = config.try_borrow_mut_data()?;\\n    data[0..8].copy_from_slice(&[1, 2, 3, 4, 5, 6, 7, 8]);\", \"explanation\": \"A instrucao `init` grava o discriminador e a autoridade em `config` sem verificar se a conta ja foi inicializada (nao ha checagem de flag `is_initialized` nem constraint `init` do Anchor). O byte `data[40] = 1` e escrito incondicionalmente.\", \"attack_hypothesis\": \"Um atacante chama `init` novamente sobre uma conta de config ja inicializada, sobrescrevendo o discriminador, a autoridade (`data[8..40]`) e o saldo (`data[41..49]`), assumindo o controle da config.\"}, {\"category\": \"COSPLAY\", \"confidence\": \"medium\", \"evidence\": \"let config = &accounts[0];\\nlet mut data = config.try_borrow_mut_data()?;\\ndata[0..8].copy_from_slice(&[1, 2, 3, 4, 5, 6, 7, 8]);\", \"explanation\": \"Os dados da conta sao acessados via `AccountInfo` sem validar um discriminador de tipo pre-existente; o programa apenas escreve um discriminador fixo sem verificar se a conta realmente corresponde ao tipo esperado. Nao ha uso de `Account<'info, T>` que validaria o discriminador.\", \"attack_hypothesis\": \"Um atacante fornece uma conta de outro tipo com layout compativel como `accounts[0]`, e o programa trata seus dados como uma config, sobrescrevendo campos que pertencem a outro tipo de conta.\"}], \"summary\": \"A instrucao `init` nao valida assinatura da autoridade, propriedade da conta de config, nem previne reinicializacao, permitindo sequestro da conta e sobrescrita de estado.\"}",
+  "instruction": "init",
+  "findings": [
+    {
+      "category": "SIGNER",
+      "confidence": "high",
+      "evidence": "let authority = &accounts[1];\n...\ndata[8..40].copy_from_slice(authority.key().as_ref());",
+      "explanation": "A conta `authority` e lida de `accounts[1]` como `AccountInfo` e sua chave e gravada como autoridade da config sem qualquer verificacao de `authority.is_signer`. Nao ha tipo `Signer` nem `require!(authority.is_signer, ...)`.",
+      "attack_hypothesis": "Um atacante fornece a chave publica de qualquer autoridade (por exemplo, a de uma vitima ou uma chave arbitraria) como `accounts[1]` sem assinar a transacao, gravando-a como autoridade da config e assumindo o controle da conta."
+    },
+    {
+      "category": "OWNER",
+      "confidence": "high",
+      "evidence": "let config = &accounts[0];\nlet mut data = config.try_borrow_mut_data()?;\ndata[0..8].copy_from_slice(&[1, 2, 3, 4, 5, 6, 7, 8]);",
+      "explanation": "A conta `config` e recebida como `AccountInfo` e seus dados sao escritos diretamente sem verificar `config.owner == program_id`. Nao ha uso de `Account<'info, T>` nem constraint de owner.",
+      "attack_hypothesis": "Um atacante fornece uma conta cujo owner e outro programa (ou uma conta de sistema) como `accounts[0]`, fazendo o programa sobrescrever dados de uma conta que nao lhe pertence."
+    },
+    {
+      "category": "REINIT",
+      "confidence": "high",
+      "evidence": "data[40] = 1;\n...\nfn init(accounts: &[AccountInfo]) -> ProgramResult {\n    let config = &accounts[0];\n    let mut data = config.try_borrow_mut_data()?;\n    data[0..8].copy_from_slice(&[1, 2, 3, 4, 5, 6, 7, 8]);",
+      "explanation": "A instrucao `init` grava o discriminador e a autoridade em `config` sem verificar se a conta ja foi inicializada (nao ha checagem de flag `is_initialized` nem constraint `init` do Anchor). O byte `data[40] = 1` e escrito incondicionalmente.",
+      "attack_hypothesis": "Um atacante chama `init` novamente sobre uma conta de config ja inicializada, sobrescrevendo o discriminador, a autoridade (`data[8..40]`) e o saldo (`data[41..49]`), assumindo o controle da config."
+    },
+    {
+      "category": "COSPLAY",
+      "confidence": "medium",
+      "evidence": "let config = &accounts[0];\nlet mut data = config.try_borrow_mut_data()?;\ndata[0..8].copy_from_slice(&[1, 2, 3, 4, 5, 6, 7, 8]);",
+      "explanation": "Os dados da conta sao acessados via `AccountInfo` sem validar um discriminador de tipo pre-existente; o programa apenas escreve um discriminador fixo sem verificar se a conta realmente corresponde ao tipo esperado. Nao ha uso de `Account<'info, T>` que validaria o discriminador.",
+      "attack_hypothesis": "Um atacante fornece uma conta de outro tipo com layout compativel como `accounts[0]`, e o programa trata seus dados como uma config, sobrescrevendo campos que pertencem a outro tipo de conta."
+    }
+  ],
+  "dropped": [],
+  "summary": "A instrucao `init` nao valida assinatura da autoridade, propriedade da conta de config, nem previne reinicializacao, permitindo sequestro da conta e sobrescrita de estado.",
+  "predicted": [
+    "COSPLAY",
+    "OWNER",
+    "REINIT",
+    "SIGNER"
+  ],
+  "parse_error": null,
+  "case_id": "SSP-04-P-V"
+}

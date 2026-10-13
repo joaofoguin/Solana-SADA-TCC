@@ -1,0 +1,27 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2879,
+    "completion_tokens": 428,
+    "latency_s": 3.33,
+    "attempts": 1
+  },
+  "raw": "{\"instruction\": \"update_fee\", \"findings\": [{\"category\": \"OWNER\", \"confidence\": \"high\", \"evidence\": \"let data = config.try_borrow_data()?;\\n\\nlet discriminator: [u8; 8] = data[0..8]\\n    .try_into()\\n    .map_err(|_| ProgramError::InvalidInstructionData)?;\\n\\nif discriminator != ADMIN_CONFIG_DISCRIMINATOR {\\n    return Err(ProgramError::Custom(ERR_WRONG_DISCRIMINATOR));\\n}\", \"explanation\": \"A conta `config` e recebida como `AccountInfo` e seus dados sao lidos e posteriormente modificados (`data[40..48].copy_from_slice(...)`) sem que haja qualquer verificacao de que `config.owner` pertence ao programa esperado. O unico controle e um discriminador de 8 bytes nos dados, que pode ser forjado por um atacante ao criar uma conta cujo owner e um programa malicioso (ou o proprio atacante) contendo o mesmo discriminador e a pubkey do admin no offset 8..40.\", \"attack_hypothesis\": \"O atacante cria uma conta cujo owner e um programa sob seu controle, escreve o discriminador ADMIN_CONFIG_DISCRIMINATOR nos primeiros 8 bytes e a pubkey do atacante (que tambem assina a transacao) nos bytes 8..40. Ao passar essa conta forjada como `config` e a si mesmo como `authority`, o programa aceita a atualizacao e grava `new_fee` na conta forjada, contornando a logica de autorizacao baseada em owner.\"}], \"summary\": \"A instrucao update_fee nao valida o owner da conta config, permitindo que uma conta forjada com o discriminador correto seja aceita e modificada.\"}",
+  "instruction": "update_fee",
+  "findings": [
+    {
+      "category": "OWNER",
+      "confidence": "high",
+      "evidence": "let data = config.try_borrow_data()?;\n\nlet discriminator: [u8; 8] = data[0..8]\n    .try_into()\n    .map_err(|_| ProgramError::InvalidInstructionData)?;\n\nif discriminator != ADMIN_CONFIG_DISCRIMINATOR {\n    return Err(ProgramError::Custom(ERR_WRONG_DISCRIMINATOR));\n}",
+      "explanation": "A conta `config` e recebida como `AccountInfo` e seus dados sao lidos e posteriormente modificados (`data[40..48].copy_from_slice(...)`) sem que haja qualquer verificacao de que `config.owner` pertence ao programa esperado. O unico controle e um discriminador de 8 bytes nos dados, que pode ser forjado por um atacante ao criar uma conta cujo owner e um programa malicioso (ou o proprio atacante) contendo o mesmo discriminador e a pubkey do admin no offset 8..40.",
+      "attack_hypothesis": "O atacante cria uma conta cujo owner e um programa sob seu controle, escreve o discriminador ADMIN_CONFIG_DISCRIMINATOR nos primeiros 8 bytes e a pubkey do atacante (que tambem assina a transacao) nos bytes 8..40. Ao passar essa conta forjada como `config` e a si mesmo como `authority`, o programa aceita a atualizacao e grava `new_fee` na conta forjada, contornando a logica de autorizacao baseada em owner."
+    }
+  ],
+  "dropped": [],
+  "summary": "A instrucao update_fee nao valida o owner da conta config, permitindo que uma conta forjada com o discriminador correto seja aceita e modificada.",
+  "predicted": [
+    "OWNER"
+  ],
+  "parse_error": null,
+  "case_id": "SSP-06-P-S"
+}

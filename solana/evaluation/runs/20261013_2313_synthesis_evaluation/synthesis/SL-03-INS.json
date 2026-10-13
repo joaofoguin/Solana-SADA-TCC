@@ -1,0 +1,46 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 1736,
+    "completion_tokens": 507,
+    "latency_s": 3.57,
+    "attempts": 1
+  },
+  "raw": "{\n  \"summary\": \"A instrução `update_user` apresenta uma postura de segurança razoável, com a checagem de proprietário da conta `user` efetiva, conforme confirmado pela análise dinâmica. No entanto, a ausência de um discriminador de tipo na desserialização manual da conta `user` representa um risco de type cosplay que não pôde ser confirmado dinamicamente, mas merece atenção. Recomenda-se adotar as práticas do Anchor para validação de contas.\",\n  \"findings\": [\n    {\n      \"category\": \"OWNER\",\n      \"decision\": \"discard\",\n      \"severity\": null,\n      \"confidence\": \"alta\",\n      \"justification\": \"A análise estática apontou uma possível vulnerabilidade devido à desserialização antes da verificação de proprietário, mas a análise dinâmica demonstrou que o ataque foi rejeitado com erro `IllegalOwner`, confirmando que a checagem de proprietário subsequente bloqueia efetivamente a exploração. A ordem de operações é subótima, mas não resulta em dano.\",\n      \"recommendation\": null\n    },\n    {\n      \"category\": \"COSPLAY\",\n      \"decision\": \"report\",\n      \"severity\": \"media\",\n      \"confidence\": \"media\",\n      \"justification\": \"A análise estática identificou que a conta `user` é desserializada manualmente sem verificação de discriminador de tipo, permitindo que contas com layout semelhante (como `Metadata`) sejam interpretadas como `User`. A análise dinâmica foi inconclusiva porque o ataque não foi executado corretamente (não alterou o discriminador), mas a evidência estática é suficiente para indicar um risco real de type cosplay, especialmente se a checagem de proprietário for contornada ou se outras contas do programa tiverem o mesmo layout.\",\n      \"recommendation\": \"Substituir a desserialização manual por tipos de conta do Anchor (ex.: `Account<'info, User>`) que incluem um discriminador de 8 bytes e verificam automaticamente o proprietário e o tipo. Se a desserialização manual for necessária, adicionar uma verificação explícita de discriminador antes de desserializar.\"\n    }\n  ]\n}",
+  "summary": "A instrução `update_user` apresenta uma postura de segurança razoável, com a checagem de proprietário da conta `user` efetiva, conforme confirmado pela análise dinâmica. No entanto, a ausência de um discriminador de tipo na desserialização manual da conta `user` representa um risco de type cosplay que não pôde ser confirmado dinamicamente, mas merece atenção. Recomenda-se adotar as práticas do Anchor para validação de contas.",
+  "findings": [
+    {
+      "category": "OWNER",
+      "decision": "discard",
+      "severity": null,
+      "confidence": "alta",
+      "justification": "A análise estática apontou uma possível vulnerabilidade devido à desserialização antes da verificação de proprietário, mas a análise dinâmica demonstrou que o ataque foi rejeitado com erro `IllegalOwner`, confirmando que a checagem de proprietário subsequente bloqueia efetivamente a exploração. A ordem de operações é subótima, mas não resulta em dano.",
+      "recommendation": null
+    },
+    {
+      "category": "COSPLAY",
+      "decision": "report",
+      "severity": "media",
+      "confidence": "media",
+      "justification": "A análise estática identificou que a conta `user` é desserializada manualmente sem verificação de discriminador de tipo, permitindo que contas com layout semelhante (como `Metadata`) sejam interpretadas como `User`. A análise dinâmica foi inconclusiva porque o ataque não foi executado corretamente (não alterou o discriminador), mas a evidência estática é suficiente para indicar um risco real de type cosplay, especialmente se a checagem de proprietário for contornada ou se outras contas do programa tiverem o mesmo layout.",
+      "recommendation": "Substituir a desserialização manual por tipos de conta do Anchor (ex.: `Account<'info, User>`) que incluem um discriminador de 8 bytes e verificam automaticamente o proprietário e o tipo. Se a desserialização manual for necessária, adicionar uma verificação explícita de discriminador antes de desserializar."
+    }
+  ],
+  "predicted": [
+    "COSPLAY"
+  ],
+  "extra_categories": [],
+  "omitted": [],
+  "parse_error": null,
+  "inputs": [
+    {
+      "category": "OWNER",
+      "dynamic_verdict": "not_confirmed"
+    },
+    {
+      "category": "COSPLAY",
+      "dynamic_verdict": "inconclusive"
+    }
+  ],
+  "case_id": "SL-03-INS"
+}

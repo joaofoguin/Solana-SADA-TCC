@@ -1,0 +1,32 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 1087,
+    "completion_tokens": 263,
+    "latency_s": 2.37,
+    "attempts": 1
+  },
+  "raw": "{\n  \"summary\": \"A instrução `process` implementa a verificação essencial de owner da conta treasury, comparando-a com o program_id, e a análise dinâmica confirmou que a tentativa de usar uma conta com owner forjado é rejeitada com erro. O uso de `unsafe` é desnecessário e estilisticamente ruim, mas não representa uma vulnerabilidade explorável no contexto atual.\",\n  \"findings\": [\n    {\n      \"category\": \"OWNER\",\n      \"decision\": \"discard\",\n      \"severity\": null,\n      \"confidence\": \"alta\",\n      \"justification\": \"A análise estática apontou baixa confiança devido ao uso de `unsafe { treasury.owner() }`, mas a lógica de comparação com `program_id` está presente e correta. A análise dinâmica executou um ataque substituindo a treasury por uma conta com owner arbitrário e o programa rejeitou a transação com `Failure(Custom(2001))` (ERR_INVALID_OWNER), confirmando que a mitigação é efetiva. Não há evidência de explorabilidade.\",\n      \"recommendation\": null\n    }\n  ]\n}",
+  "summary": "A instrução `process` implementa a verificação essencial de owner da conta treasury, comparando-a com o program_id, e a análise dinâmica confirmou que a tentativa de usar uma conta com owner forjado é rejeitada com erro. O uso de `unsafe` é desnecessário e estilisticamente ruim, mas não representa uma vulnerabilidade explorável no contexto atual.",
+  "findings": [
+    {
+      "category": "OWNER",
+      "decision": "discard",
+      "severity": null,
+      "confidence": "alta",
+      "justification": "A análise estática apontou baixa confiança devido ao uso de `unsafe { treasury.owner() }`, mas a lógica de comparação com `program_id` está presente e correta. A análise dinâmica executou um ataque substituindo a treasury por uma conta com owner arbitrário e o programa rejeitou a transação com `Failure(Custom(2001))` (ERR_INVALID_OWNER), confirmando que a mitigação é efetiva. Não há evidência de explorabilidade.",
+      "recommendation": null
+    }
+  ],
+  "predicted": [],
+  "extra_categories": [],
+  "omitted": [],
+  "parse_error": null,
+  "inputs": [
+    {
+      "category": "OWNER",
+      "dynamic_verdict": "not_confirmed"
+    }
+  ],
+  "case_id": "SSP-02-P-S"
+}

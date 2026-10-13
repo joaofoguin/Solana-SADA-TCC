@@ -1,0 +1,17 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2518,
+    "completion_tokens": 54,
+    "latency_s": 1.42,
+    "attempts": 1
+  },
+  "raw": "{\"instruction\": \"cpi\", \"findings\": [], \"summary\": \"A instrucao cpi valida explicitamente que token_program corresponde ao ID oficial do SPL Token antes da invocacao, mitigando o risco de CPI arbitraria.\"}",
+  "instruction": "cpi",
+  "findings": [],
+  "dropped": [],
+  "summary": "A instrucao cpi valida explicitamente que token_program corresponde ao ID oficial do SPL Token antes da invocacao, mitigando o risco de CPI arbitraria.",
+  "predicted": [],
+  "parse_error": null,
+  "case_id": "SL-05-SEC"
+}

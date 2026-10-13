@@ -1,0 +1,35 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2770,
+    "completion_tokens": 570,
+    "latency_s": 4.26,
+    "attempts": 1
+  },
+  "raw": "{\"instruction\": \"update_fee\", \"findings\": [{\"category\": \"OWNER\", \"confidence\": \"high\", \"evidence\": \"let config = &accounts[0];\\nlet data = config.try_borrow_data()?;\\nlet admin = read_pubkey(&data[8..40]);\", \"explanation\": \"A conta `config` e recebida como `AccountInfo` e seus dados sao lidos diretamente sem verificar `config.owner` contra o program_id esperado. Um atacante pode fornecer uma conta forjada cujo owner e outro programa, mas cujos bytes 8..40 contem a pubkey do atacante como admin, contornando a checagem de autoridade.\", \"attack_hypothesis\": \"O atacante cria uma conta cujo owner e um programa malicioso (ou qualquer owner diferente do programa atual) e cujos bytes 8..40 contem a pubkey do atacante. Ele passa essa conta como `config` e sua propria conta como `authority` (assinante). A checagem `admin != *authority.key()` passa, permitindo que o atacante escreva em `data[40..48]` de uma conta que nao pertence ao programa, ou contorne a logica de autoridade do programa legitimo.\"}, {\"category\": \"COSPLAY\", \"confidence\": \"medium\", \"evidence\": \"let data = config.try_borrow_data()?;\\nlet admin = read_pubkey(&data[8..40]);\", \"explanation\": \"Os dados da conta `config` sao desserializados manualmente a partir de `AccountInfo` sem validar um discriminador de tipo unico. Nao ha verificacao de que os bytes iniciais (0..8) correspondem ao tipo esperado de conta de configuracao, permitindo que uma conta de outro tipo com layout compativel seja passada como config.\", \"attack_hypothesis\": \"O atacante fornece uma conta de um tipo diferente (por exemplo, uma conta de usuario ou de vault) cujo layout de bytes nas posicoes 8..40 coincida com a pubkey do atacante, fazendo o programa interpreta-la como conta de configuracao e permitindo a alteracao indevida do campo de fee em uma conta de tipo incorreto.\"}], \"summary\": \"A instrucao update_fee nao valida o owner da conta config nem um discriminador de tipo, permitindo contas forjadas para contornar a autoridade e escrever em contas arbitrarias.\"}",
+  "instruction": "update_fee",
+  "findings": [
+    {
+      "category": "OWNER",
+      "confidence": "high",
+      "evidence": "let config = &accounts[0];\nlet data = config.try_borrow_data()?;\nlet admin = read_pubkey(&data[8..40]);",
+      "explanation": "A conta `config` e recebida como `AccountInfo` e seus dados sao lidos diretamente sem verificar `config.owner` contra o program_id esperado. Um atacante pode fornecer uma conta forjada cujo owner e outro programa, mas cujos bytes 8..40 contem a pubkey do atacante como admin, contornando a checagem de autoridade.",
+      "attack_hypothesis": "O atacante cria uma conta cujo owner e um programa malicioso (ou qualquer owner diferente do programa atual) e cujos bytes 8..40 contem a pubkey do atacante. Ele passa essa conta como `config` e sua propria conta como `authority` (assinante). A checagem `admin != *authority.key()` passa, permitindo que o atacante escreva em `data[40..48]` de uma conta que nao pertence ao programa, ou contorne a logica de autoridade do programa legitimo."
+    },
+    {
+      "category": "COSPLAY",
+      "confidence": "medium",
+      "evidence": "let data = config.try_borrow_data()?;\nlet admin = read_pubkey(&data[8..40]);",
+      "explanation": "Os dados da conta `config` sao desserializados manualmente a partir de `AccountInfo` sem validar um discriminador de tipo unico. Nao ha verificacao de que os bytes iniciais (0..8) correspondem ao tipo esperado de conta de configuracao, permitindo que uma conta de outro tipo com layout compativel seja passada como config.",
+      "attack_hypothesis": "O atacante fornece uma conta de um tipo diferente (por exemplo, uma conta de usuario ou de vault) cujo layout de bytes nas posicoes 8..40 coincida com a pubkey do atacante, fazendo o programa interpreta-la como conta de configuracao e permitindo a alteracao indevida do campo de fee em uma conta de tipo incorreto."
+    }
+  ],
+  "dropped": [],
+  "summary": "A instrucao update_fee nao valida o owner da conta config nem um discriminador de tipo, permitindo contas forjadas para contornar a autoridade e escrever em contas arbitrarias.",
+  "predicted": [
+    "COSPLAY",
+    "OWNER"
+  ],
+  "parse_error": null,
+  "case_id": "SSP-06-P-V"
+}

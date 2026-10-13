@@ -1,0 +1,17 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2331,
+    "completion_tokens": 56,
+    "latency_s": 1.59,
+    "attempts": 1
+  },
+  "raw": "{\"instruction\": \"log_message\", \"findings\": [], \"summary\": \"A instrução log_message não executa nenhuma operação privilegiada, não lê nem grava dados de contas e não realiza CPI, portanto não há achados de segurança.\"}",
+  "instruction": "log_message",
+  "findings": [],
+  "dropped": [],
+  "summary": "A instrução log_message não executa nenhuma operação privilegiada, não lê nem grava dados de contas e não realiza CPI, portanto não há achados de segurança.",
+  "predicted": [],
+  "parse_error": null,
+  "case_id": "SL-00-INS"
+}

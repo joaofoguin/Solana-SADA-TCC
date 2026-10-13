@@ -1,0 +1,43 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2810,
+    "completion_tokens": 709,
+    "latency_s": 4.62,
+    "attempts": 1
+  },
+  "raw": "{\"instruction\": \"withdraw\", \"findings\": [{\"category\": \"SIGNER\", \"confidence\": \"high\", \"evidence\": \"let authority = &accounts[1];\\n...\\nif stored_authority != *authority.key() {\\n    return Err(ProgramError::Custom(ERR_INVALID_AUTHORITY));\\n}\", \"explanation\": \"A instrucao valida apenas que a chave publica da conta `authority` coincide com a autoridade armazenada no vault, mas nunca verifica `authority.is_signer`. Sem essa checagem, qualquer pessoa pode passar a conta da autoridade (cuja chave publica e publica) sem assinar a transacao e autorizar o saque.\", \"attack_hypothesis\": \"Um atacante fornece a conta da autoridade legitima (chave publica conhecida) como `accounts[1]` sem assina-la, e uma conta `recipient` propria como `accounts[2]`, drenando os lamports do vault para si.\"}, {\"category\": \"OWNER\", \"confidence\": \"high\", \"evidence\": \"let vault_data = vault.try_borrow_data()?;\\nlet stored_authority = read_pubkey(&vault_data[8..40]);\\n...\\nlet balance = u64::from_le_bytes(vault_data[40..48]...);\", \"explanation\": \"Os dados do vault sao lidos diretamente de `AccountInfo` sem verificar `vault.owner == program_id`. Um atacante pode fornecer uma conta forjada cujo layout imita o vault (com a autoridade e o saldo desejados) e cujo owner e outro programa, fazendo o programa aceitar dados nao autenticos.\", \"attack_hypothesis\": \"Um atacante cria uma conta cujos bytes 8..40 contem a chave publica da autoridade e 40..48 um saldo alto, com owner de outro programa, e a passa como `vault`; o programa aceita os dados forjados e prossegue com o saque.\"}, {\"category\": \"COSPLAY\", \"confidence\": \"medium\", \"evidence\": \"let vault_data = vault.try_borrow_data()?;\\nlet stored_authority = read_pubkey(&vault_data[8..40]);\\nlet balance = u64::from_le_bytes(vault_data[40..48]...);\", \"explanation\": \"Nao ha verificacao de um discriminador de tipo no inicio do buffer antes de interpretar os bytes como um vault. Qualquer conta com layout compativel (mesmo pertencente a outro tipo logico) pode ser passada como vault, configurando type cosplay.\", \"attack_hypothesis\": \"Um atacante fornece uma conta de outro tipo cujo layout de bytes coincide com o esperado para o vault, fazendo o programa interpretar dados de um tipo diferente como se fossem o vault.\"}], \"summary\": \"A instrucao withdraw nao exige assinatura da autoridade, nao valida o owner da conta vault e nao verifica discriminador de tipo, permitindo saques nao autorizados e uso de contas forjadas.\"}",
+  "instruction": "withdraw",
+  "findings": [
+    {
+      "category": "SIGNER",
+      "confidence": "high",
+      "evidence": "let authority = &accounts[1];\n...\nif stored_authority != *authority.key() {\n    return Err(ProgramError::Custom(ERR_INVALID_AUTHORITY));\n}",
+      "explanation": "A instrucao valida apenas que a chave publica da conta `authority` coincide com a autoridade armazenada no vault, mas nunca verifica `authority.is_signer`. Sem essa checagem, qualquer pessoa pode passar a conta da autoridade (cuja chave publica e publica) sem assinar a transacao e autorizar o saque.",
+      "attack_hypothesis": "Um atacante fornece a conta da autoridade legitima (chave publica conhecida) como `accounts[1]` sem assina-la, e uma conta `recipient` propria como `accounts[2]`, drenando os lamports do vault para si."
+    },
+    {
+      "category": "OWNER",
+      "confidence": "high",
+      "evidence": "let vault_data = vault.try_borrow_data()?;\nlet stored_authority = read_pubkey(&vault_data[8..40]);\n...\nlet balance = u64::from_le_bytes(vault_data[40..48]...);",
+      "explanation": "Os dados do vault sao lidos diretamente de `AccountInfo` sem verificar `vault.owner == program_id`. Um atacante pode fornecer uma conta forjada cujo layout imita o vault (com a autoridade e o saldo desejados) e cujo owner e outro programa, fazendo o programa aceitar dados nao autenticos.",
+      "attack_hypothesis": "Um atacante cria uma conta cujos bytes 8..40 contem a chave publica da autoridade e 40..48 um saldo alto, com owner de outro programa, e a passa como `vault`; o programa aceita os dados forjados e prossegue com o saque."
+    },
+    {
+      "category": "COSPLAY",
+      "confidence": "medium",
+      "evidence": "let vault_data = vault.try_borrow_data()?;\nlet stored_authority = read_pubkey(&vault_data[8..40]);\nlet balance = u64::from_le_bytes(vault_data[40..48]...);",
+      "explanation": "Nao ha verificacao de um discriminador de tipo no inicio do buffer antes de interpretar os bytes como um vault. Qualquer conta com layout compativel (mesmo pertencente a outro tipo logico) pode ser passada como vault, configurando type cosplay.",
+      "attack_hypothesis": "Um atacante fornece uma conta de outro tipo cujo layout de bytes coincide com o esperado para o vault, fazendo o programa interpretar dados de um tipo diferente como se fossem o vault."
+    }
+  ],
+  "dropped": [],
+  "summary": "A instrucao withdraw nao exige assinatura da autoridade, nao valida o owner da conta vault e nao verifica discriminador de tipo, permitindo saques nao autorizados e uso de contas forjadas.",
+  "predicted": [
+    "COSPLAY",
+    "OWNER",
+    "SIGNER"
+  ],
+  "parse_error": null,
+  "case_id": "SSP-01-P-V"
+}

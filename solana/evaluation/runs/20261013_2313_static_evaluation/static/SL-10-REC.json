@@ -1,0 +1,17 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2343,
+    "completion_tokens": 61,
+    "latency_s": 1.31,
+    "attempts": 1
+  },
+  "raw": "{\"instruction\": \"check_sysvar_address\", \"findings\": [], \"summary\": \"A instrucao usa o tipo fortemente tipado Sysvar<'info, Rent> do Anchor, que valida automaticamente o ID oficial do Sysvar, sem achados de seguranca.\"}",
+  "instruction": "check_sysvar_address",
+  "findings": [],
+  "dropped": [],
+  "summary": "A instrucao usa o tipo fortemente tipado Sysvar<'info, Rent> do Anchor, que valida automaticamente o ID oficial do Sysvar, sem achados de seguranca.",
+  "predicted": [],
+  "parse_error": null,
+  "case_id": "SL-10-REC"
+}

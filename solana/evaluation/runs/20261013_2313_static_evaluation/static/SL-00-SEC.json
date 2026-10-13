@@ -1,0 +1,17 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2358,
+    "completion_tokens": 51,
+    "latency_s": 1.18,
+    "attempts": 1
+  },
+  "raw": "{\"instruction\": \"log_message\", \"findings\": [], \"summary\": \"A instrução log_message valida explicitamente a assinatura da autoridade via is_signer, sem outras operações sensíveis, portanto não há achados.\"}",
+  "instruction": "log_message",
+  "findings": [],
+  "dropped": [],
+  "summary": "A instrução log_message valida explicitamente a assinatura da autoridade via is_signer, sem outras operações sensíveis, portanto não há achados.",
+  "predicted": [],
+  "parse_error": null,
+  "case_id": "SL-00-SEC"
+}

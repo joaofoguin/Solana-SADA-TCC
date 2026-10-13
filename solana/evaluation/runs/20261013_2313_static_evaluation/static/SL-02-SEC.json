@@ -1,0 +1,17 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2475,
+    "completion_tokens": 54,
+    "latency_s": 1.39,
+    "attempts": 1
+  },
+  "raw": "{\"instruction\": \"log_message\", \"findings\": [], \"summary\": \"A instrução log_message valida corretamente o proprietário da conta token e exige que authority seja signatário, sem vulnerabilidades nas categorias analisadas.\"}",
+  "instruction": "log_message",
+  "findings": [],
+  "dropped": [],
+  "summary": "A instrução log_message valida corretamente o proprietário da conta token e exige que authority seja signatário, sem vulnerabilidades nas categorias analisadas.",
+  "predicted": [],
+  "parse_error": null,
+  "case_id": "SL-02-SEC"
+}

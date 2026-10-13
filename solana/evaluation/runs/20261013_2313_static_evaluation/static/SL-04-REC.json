@@ -1,0 +1,17 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2385,
+    "completion_tokens": 54,
+    "latency_s": 1.46,
+    "attempts": 1
+  },
+  "raw": "{\"instruction\": \"init\", \"findings\": [], \"summary\": \"A instrucao init usa a constraint #[account(init, ...)] do Anchor com payer Signer e System Program tipado, sem vulnerabilidades das categorias analisadas.\"}",
+  "instruction": "init",
+  "findings": [],
+  "dropped": [],
+  "summary": "A instrucao init usa a constraint #[account(init, ...)] do Anchor com payer Signer e System Program tipado, sem vulnerabilidades das categorias analisadas.",
+  "predicted": [],
+  "parse_error": null,
+  "case_id": "SL-04-REC"
+}

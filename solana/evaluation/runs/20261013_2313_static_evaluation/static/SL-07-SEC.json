@@ -1,0 +1,17 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2468,
+    "completion_tokens": 70,
+    "latency_s": 1.53,
+    "attempts": 1
+  },
+  "raw": "{\n  \"instruction\": \"set_value\",\n  \"findings\": [],\n  \"summary\": \"A instrucao set_value valida corretamente o PDA canonico (find_program_address e comparacao de bump) e usa Account<'info, Data> para garantir owner e discriminador, sem achados de seguranca.\"\n}",
+  "instruction": "set_value",
+  "findings": [],
+  "dropped": [],
+  "summary": "A instrucao set_value valida corretamente o PDA canonico (find_program_address e comparacao de bump) e usa Account<'info, Data> para garantir owner e discriminador, sem achados de seguranca.",
+  "predicted": [],
+  "parse_error": null,
+  "case_id": "SL-07-SEC"
+}

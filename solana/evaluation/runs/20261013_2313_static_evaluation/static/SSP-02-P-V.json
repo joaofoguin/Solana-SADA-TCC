@@ -1,0 +1,43 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2797,
+    "completion_tokens": 831,
+    "latency_s": 5.25,
+    "attempts": 1
+  },
+  "raw": "{\"instruction\": \"process\", \"findings\": [{\"category\": \"SIGNER\", \"confidence\": \"high\", \"evidence\": \"let authority = &accounts[1];\\n...\\nlet stored_authority = read_pubkey(&data[8..40]);\\n...\\nOk(())\", \"explanation\": \"A instrucao le a conta `authority` (accounts[1]) e a autoridade armazenada (`stored_authority`), mas nunca verifica `authority.is_signer` nem compara `authority.key()` com `stored_authority`. Nao ha uso de `Signer<'info>` (programa nativo pinocchio) nem `require!(authority.is_signer, ...)`. A conta de autoridade e completamente ignorada, permitindo que qualquer conta seja passada sem assinatura.\", \"attack_hypothesis\": \"Um atacante fornece qualquer conta como `authority` (accounts[1]) sem assina-la; como o programa nao valida `is_signer` nem a chave, a operacao privilegiada e executada sem autorizacao legitima.\"}, {\"category\": \"OWNER\", \"confidence\": \"high\", \"evidence\": \"let treasury = &accounts[0];\\nlet data = treasury.try_borrow_data()?;\\nlet stored_authority = read_pubkey(&data[8..40]);\\nlet balance = u64::from_le_bytes(data[40..48]...);\\nlet is_active = data[48] != 0;\", \"explanation\": \"Os dados da conta `treasury` sao lidos diretamente via `try_borrow_data()` sem verificar `treasury.owner == program_id`. Em Rust nativo (pinocchio) nao ha o wrapper `Account<'info, T>` do Anchor que valida o proprietario automaticamente, e nenhuma checagem manual de `owner` foi feita.\", \"attack_hypothesis\": \"Um atacante fornece uma conta forjada cujo `owner` e outro programa (ou uma conta arbitraria) contendo dados maliciosos nos offsets 8..40, 40..48 e 48, fazendo o programa ler uma `stored_authority`, `balance` e `is_active` controlados pelo atacante.\"}, {\"category\": \"COSPLAY\", \"confidence\": \"medium\", \"evidence\": \"let data = treasury.try_borrow_data()?;\\nlet stored_authority = read_pubkey(&data[8..40]);\\nlet balance = u64::from_le_bytes(data[40..48]...);\\nlet is_active = data[48] != 0;\", \"explanation\": \"Os dados da conta sao desserializados manualmente por offsets fixos (8..40, 40..48, 48) sem validar um discriminador de tipo unico no inicio do buffer. O byte 0..8 e ignorado e nenhum tag/discriminador e conferido, permitindo que uma conta de outro tipo com layout compativel seja interpretada como treasury.\", \"attack_hypothesis\": \"Um atacante fornece uma conta de um tipo diferente (com layout de memoria compativel nos offsets usados) como `treasury`, e o programa a trata como uma conta de tesouraria valida, lendo `stored_authority`/`balance`/`is_active` de dados que nao pertencem a esse tipo.\"}], \"summary\": \"A instrucao `process` le dados de `treasury` sem validar owner nem discriminador de tipo e ignora completamente a conta `authority`, sem exigir assinatura ou comparar chaves, configurando falhas de SIGNER, OWNER e COSPLAY.\"}",
+  "instruction": "process",
+  "findings": [
+    {
+      "category": "SIGNER",
+      "confidence": "high",
+      "evidence": "let authority = &accounts[1];\n...\nlet stored_authority = read_pubkey(&data[8..40]);\n...\nOk(())",
+      "explanation": "A instrucao le a conta `authority` (accounts[1]) e a autoridade armazenada (`stored_authority`), mas nunca verifica `authority.is_signer` nem compara `authority.key()` com `stored_authority`. Nao ha uso de `Signer<'info>` (programa nativo pinocchio) nem `require!(authority.is_signer, ...)`. A conta de autoridade e completamente ignorada, permitindo que qualquer conta seja passada sem assinatura.",
+      "attack_hypothesis": "Um atacante fornece qualquer conta como `authority` (accounts[1]) sem assina-la; como o programa nao valida `is_signer` nem a chave, a operacao privilegiada e executada sem autorizacao legitima."
+    },
+    {
+      "category": "OWNER",
+      "confidence": "high",
+      "evidence": "let treasury = &accounts[0];\nlet data = treasury.try_borrow_data()?;\nlet stored_authority = read_pubkey(&data[8..40]);\nlet balance = u64::from_le_bytes(data[40..48]...);\nlet is_active = data[48] != 0;",
+      "explanation": "Os dados da conta `treasury` sao lidos diretamente via `try_borrow_data()` sem verificar `treasury.owner == program_id`. Em Rust nativo (pinocchio) nao ha o wrapper `Account<'info, T>` do Anchor que valida o proprietario automaticamente, e nenhuma checagem manual de `owner` foi feita.",
+      "attack_hypothesis": "Um atacante fornece uma conta forjada cujo `owner` e outro programa (ou uma conta arbitraria) contendo dados maliciosos nos offsets 8..40, 40..48 e 48, fazendo o programa ler uma `stored_authority`, `balance` e `is_active` controlados pelo atacante."
+    },
+    {
+      "category": "COSPLAY",
+      "confidence": "medium",
+      "evidence": "let data = treasury.try_borrow_data()?;\nlet stored_authority = read_pubkey(&data[8..40]);\nlet balance = u64::from_le_bytes(data[40..48]...);\nlet is_active = data[48] != 0;",
+      "explanation": "Os dados da conta sao desserializados manualmente por offsets fixos (8..40, 40..48, 48) sem validar um discriminador de tipo unico no inicio do buffer. O byte 0..8 e ignorado e nenhum tag/discriminador e conferido, permitindo que uma conta de outro tipo com layout compativel seja interpretada como treasury.",
+      "attack_hypothesis": "Um atacante fornece uma conta de um tipo diferente (com layout de memoria compativel nos offsets usados) como `treasury`, e o programa a trata como uma conta de tesouraria valida, lendo `stored_authority`/`balance`/`is_active` de dados que nao pertencem a esse tipo."
+    }
+  ],
+  "dropped": [],
+  "summary": "A instrucao `process` le dados de `treasury` sem validar owner nem discriminador de tipo e ignora completamente a conta `authority`, sem exigir assinatura ou comparar chaves, configurando falhas de SIGNER, OWNER e COSPLAY.",
+  "predicted": [
+    "COSPLAY",
+    "OWNER",
+    "SIGNER"
+  ],
+  "parse_error": null,
+  "case_id": "SSP-02-P-V"
+}

@@ -1,0 +1,118 @@
+{
+  "category": "SYSVAR",
+  "verdict": "inconclusive",
+  "exploit_successful": false,
+  "attack_result": null,
+  "reason": "erro de compilacao:\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:10:42\n    |\n 10 |     let rent_account = account(&rent_id, &(), None);\n    |                        -------           ^^^ expected `&[u8]`, found `&()`\n    |                        |\n    |                        arguments to this function are incorrect\n    |\n    = note: expected reference `&[u8]`\n               found reference `&()`\nnote: function defined here\n   --> src/lib.rs:277:8\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 1 previous error",
+  "attempts_used": 5,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2096,
+        "completion_tokens": 464,
+        "latency_s": 3.07
+      },
+      "raw": "{\n  \"plan\": \"O programa-alvo apenas recebe uma conta `rent` como AccountInfo e nao faz nada com ela. O baseline chama a instrucao com o Sysvar Rent real (sysvar::rent::ID) e deve ter sucesso. O ataque chama a mesma instrucao substituindo a conta `rent` por uma conta arbitraria controlada pelo atacante. O efeito medido e que a conta forjada foi aceita no lugar do Sysvar Rent, ou seja, a instrucao executou com sucesso mesmo com um endereco diferente do oficial.\",\n  \"scenario\": \"let rent_id = solana_program::sysvar::rent::ID;\\nlet rent_account = account(&rent_id, &[], None);\\n\\nlet attacker_rent = Pubkey::new_unique();\\nlet attacker_rent_account = account(&attacker_rent, &[0u8; 32], None);\\n\\nlet metas = vec![AccountMeta::new_readonly(rent_id, false)];\\nlet ix = env.anchor_ix(\\\"check_sysvar_address\\\", &(), metas);\\nlet contas = vec![(rent_id, rent_account.clone())];\\nlet _ = env.baseline(\\\"uso legitimo com o Sysvar Rent real\\\", &ix, &contas);\\n\\nlet metas_ataque = vec![AccountMeta::new_readonly(attacker_rent, false)];\\nlet ix_ataque = env.anchor_ix(\\\"check_sysvar_address\\\", &(), metas_ataque);\\nlet contas_ataque = vec![(attacker_rent, attacker_rent_account.clone())];\\nlet r = env.attack(\\\"substituir o Sysvar Rent por conta arbitraria\\\", &ix_ataque, &contas_ataque);\\n\\nif r.program_result == ProgramResult::Success {\\n    env.effect(\\\"conta forjada aceita no lugar do Sysvar Rent\\\", after(&r, &attacker_rent).data() == attacker_rent_account.data());\\n}\"\n}",
+      "plan": "O programa-alvo apenas recebe uma conta `rent` como AccountInfo e nao faz nada com ela. O baseline chama a instrucao com o Sysvar Rent real (sysvar::rent::ID) e deve ter sucesso. O ataque chama a mesma instrucao substituindo a conta `rent` por uma conta arbitraria controlada pelo atacante. O efeito medido e que a conta forjada foi aceita no lugar do Sysvar Rent, ou seja, a instrucao executou com sucesso mesmo com um endereco diferente do oficial.",
+      "scenario": "let rent_id = solana_program::sysvar::rent::ID;\nlet rent_account = account(&rent_id, &[], None);\n\nlet attacker_rent = Pubkey::new_unique();\nlet attacker_rent_account = account(&attacker_rent, &[0u8; 32], None);\n\nlet metas = vec![AccountMeta::new_readonly(rent_id, false)];\nlet ix = env.anchor_ix(\"check_sysvar_address\", &(), metas);\nlet contas = vec![(rent_id, rent_account.clone())];\nlet _ = env.baseline(\"uso legitimo com o Sysvar Rent real\", &ix, &contas);\n\nlet metas_ataque = vec![AccountMeta::new_readonly(attacker_rent, false)];\nlet ix_ataque = env.anchor_ix(\"check_sysvar_address\", &(), metas_ataque);\nlet contas_ataque = vec![(attacker_rent, attacker_rent_account.clone())];\nlet r = env.attack(\"substituir o Sysvar Rent por conta arbitraria\", &ix_ataque, &contas_ataque);\n\nif r.program_result == ProgramResult::Success {\n    env.effect(\"conta forjada aceita no lugar do Sysvar Rent\", after(&r, &attacker_rent).data() == attacker_rent_account.data());\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0308]: mismatched types\n   --> tests/attempt.rs:10:42\n    |\n 10 |     let rent_account = account(&rent_id, &(), None);\n    |                        -------           ^^^ expected `&[u8]`, found `&()`\n    |                        |\n    |                        arguments to this function are incorrect\n    |\n    = note: expected reference `&[u8]`\n               found reference `&()`\nnote: function defined here\n   --> src/lib.rs:277:8\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 1 previous error",
+        "elapsed_s": 0.6
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:10:42\n    |\n 10 |     let rent_account = account(&rent_id, &(), None);\n    |                        -------           ^^^ expected `&[u8]`, found `&()`\n    |                        |\n    |                        arguments to this function are incorrect\n    |\n    = note: expected reference `&[u8]`\n               found reference `&()`\nnote: function defined here\n   --> src/lib.rs:277:8\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 1 previous error"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2582,
+        "completion_tokens": 451,
+        "latency_s": 2.45
+      },
+      "raw": "{\"plan\": \"O programa recebe 'rent' como AccountInfo generico, sem validar o ID do Sysvar Rent. O baseline chama a instrucao com a conta real do Sysvar Rent (ID oficial). O ataque chama a mesma instrucao substituindo essa conta por uma conta arbitraria controlada pelo atacante. O efeito mede se a conta forjada foi aceita, comparando os dados da conta apos a execucao com os dados forjados.\", \"scenario\": \"let rent_id = solana_program::sysvar::rent::ID;\\nlet rent_account = account(&rent_id, &[], None);\\n\\nlet attacker_rent = Pubkey::new_unique();\\nlet attacker_data = vec![7u8; 32];\\nlet attacker_rent_account = account(&attacker_rent, &attacker_data, None);\\n\\nlet metas = vec![AccountMeta::new_readonly(rent_id, false)];\\nlet ix = env.anchor_ix(\\\"check_sysvar_address\\\", &(), metas);\\nlet contas = vec![(rent_id, rent_account.clone())];\\nlet _ = env.baseline(\\\"uso legitimo com o Sysvar Rent real\\\", &ix, &contas);\\n\\nlet metas_ataque = vec![AccountMeta::new_readonly(attacker_rent, false)];\\nlet ix_ataque = env.anchor_ix(\\\"check_sysvar_address\\\", &(), metas_ataque);\\nlet contas_ataque = vec![(attacker_rent, attacker_rent_account.clone())];\\nlet r = env.attack(\\\"substituir o Sysvar Rent por conta arbitraria\\\", &ix_ataque, &contas_ataque);\\n\\nif r.program_result == ProgramResult::Success {\\n    env.effect(\\\"conta forjada aceita no lugar do Sysvar Rent\\\", after(&r, &attacker_rent).data() == attacker_data.as_slice());\\n}\"}",
+      "plan": "O programa recebe 'rent' como AccountInfo generico, sem validar o ID do Sysvar Rent. O baseline chama a instrucao com a conta real do Sysvar Rent (ID oficial). O ataque chama a mesma instrucao substituindo essa conta por uma conta arbitraria controlada pelo atacante. O efeito mede se a conta forjada foi aceita, comparando os dados da conta apos a execucao com os dados forjados.",
+      "scenario": "let rent_id = solana_program::sysvar::rent::ID;\nlet rent_account = account(&rent_id, &[], None);\n\nlet attacker_rent = Pubkey::new_unique();\nlet attacker_data = vec![7u8; 32];\nlet attacker_rent_account = account(&attacker_rent, &attacker_data, None);\n\nlet metas = vec![AccountMeta::new_readonly(rent_id, false)];\nlet ix = env.anchor_ix(\"check_sysvar_address\", &(), metas);\nlet contas = vec![(rent_id, rent_account.clone())];\nlet _ = env.baseline(\"uso legitimo com o Sysvar Rent real\", &ix, &contas);\n\nlet metas_ataque = vec![AccountMeta::new_readonly(attacker_rent, false)];\nlet ix_ataque = env.anchor_ix(\"check_sysvar_address\", &(), metas_ataque);\nlet contas_ataque = vec![(attacker_rent, attacker_rent_account.clone())];\nlet r = env.attack(\"substituir o Sysvar Rent por conta arbitraria\", &ix_ataque, &contas_ataque);\n\nif r.program_result == ProgramResult::Success {\n    env.effect(\"conta forjada aceita no lugar do Sysvar Rent\", after(&r, &attacker_rent).data() == attacker_data.as_slice());\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0308]: mismatched types\n   --> tests/attempt.rs:10:42\n    |\n 10 |     let rent_account = account(&rent_id, &(), None);\n    |                        -------           ^^^ expected `&[u8]`, found `&()`\n    |                        |\n    |                        arguments to this function are incorrect\n    |\n    = note: expected reference `&[u8]`\n               found reference `&()`\nnote: function defined here\n   --> src/lib.rs:277:8\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 1 previous error",
+        "elapsed_s": 0.6
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:10:42\n    |\n 10 |     let rent_account = account(&rent_id, &(), None);\n    |                        -------           ^^^ expected `&[u8]`, found `&()`\n    |                        |\n    |                        arguments to this function are incorrect\n    |\n    = note: expected reference `&[u8]`\n               found reference `&()`\nnote: function defined here\n   --> src/lib.rs:277:8\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 1 previous error"
+    },
+    {
+      "attempt": 3,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2591,
+        "completion_tokens": 459,
+        "latency_s": 2.54
+      },
+      "raw": "{\"plan\": \"O cenário monta a conta real do Sysvar Rent (ID oficial) e uma conta forjada com dados arbitrários. O baseline chama check_sysvar_address com o Sysvar Rent real, provando que o cenário está correto. O ataque chama a mesma instrução substituindo o Sysvar Rent pela conta forjada. O efeito mede se a conta forjada foi aceita (execução bem-sucedida), demonstrando que o programa não valida o ID do Sysvar.\", \"scenario\": \"let rent_id = solana_program::sysvar::rent::ID;\\nlet rent_account = account(&rent_id, &[], None);\\n\\nlet attacker_rent = Pubkey::new_unique();\\nlet attacker_data = vec![7u8; 32];\\nlet attacker_rent_account = account(&attacker_rent, &attacker_data, None);\\n\\nlet metas = vec![AccountMeta::new_readonly(rent_id, false)];\\nlet ix = env.anchor_ix(\\\"check_sysvar_address\\\", &(), metas);\\nlet contas = vec![(rent_id, rent_account.clone())];\\nlet _ = env.baseline(\\\"uso legitimo com o Sysvar Rent real\\\", &ix, &contas);\\n\\nlet metas_ataque = vec![AccountMeta::new_readonly(attacker_rent, false)];\\nlet ix_ataque = env.anchor_ix(\\\"check_sysvar_address\\\", &(), metas_ataque);\\nlet contas_ataque = vec![(attacker_rent, attacker_rent_account.clone())];\\nlet r = env.attack(\\\"substituir o Sysvar Rent por conta arbitraria\\\", &ix_ataque, &contas_ataque);\\n\\nif r.program_result == ProgramResult::Success {\\n    env.effect(\\\"conta forjada aceita no lugar do Sysvar Rent\\\", after(&r, &attacker_rent).data() == attacker_data.as_slice());\\n}\"}",
+      "plan": "O cenário monta a conta real do Sysvar Rent (ID oficial) e uma conta forjada com dados arbitrários. O baseline chama check_sysvar_address com o Sysvar Rent real, provando que o cenário está correto. O ataque chama a mesma instrução substituindo o Sysvar Rent pela conta forjada. O efeito mede se a conta forjada foi aceita (execução bem-sucedida), demonstrando que o programa não valida o ID do Sysvar.",
+      "scenario": "let rent_id = solana_program::sysvar::rent::ID;\nlet rent_account = account(&rent_id, &[], None);\n\nlet attacker_rent = Pubkey::new_unique();\nlet attacker_data = vec![7u8; 32];\nlet attacker_rent_account = account(&attacker_rent, &attacker_data, None);\n\nlet metas = vec![AccountMeta::new_readonly(rent_id, false)];\nlet ix = env.anchor_ix(\"check_sysvar_address\", &(), metas);\nlet contas = vec![(rent_id, rent_account.clone())];\nlet _ = env.baseline(\"uso legitimo com o Sysvar Rent real\", &ix, &contas);\n\nlet metas_ataque = vec![AccountMeta::new_readonly(attacker_rent, false)];\nlet ix_ataque = env.anchor_ix(\"check_sysvar_address\", &(), metas_ataque);\nlet contas_ataque = vec![(attacker_rent, attacker_rent_account.clone())];\nlet r = env.attack(\"substituir o Sysvar Rent por conta arbitraria\", &ix_ataque, &contas_ataque);\n\nif r.program_result == ProgramResult::Success {\n    env.effect(\"conta forjada aceita no lugar do Sysvar Rent\", after(&r, &attacker_rent).data() == attacker_data.as_slice());\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0308]: mismatched types\n   --> tests/attempt.rs:10:42\n    |\n 10 |     let rent_account = account(&rent_id, &(), None);\n    |                        -------           ^^^ expected `&[u8]`, found `&()`\n    |                        |\n    |                        arguments to this function are incorrect\n    |\n    = note: expected reference `&[u8]`\n               found reference `&()`\nnote: function defined here\n   --> src/lib.rs:277:8\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 1 previous error",
+        "elapsed_s": 0.6
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:10:42\n    |\n 10 |     let rent_account = account(&rent_id, &(), None);\n    |                        -------           ^^^ expected `&[u8]`, found `&()`\n    |                        |\n    |                        arguments to this function are incorrect\n    |\n    = note: expected reference `&[u8]`\n               found reference `&()`\nnote: function defined here\n   --> src/lib.rs:277:8\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 1 previous error"
+    },
+    {
+      "attempt": 4,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2591,
+        "completion_tokens": 455,
+        "latency_s": 2.87
+      },
+      "raw": "{\"plan\": \"Preparo o Sysvar Rent real (ID oficial) com dados vazios e chamo a instrucao-alvo legitimamente como baseline. No ataque, substituo a conta do Rent por uma conta arbitraria controlada pelo atacante, mantendo a mesma instrucao. Como o handler nao le os dados do Rent, o efeito medido e apenas que a conta forjada foi aceita no lugar do Sysvar (execucao bem-sucedida com chave diferente).\", \"scenario\": \"let rent_id = solana_program::sysvar::rent::ID;\\nlet rent_account = account(&rent_id, &[], None);\\n\\nlet attacker_rent = Pubkey::new_unique();\\nlet attacker_data = vec![7u8; 32];\\nlet attacker_rent_account = account(&attacker_rent, &attacker_data, None);\\n\\nlet metas = vec![AccountMeta::new_readonly(rent_id, false)];\\nlet ix = env.anchor_ix(\\\"check_sysvar_address\\\", &(), metas);\\nlet contas = vec![(rent_id, rent_account.clone())];\\nlet _ = env.baseline(\\\"uso legitimo com o Sysvar Rent real\\\", &ix, &contas);\\n\\nlet metas_ataque = vec![AccountMeta::new_readonly(attacker_rent, false)];\\nlet ix_ataque = env.anchor_ix(\\\"check_sysvar_address\\\", &(), metas_ataque);\\nlet contas_ataque = vec![(attacker_rent, attacker_rent_account.clone())];\\nlet r = env.attack(\\\"substituir o Sysvar Rent por conta arbitraria\\\", &ix_ataque, &contas_ataque);\\n\\nif r.program_result == ProgramResult::Success {\\n    env.effect(\\\"conta forjada aceita no lugar do Sysvar Rent\\\", after(&r, &attacker_rent).data() == attacker_data.as_slice());\\n}\"}",
+      "plan": "Preparo o Sysvar Rent real (ID oficial) com dados vazios e chamo a instrucao-alvo legitimamente como baseline. No ataque, substituo a conta do Rent por uma conta arbitraria controlada pelo atacante, mantendo a mesma instrucao. Como o handler nao le os dados do Rent, o efeito medido e apenas que a conta forjada foi aceita no lugar do Sysvar (execucao bem-sucedida com chave diferente).",
+      "scenario": "let rent_id = solana_program::sysvar::rent::ID;\nlet rent_account = account(&rent_id, &[], None);\n\nlet attacker_rent = Pubkey::new_unique();\nlet attacker_data = vec![7u8; 32];\nlet attacker_rent_account = account(&attacker_rent, &attacker_data, None);\n\nlet metas = vec![AccountMeta::new_readonly(rent_id, false)];\nlet ix = env.anchor_ix(\"check_sysvar_address\", &(), metas);\nlet contas = vec![(rent_id, rent_account.clone())];\nlet _ = env.baseline(\"uso legitimo com o Sysvar Rent real\", &ix, &contas);\n\nlet metas_ataque = vec![AccountMeta::new_readonly(attacker_rent, false)];\nlet ix_ataque = env.anchor_ix(\"check_sysvar_address\", &(), metas_ataque);\nlet contas_ataque = vec![(attacker_rent, attacker_rent_account.clone())];\nlet r = env.attack(\"substituir o Sysvar Rent por conta arbitraria\", &ix_ataque, &contas_ataque);\n\nif r.program_result == ProgramResult::Success {\n    env.effect(\"conta forjada aceita no lugar do Sysvar Rent\", after(&r, &attacker_rent).data() == attacker_data.as_slice());\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0308]: mismatched types\n   --> tests/attempt.rs:10:42\n    |\n 10 |     let rent_account = account(&rent_id, &(), None);\n    |                        -------           ^^^ expected `&[u8]`, found `&()`\n    |                        |\n    |                        arguments to this function are incorrect\n    |\n    = note: expected reference `&[u8]`\n               found reference `&()`\nnote: function defined here\n   --> src/lib.rs:277:8\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 1 previous error",
+        "elapsed_s": 0.6
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:10:42\n    |\n 10 |     let rent_account = account(&rent_id, &(), None);\n    |                        -------           ^^^ expected `&[u8]`, found `&()`\n    |                        |\n    |                        arguments to this function are incorrect\n    |\n    = note: expected reference `&[u8]`\n               found reference `&()`\nnote: function defined here\n   --> src/lib.rs:277:8\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 1 previous error"
+    },
+    {
+      "attempt": 5,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2591,
+        "completion_tokens": 460,
+        "latency_s": 2.5
+      },
+      "raw": "{\"plan\": \"Preparo o Sysvar Rent real (dono sysvar::ID, dados vazios) e uma conta forjada com dados arbitrarios. Executo o baseline com o Rent real para provar que o cenario esta correto. No ataque, substituo o Rent real pela conta forjada no mesmo slot de conta. Se o programa aceitar a conta forjada (Success), registro o efeito comparando os dados da conta forjada apos a execucao com os dados arbitrarios que forneci.\", \"scenario\": \"let rent_id = solana_program::sysvar::rent::ID;\\nlet rent_account = account(&rent_id, &[], None);\\n\\nlet attacker_rent = Pubkey::new_unique();\\nlet attacker_data = vec![7u8; 32];\\nlet attacker_rent_account = account(&attacker_rent, &attacker_data, None);\\n\\nlet metas = vec![AccountMeta::new_readonly(rent_id, false)];\\nlet ix = env.anchor_ix(\\\"check_sysvar_address\\\", &(), metas);\\nlet contas = vec![(rent_id, rent_account.clone())];\\nlet _ = env.baseline(\\\"uso legitimo com o Sysvar Rent real\\\", &ix, &contas);\\n\\nlet metas_ataque = vec![AccountMeta::new_readonly(attacker_rent, false)];\\nlet ix_ataque = env.anchor_ix(\\\"check_sysvar_address\\\", &(), metas_ataque);\\nlet contas_ataque = vec![(attacker_rent, attacker_rent_account.clone())];\\nlet r = env.attack(\\\"substituir o Sysvar Rent por conta arbitraria\\\", &ix_ataque, &contas_ataque);\\n\\nif r.program_result == ProgramResult::Success {\\n    env.effect(\\\"conta forjada aceita no lugar do Sysvar Rent\\\", after(&r, &attacker_rent).data() == attacker_data.as_slice());\\n}\"}",
+      "plan": "Preparo o Sysvar Rent real (dono sysvar::ID, dados vazios) e uma conta forjada com dados arbitrarios. Executo o baseline com o Rent real para provar que o cenario esta correto. No ataque, substituo o Rent real pela conta forjada no mesmo slot de conta. Se o programa aceitar a conta forjada (Success), registro o efeito comparando os dados da conta forjada apos a execucao com os dados arbitrarios que forneci.",
+      "scenario": "let rent_id = solana_program::sysvar::rent::ID;\nlet rent_account = account(&rent_id, &[], None);\n\nlet attacker_rent = Pubkey::new_unique();\nlet attacker_data = vec![7u8; 32];\nlet attacker_rent_account = account(&attacker_rent, &attacker_data, None);\n\nlet metas = vec![AccountMeta::new_readonly(rent_id, false)];\nlet ix = env.anchor_ix(\"check_sysvar_address\", &(), metas);\nlet contas = vec![(rent_id, rent_account.clone())];\nlet _ = env.baseline(\"uso legitimo com o Sysvar Rent real\", &ix, &contas);\n\nlet metas_ataque = vec![AccountMeta::new_readonly(attacker_rent, false)];\nlet ix_ataque = env.anchor_ix(\"check_sysvar_address\", &(), metas_ataque);\nlet contas_ataque = vec![(attacker_rent, attacker_rent_account.clone())];\nlet r = env.attack(\"substituir o Sysvar Rent por conta arbitraria\", &ix_ataque, &contas_ataque);\n\nif r.program_result == ProgramResult::Success {\n    env.effect(\"conta forjada aceita no lugar do Sysvar Rent\", after(&r, &attacker_rent).data() == attacker_data.as_slice());\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0308]: mismatched types\n   --> tests/attempt.rs:10:42\n    |\n 10 |     let rent_account = account(&rent_id, &(), None);\n    |                        -------           ^^^ expected `&[u8]`, found `&()`\n    |                        |\n    |                        arguments to this function are incorrect\n    |\n    = note: expected reference `&[u8]`\n               found reference `&()`\nnote: function defined here\n   --> src/lib.rs:277:8\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 1 previous error",
+        "elapsed_s": 0.6
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:10:42\n    |\n 10 |     let rent_account = account(&rent_id, &(), None);\n    |                        -------           ^^^ expected `&[u8]`, found `&()`\n    |                        |\n    |                        arguments to this function are incorrect\n    |\n    = note: expected reference `&[u8]`\n               found reference `&()`\nnote: function defined here\n   --> src/lib.rs:277:8\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 1 previous error"
+    }
+  ],
+  "case_id": "SL-10-INS",
+  "static_finding": {
+    "category": "SYSVAR",
+    "confidence": "high",
+    "evidence": "rent: AccountInfo<'info>,",
+    "explanation": "A conta de Sysvar 'rent' e recebida como AccountInfo generico, sem validacao de que sua chave publica corresponde ao ID oficial do Sysvar Rent (solana_program::sysvar::rent::ID). O Anchor nao valida automaticamente o ID de Sysvar quando o tipo e AccountInfo.",
+    "attack_hypothesis": "Um atacante forneceria uma conta arbitraria no lugar do Sysvar Rent. Se o handler lesse os dados dessa conta (ex: taxa de rent), obteria valores controlados pelo atacante, podendo manipular a logica do programa que depende do Rent."
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2331,
+    "completion_tokens": 82,
+    "latency_s": 1.61,
+    "attempts": 1
+  },
+  "raw": "{\"instruction\": \"log_message\", \"findings\": [], \"summary\": \"A instrucao log_message nao executa nenhuma operacao sensivel: apenas recebe uma conta Signer validada pelo Anchor e retorna Ok(()), sem leitura/escrita de dados, CPIs, aritmetica ou PDAs, portanto nao ha achados de seguranca.\"}",
+  "instruction": "log_message",
+  "findings": [],
+  "dropped": [],
+  "summary": "A instrucao log_message nao executa nenhuma operacao sensivel: apenas recebe uma conta Signer validada pelo Anchor e retorna Ok(()), sem leitura/escrita de dados, CPIs, aritmetica ou PDAs, portanto nao ha achados de seguranca.",
+  "predicted": [],
+  "parse_error": null,
+  "case_id": "SL-00-REC"
+}

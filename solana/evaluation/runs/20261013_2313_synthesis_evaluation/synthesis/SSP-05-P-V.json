@@ -1,0 +1,73 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2401,
+    "completion_tokens": 849,
+    "latency_s": 5.04,
+    "attempts": 1
+  },
+  "raw": "{\n  \"summary\": \"A instrução `set_value` apresenta falhas críticas de validação de contas: ausência de verificação de assinante, aceitação de bump não-canônico para PDA, falta de verificação de owner e ausência de discriminador de tipo. As análises estática e dinâmica confirmaram três dessas vulnerabilidades como exploráveis, permitindo que um atacante grave dados em nome de qualquer usuário, crie PDAs alternativos e corrompa contas de outros tipos. A postura de segurança é inadequada, exigindo correções imediatas.\",\n  \"findings\": [\n    {\n      \"category\": \"SIGNER\",\n      \"decision\": \"report\",\n      \"severity\": \"critica\",\n      \"confidence\": \"alta\",\n      \"justification\": \"A análise estática identificou que a conta `user` é usada como autoridade sem verificação de assinatura. A análise dinâmica confirmou o ataque: foi possível gravar dados no PDA da vítima sem que ela assinasse a transação, resultando em dano verificado (gravação da pubkey da vítima e do value do atacante).\",\n      \"recommendation\": \"Adicionar verificação explícita de que a conta `user` assinou a transação, por exemplo: `if !user.is_signer() { return Err(ProgramError::MissingRequiredSignature); }`.\"\n    },\n    {\n      \"category\": \"PDA\",\n      \"decision\": \"report\",\n      \"severity\": \"alta\",\n      \"confidence\": \"alta\",\n      \"justification\": \"A análise estática mostrou que o bump é fornecido pelo usuário e validado apenas com `create_program_address`, permitindo bumps não-canônicos. A análise dinâmica confirmou que um bump não-canônico foi aceito e gravado, contornando a unicidade do PDA canônico.\",\n      \"recommendation\": \"Utilizar `find_program_address` para derivar o PDA canônico e comparar com a conta fornecida, ou validar que o bump fornecido é o canônico (por exemplo, verificando que `create_program_address` com bump+1 falha).\"\n    },\n    {\n      \"category\": \"OWNER\",\n      \"decision\": \"report\",\n      \"severity\": \"alta\",\n      \"confidence\": \"media\",\n      \"justification\": \"A análise estática apontou ausência de verificação de owner da conta de dados. A análise dinâmica foi inconclusiva: o ataque direto falhou com erro de runtime (`ExternalAccountDataModified`), pois o programa tentou modificar uma conta de outro owner. No entanto, a ausência de verificação é uma falha real que pode ser explorada indiretamente (ex.: leitura de dados forjados para decisões). Portanto, deve ser reportada com confiança média.\",\n      \"recommendation\": \"Adicionar verificação de que `data_account.owner == program_id` antes de qualquer leitura ou escrita nos dados da conta.\"\n    },\n    {\n      \"category\": \"COSPLAY\",\n      \"decision\": \"report\",\n      \"severity\": \"alta\",\n      \"confidence\": \"alta\",\n      \"justification\": \"A análise estática indicou ausência de discriminador de tipo, permitindo que contas de layout diferente sejam tratadas como a conta de dados. A análise dinâmica confirmou o ataque: uma conta de outro tipo no mesmo endereço PDA foi aceita e teve seus offsets sobrescritos, corrompendo o estado.\",\n      \"recommendation\": \"Incluir um discriminador de tipo (ex.: um byte mágico ou hash do nome da estrutura) no início dos dados da conta e verificá-lo antes de qualquer acesso, rejeitando contas com layout incompatível.\"\n    }\n  ]\n}",
+  "summary": "A instrução `set_value` apresenta falhas críticas de validação de contas: ausência de verificação de assinante, aceitação de bump não-canônico para PDA, falta de verificação de owner e ausência de discriminador de tipo. As análises estática e dinâmica confirmaram três dessas vulnerabilidades como exploráveis, permitindo que um atacante grave dados em nome de qualquer usuário, crie PDAs alternativos e corrompa contas de outros tipos. A postura de segurança é inadequada, exigindo correções imediatas.",
+  "findings": [
+    {
+      "category": "SIGNER",
+      "decision": "report",
+      "severity": "critica",
+      "confidence": "alta",
+      "justification": "A análise estática identificou que a conta `user` é usada como autoridade sem verificação de assinatura. A análise dinâmica confirmou o ataque: foi possível gravar dados no PDA da vítima sem que ela assinasse a transação, resultando em dano verificado (gravação da pubkey da vítima e do value do atacante).",
+      "recommendation": "Adicionar verificação explícita de que a conta `user` assinou a transação, por exemplo: `if !user.is_signer() { return Err(ProgramError::MissingRequiredSignature); }`."
+    },
+    {
+      "category": "PDA",
+      "decision": "report",
+      "severity": "alta",
+      "confidence": "alta",
+      "justification": "A análise estática mostrou que o bump é fornecido pelo usuário e validado apenas com `create_program_address`, permitindo bumps não-canônicos. A análise dinâmica confirmou que um bump não-canônico foi aceito e gravado, contornando a unicidade do PDA canônico.",
+      "recommendation": "Utilizar `find_program_address` para derivar o PDA canônico e comparar com a conta fornecida, ou validar que o bump fornecido é o canônico (por exemplo, verificando que `create_program_address` com bump+1 falha)."
+    },
+    {
+      "category": "OWNER",
+      "decision": "report",
+      "severity": "alta",
+      "confidence": "media",
+      "justification": "A análise estática apontou ausência de verificação de owner da conta de dados. A análise dinâmica foi inconclusiva: o ataque direto falhou com erro de runtime (`ExternalAccountDataModified`), pois o programa tentou modificar uma conta de outro owner. No entanto, a ausência de verificação é uma falha real que pode ser explorada indiretamente (ex.: leitura de dados forjados para decisões). Portanto, deve ser reportada com confiança média.",
+      "recommendation": "Adicionar verificação de que `data_account.owner == program_id` antes de qualquer leitura ou escrita nos dados da conta."
+    },
+    {
+      "category": "COSPLAY",
+      "decision": "report",
+      "severity": "alta",
+      "confidence": "alta",
+      "justification": "A análise estática indicou ausência de discriminador de tipo, permitindo que contas de layout diferente sejam tratadas como a conta de dados. A análise dinâmica confirmou o ataque: uma conta de outro tipo no mesmo endereço PDA foi aceita e teve seus offsets sobrescritos, corrompendo o estado.",
+      "recommendation": "Incluir um discriminador de tipo (ex.: um byte mágico ou hash do nome da estrutura) no início dos dados da conta e verificá-lo antes de qualquer acesso, rejeitando contas com layout incompatível."
+    }
+  ],
+  "predicted": [
+    "COSPLAY",
+    "OWNER",
+    "PDA",
+    "SIGNER"
+  ],
+  "extra_categories": [],
+  "omitted": [],
+  "parse_error": null,
+  "inputs": [
+    {
+      "category": "SIGNER",
+      "dynamic_verdict": "confirmed"
+    },
+    {
+      "category": "PDA",
+      "dynamic_verdict": "confirmed"
+    },
+    {
+      "category": "OWNER",
+      "dynamic_verdict": "inconclusive"
+    },
+    {
+      "category": "COSPLAY",
+      "dynamic_verdict": "confirmed"
+    }
+  ],
+  "case_id": "SSP-05-P-V"
+}

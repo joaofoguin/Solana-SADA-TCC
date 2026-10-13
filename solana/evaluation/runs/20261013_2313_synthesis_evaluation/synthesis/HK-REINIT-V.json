@@ -1,0 +1,73 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2637,
+    "completion_tokens": 719,
+    "latency_s": 4.21,
+    "attempts": 1
+  },
+  "raw": "{\n  \"summary\": \"A instrução `initialize` apresenta falhas críticas de segurança: ausência de verificação de assinatura, falta de controle de proprietário, possibilidade de reinicialização e vulnerabilidade a type cosplay. Os ataques de SIGNER, REINIT e COSPLAY foram confirmados dinamicamente, enquanto OWNER não pôde ser testado por erro de compilação, mas a evidência estática é forte. A postura geral é insegura, permitindo que atacantes assumam o controle de contas de usuário.\",\n  \"findings\": [\n    {\n      \"category\": \"SIGNER\",\n      \"decision\": \"report\",\n      \"severity\": \"critica\",\n      \"confidence\": \"alta\",\n      \"justification\": \"A análise estática identificou que a autoridade é definida sem verificar `is_signer`. A análise dinâmica confirmou o ataque: a conta `user` teve sua autoridade definida para a chave do atacante sem assinatura, com sucesso e dano verificado.\",\n      \"recommendation\": \"Adicionar verificação `authority_info.is_signer` antes de atribuir a autoridade, garantindo que a chave fornecida assinou a transação.\"\n    },\n    {\n      \"category\": \"OWNER\",\n      \"decision\": \"report\",\n      \"severity\": \"alta\",\n      \"confidence\": \"media\",\n      \"justification\": \"A análise estática aponta ausência de verificação de proprietário, permitindo manipular contas de outros programas. A análise dinâmica foi inconclusiva devido a erro de compilação no harness, mas a evidência estática é forte e a falha é plausível.\",\n      \"recommendation\": \"Verificar se `user_info.owner == program_id` antes de desserializar e modificar os dados da conta.\"\n    },\n    {\n      \"category\": \"REINIT\",\n      \"decision\": \"report\",\n      \"severity\": \"critica\",\n      \"confidence\": \"alta\",\n      \"justification\": \"A análise estática mostra que não há verificação de inicialização. A análise dinâmica confirmou o ataque: a autoridade original foi sobrescrita pela chave do atacante ao reexecutar `initialize` sobre uma conta já inicializada.\",\n      \"recommendation\": \"Implementar uma flag de inicialização (ex.: `is_initialized`) e verificar antes de permitir a reinicialização, ou usar o mecanismo `init` do Anchor que impede reexecução.\"\n    },\n    {\n      \"category\": \"COSPLAY\",\n      \"decision\": \"report\",\n      \"severity\": \"alta\",\n      \"confidence\": \"alta\",\n      \"justification\": \"A análise estática indica desserialização sem discriminador de tipo. A análise dinâmica confirmou o ataque: uma conta de outro tipo (Vault) com 32 bytes teve seus primeiros 32 bytes sobrescritos com a chave do atacante.\",\n      \"recommendation\": \"Adicionar um discriminador de tipo (ex.: campo `discriminator` ou uso de `#[account]` do Anchor) e verificar antes de desserializar, garantindo que a conta seja do tipo `User`.\"\n    }\n  ]\n}",
+  "summary": "A instrução `initialize` apresenta falhas críticas de segurança: ausência de verificação de assinatura, falta de controle de proprietário, possibilidade de reinicialização e vulnerabilidade a type cosplay. Os ataques de SIGNER, REINIT e COSPLAY foram confirmados dinamicamente, enquanto OWNER não pôde ser testado por erro de compilação, mas a evidência estática é forte. A postura geral é insegura, permitindo que atacantes assumam o controle de contas de usuário.",
+  "findings": [
+    {
+      "category": "SIGNER",
+      "decision": "report",
+      "severity": "critica",
+      "confidence": "alta",
+      "justification": "A análise estática identificou que a autoridade é definida sem verificar `is_signer`. A análise dinâmica confirmou o ataque: a conta `user` teve sua autoridade definida para a chave do atacante sem assinatura, com sucesso e dano verificado.",
+      "recommendation": "Adicionar verificação `authority_info.is_signer` antes de atribuir a autoridade, garantindo que a chave fornecida assinou a transação."
+    },
+    {
+      "category": "OWNER",
+      "decision": "report",
+      "severity": "alta",
+      "confidence": "media",
+      "justification": "A análise estática aponta ausência de verificação de proprietário, permitindo manipular contas de outros programas. A análise dinâmica foi inconclusiva devido a erro de compilação no harness, mas a evidência estática é forte e a falha é plausível.",
+      "recommendation": "Verificar se `user_info.owner == program_id` antes de desserializar e modificar os dados da conta."
+    },
+    {
+      "category": "REINIT",
+      "decision": "report",
+      "severity": "critica",
+      "confidence": "alta",
+      "justification": "A análise estática mostra que não há verificação de inicialização. A análise dinâmica confirmou o ataque: a autoridade original foi sobrescrita pela chave do atacante ao reexecutar `initialize` sobre uma conta já inicializada.",
+      "recommendation": "Implementar uma flag de inicialização (ex.: `is_initialized`) e verificar antes de permitir a reinicialização, ou usar o mecanismo `init` do Anchor que impede reexecução."
+    },
+    {
+      "category": "COSPLAY",
+      "decision": "report",
+      "severity": "alta",
+      "confidence": "alta",
+      "justification": "A análise estática indica desserialização sem discriminador de tipo. A análise dinâmica confirmou o ataque: uma conta de outro tipo (Vault) com 32 bytes teve seus primeiros 32 bytes sobrescritos com a chave do atacante.",
+      "recommendation": "Adicionar um discriminador de tipo (ex.: campo `discriminator` ou uso de `#[account]` do Anchor) e verificar antes de desserializar, garantindo que a conta seja do tipo `User`."
+    }
+  ],
+  "predicted": [
+    "COSPLAY",
+    "OWNER",
+    "REINIT",
+    "SIGNER"
+  ],
+  "extra_categories": [],
+  "omitted": [],
+  "parse_error": null,
+  "inputs": [
+    {
+      "category": "SIGNER",
+      "dynamic_verdict": "confirmed"
+    },
+    {
+      "category": "OWNER",
+      "dynamic_verdict": "inconclusive"
+    },
+    {
+      "category": "REINIT",
+      "dynamic_verdict": "confirmed"
+    },
+    {
+      "category": "COSPLAY",
+      "dynamic_verdict": "confirmed"
+    }
+  ],
+  "case_id": "HK-REINIT-V"
+}

