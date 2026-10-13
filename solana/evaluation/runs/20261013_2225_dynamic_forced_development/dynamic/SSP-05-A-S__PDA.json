@@ -1,0 +1,122 @@
+{
+  "category": "PDA",
+  "verdict": "not_confirmed",
+  "exploit_successful": false,
+  "attack_result": "Failure(Custom(6001))",
+  "reason": "baseline ok; ataque rejeitado: Failure(Custom(6001)) = variante 1 do enum de erros do programa (#[error_code])",
+  "attempts_used": 2,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2249,
+        "completion_tokens": 982,
+        "latency_s": 4.68
+      },
+      "raw": "{\n  \"plan\": \"O programa set_value verifica que data_account é o PDA canônico derivado de [b\\\"data\\\", user.key] e grava user, value e bump. O baseline usa o PDA canônico e deve ter sucesso. O ataque tenta passar um endereço de PDA com bump não canônico (menor que o canônico) para verificar se a validação de PDA é feita corretamente. O efeito medido é que a conta com endereço diferente do PDA canônico foi aceita e teve seus dados alterados.\",\n  \"scenario\": \"let user = Pubkey::new_unique();\\nlet (canonical_pda, canonical_bump) = Pubkey::find_program_address(&[b\\\"data\\\", user.as_ref()], &env.program_id);\\n\\n// Encontrar um bump não canônico (menor que o canônico) para o qual create_program_address retorna Ok\\nlet mut non_canonical_bump = canonical_bump - 1;\\nlet mut non_canonical_pda = Pubkey::create_program_address(&[b\\\"data\\\", user.as_ref(), &[non_canonical_bump]], &env.program_id);\\nwhile non_canonical_pda.is_err() && non_canonical_bump > 0 {\\n    non_canonical_bump -= 1;\\n    non_canonical_pda = Pubkey::create_program_address(&[b\\\"data\\\", user.as_ref(), &[non_canonical_bump]], &env.program_id);\\n}\\nlet non_canonical_pda = non_canonical_pda.unwrap();\\n\\n// Conta do PDA canônico com dados iniciais (para o baseline)\\nlet data_account_data = anchor_account_data(\\\"DataAccount\\\", &(user, 0u64, canonical_bump));\\nlet data_account = account(&env.program_id, &data_account_data, None);\\n\\n// Conta do PDA não canônico com os mesmos dados iniciais (para o ataque)\\nlet non_canonical_data_account_data = anchor_account_data(\\\"DataAccount\\\", &(user, 0u64, non_canonical_bump));\\nlet non_canonical_data_account = account(&env.program_id, &non_canonical_data_account_data, None);\\n\\n// Conta do usuário (signer)\\nlet user_account = wallet(1_000_000_000);\\n\\n// Baseline: usar o PDA canônico\\nlet baseline_ix = env.anchor_ix(\\n    \\\"set_value\\\",\\n    &(42u64,),\\n    vec![\\n        AccountMeta::new(canonical_pda, false),\\n        AccountMeta::new_readonly(user, true),\\n    ],\\n);\\nlet baseline_accounts = vec![\\n    (canonical_pda, data_account.clone()),\\n    (user, user_account.clone()),\\n];\\nlet baseline_result = env.baseline(\\\"uso legitimo com PDA canonico\\\", &baseline_ix, &baseline_accounts);\\n\\n// Ataque: usar o PDA não canônico\\nlet attack_ix = env.anchor_ix(\\n    \\\"set_value\\\",\\n    &(42u64,),\\n    vec![\\n        AccountMeta::new(non_canonical_pda, false),\\n        AccountMeta::new_readonly(user, true),\\n    ],\\n);\\nlet attack_accounts = vec![\\n    (non_canonical_pda, non_canonical_data_account),\\n    (user, user_account),\\n];\\nlet attack_result = env.attack(\\\"tentativa com PDA nao canonico\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let data = after(&attack_result, &non_canonical_pda).data();\\n    let stored_user = read_pubkey(data, 8);\\n    let stored_value = read_u64(data, 40);\\n    let stored_bump = data[48];\\n    env.effect(\\n        \\\"PDA nao canonico aceito e dados alterados\\\",\\n        stored_user == user && stored_value == 42 && stored_bump == non_canonical_bump,\\n    );\\n}\"\n}",
+      "plan": "O programa set_value verifica que data_account é o PDA canônico derivado de [b\"data\", user.key] e grava user, value e bump. O baseline usa o PDA canônico e deve ter sucesso. O ataque tenta passar um endereço de PDA com bump não canônico (menor que o canônico) para verificar se a validação de PDA é feita corretamente. O efeito medido é que a conta com endereço diferente do PDA canônico foi aceita e teve seus dados alterados.",
+      "scenario": "let user = Pubkey::new_unique();\nlet (canonical_pda, canonical_bump) = Pubkey::find_program_address(&[b\"data\", user.as_ref()], &env.program_id);\n\n// Encontrar um bump não canônico (menor que o canônico) para o qual create_program_address retorna Ok\nlet mut non_canonical_bump = canonical_bump - 1;\nlet mut non_canonical_pda = Pubkey::create_program_address(&[b\"data\", user.as_ref(), &[non_canonical_bump]], &env.program_id);\nwhile non_canonical_pda.is_err() && non_canonical_bump > 0 {\n    non_canonical_bump -= 1;\n    non_canonical_pda = Pubkey::create_program_address(&[b\"data\", user.as_ref(), &[non_canonical_bump]], &env.program_id);\n}\nlet non_canonical_pda = non_canonical_pda.unwrap();\n\n// Conta do PDA canônico com dados iniciais (para o baseline)\nlet data_account_data = anchor_account_data(\"DataAccount\", &(user, 0u64, canonical_bump));\nlet data_account = account(&env.program_id, &data_account_data, None);\n\n// Conta do PDA não canônico com os mesmos dados iniciais (para o ataque)\nlet non_canonical_data_account_data = anchor_account_data(\"DataAccount\", &(user, 0u64, non_canonical_bump));\nlet non_canonical_data_account = account(&env.program_id, &non_canonical_data_account_data, None);\n\n// Conta do usuário (signer)\nlet user_account = wallet(1_000_000_000);\n\n// Baseline: usar o PDA canônico\nlet baseline_ix = env.anchor_ix(\n    \"set_value\",\n    &(42u64,),\n    vec![\n        AccountMeta::new(canonical_pda, false),\n        AccountMeta::new_readonly(user, true),\n    ],\n);\nlet baseline_accounts = vec![\n    (canonical_pda, data_account.clone()),\n    (user, user_account.clone()),\n];\nlet baseline_result = env.baseline(\"uso legitimo com PDA canonico\", &baseline_ix, &baseline_accounts);\n\n// Ataque: usar o PDA não canônico\nlet attack_ix = env.anchor_ix(\n    \"set_value\",\n    &(42u64,),\n    vec![\n        AccountMeta::new(non_canonical_pda, false),\n        AccountMeta::new_readonly(user, true),\n    ],\n);\nlet attack_accounts = vec![\n    (non_canonical_pda, non_canonical_data_account),\n    (user, user_account),\n];\nlet attack_result = env.attack(\"tentativa com PDA nao canonico\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let data = after(&attack_result, &non_canonical_pda).data();\n    let stored_user = read_pubkey(data, 8);\n    let stored_value = read_u64(data, 40);\n    let stored_bump = data[48];\n    env.effect(\n        \"PDA nao canonico aceito e dados alterados\",\n        stored_user == user && stored_value == 42 && stored_bump == non_canonical_bump,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "uso legitimo com PDA canonico",
+            "result": "Success",
+            "compute_units": 5164,
+            "account_flags": "-w,sr",
+            "ix_head": "a1762799c94c96a4",
+            "accounts": [
+              {
+                "key": "5k8VPTWzarXPgXNDfMErD2DiDk1iPzPPrvLA4ssr7jdm",
+                "signer": false,
+                "writable": true,
+                "owner": "x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm",
+                "data_len": 49,
+                "head": "55f0b69e4c0712e9",
+                "digest": "2dbba05e82888ffc",
+                "post": "55f0b69e4c0712e900000000000000010000000000000000000000000000000000000000000000002a00000000000000fe"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "tentativa com PDA nao canonico",
+            "result": "Failure(Custom(6001))",
+            "compute_units": 6363,
+            "account_flags": "-w,sr",
+            "ix_head": "a1762799c94c96a4",
+            "accounts": [
+              {
+                "key": "AQNS5jcDxfAHDCMKnNT6LUgN9WMti1gHsPUQHUvKRxvf",
+                "signer": false,
+                "writable": true,
+                "owner": "x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm",
+                "data_len": 49,
+                "head": "55f0b69e4c0712e9",
+                "digest": "50bfa92bc452de05",
+                "post": "55f0b69e4c0712e900000000000000010000000000000000000000000000000000000000000000000000000000000000fd"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm invoke [1]",
+          "Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm consumed 5164 of 1400000 compute units",
+          "Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm success",
+          "Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm invoke [1]",
+          "Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm consumed 6363 of 1400000 compute units",
+          "Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm failed: custom program error: 0x1771"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "not_confirmed",
+      "reason": "baseline ok; ataque rejeitado: Failure(Custom(6001)) = variante 1 do enum de erros do programa (#[error_code])"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3091,
+        "completion_tokens": 123,
+        "latency_s": 2.13
+      },
+      "raw": "{\"plan\": \"O baseline usa o PDA canônico derivado de [b\\\"data\\\", user] e deve ter sucesso. O ataque tenta usar um PDA não canônico (bump menor) com os mesmos dados, esperando que a instrução aceite. O efeito mede se a conta não canônica foi aceita e seus dados alterados. A tentativa anterior mostrou que o programa rejeita com PdaMismatch, então a hipótese está bloqueada.\", \"conclusion\": \"blocked\", \"scenario\": \"\"}",
+      "plan": "O baseline usa o PDA canônico derivado de [b\"data\", user] e deve ter sucesso. O ataque tenta usar um PDA não canônico (bump menor) com os mesmos dados, esperando que a instrução aceite. O efeito mede se a conta não canônica foi aceita e seus dados alterados. A tentativa anterior mostrou que o programa rejeita com PdaMismatch, então a hipótese está bloqueada.",
+      "verdict": "not_confirmed",
+      "reason": "LLM concluiu que o programa bloqueia o ataque"
+    }
+  ],
+  "case_id": "SSP-05-A-S",
+  "static_finding": {
+    "category": "PDA",
+    "evidence": "",
+    "explanation": "",
+    "attack_hypothesis": "Verificar por execucao se a instrucao e vulneravel a Improper PDA Validation / Canonicalization."
+  }
+}

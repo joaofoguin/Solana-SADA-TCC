@@ -1,0 +1,34 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 1072,
+    "completion_tokens": 357,
+    "latency_s": 2.87,
+    "attempts": 1
+  },
+  "raw": "{\n  \"summary\": \"A instrução `mint` apresenta uma vulnerabilidade crítica de overflow aritmético devido ao uso de `wrapping_add` para atualizar `total_supply` e `user_balance`, permitindo que um atacante manipule os saldos e o suprimento total. A análise dinâmica confirmou que o ataque é bem-sucedido, resultando em valores inconsistentes. Portanto, a instrução não é segura e requer correção imediata.\",\n  \"findings\": [\n    {\n      \"category\": \"MATH\",\n      \"decision\": \"report\",\n      \"severity\": \"critica\",\n      \"confidence\": \"alta\",\n      \"justification\": \"A análise estática identificou o uso de `wrapping_add` para atualizar `total_supply` e `user_balance`, o que permite overflow silencioso. A análise dinâmica confirmou a exploração: um ataque com `amount=10` e saldo inicial próximo de `u64::MAX` resultou em wrap-around, corrompendo o estado. O dano foi verificado, e o ataque foi aceito pelo programa.\",\n      \"recommendation\": \"Substituir `wrapping_add` por `checked_add` e tratar o erro `ArithmeticOverflow` (já definido no enum ErrorCode) para garantir que a transação falhe em caso de overflow. Exemplo: `ledger.total_supply = ledger.total_supply.checked_add(amount).ok_or(ErrorCode::ArithmeticOverflow)?;` e o mesmo para `user_balance`.\"\n    }\n  ]\n}",
+  "summary": "A instrução `mint` apresenta uma vulnerabilidade crítica de overflow aritmético devido ao uso de `wrapping_add` para atualizar `total_supply` e `user_balance`, permitindo que um atacante manipule os saldos e o suprimento total. A análise dinâmica confirmou que o ataque é bem-sucedido, resultando em valores inconsistentes. Portanto, a instrução não é segura e requer correção imediata.",
+  "findings": [
+    {
+      "category": "MATH",
+      "decision": "report",
+      "severity": "critica",
+      "confidence": "alta",
+      "justification": "A análise estática identificou o uso de `wrapping_add` para atualizar `total_supply` e `user_balance`, o que permite overflow silencioso. A análise dinâmica confirmou a exploração: um ataque com `amount=10` e saldo inicial próximo de `u64::MAX` resultou em wrap-around, corrompendo o estado. O dano foi verificado, e o ataque foi aceito pelo programa.",
+      "recommendation": "Substituir `wrapping_add` por `checked_add` e tratar o erro `ArithmeticOverflow` (já definido no enum ErrorCode) para garantir que a transação falhe em caso de overflow. Exemplo: `ledger.total_supply = ledger.total_supply.checked_add(amount).ok_or(ErrorCode::ArithmeticOverflow)?;` e o mesmo para `user_balance`."
+    }
+  ],
+  "predicted": [
+    "MATH"
+  ],
+  "extra_categories": [],
+  "omitted": [],
+  "parse_error": null,
+  "inputs": [
+    {
+      "category": "MATH",
+      "dynamic_verdict": "confirmed"
+    }
+  ],
+  "case_id": "SSP-03-A-V1"
+}

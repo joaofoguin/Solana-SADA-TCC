@@ -1,0 +1,19 @@
+{
+  "synthesis_prompt_version": "synthesis-v1",
+  "synthesis_prompt_sha256": "24857edf8bf208f5",
+  "llm_base_url": "https://api.deepseek.com",
+  "llm_model": "deepseek-flash",
+  "llm_json_mode": true,
+  "llm_extra_body": {
+    "thinking": {
+      "type": "disabled"
+    }
+  },
+  "temperature": 0.0,
+  "static_run": "20261007_2009_static_development",
+  "dynamic_run": "20261013_2230_dynamic_static_development",
+  "dynamic_prompt_sha256": "8149050d5057eafc",
+  "split": "development",
+  "started": "2026-10-13T22:31:37.935981",
+  "ground_truth_version": "1.3"
+}

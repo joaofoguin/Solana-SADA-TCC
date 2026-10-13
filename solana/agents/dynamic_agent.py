@@ -38,7 +38,7 @@ from pathlib import Path
 
 from agents.llm import LLMResult, chat_json, parse_json
 
-PROMPT_VERSION = "dynamic-v3"
+PROMPT_VERSION = "dynamic-v4"
 MAX_ATTEMPTS = 5
 MAX_TOKENS = 4000
 HERE = Path(__file__).resolve().parents[1]  # ~/sada-tcc/solana
@@ -207,7 +207,7 @@ def build_system_prompt(category: str) -> str:
 
 def prompt_fingerprint() -> dict:
     blob = SYSTEM_TEMPLATE + HARNESS_API + json.dumps(CATEGORY_EFFECTS, sort_keys=True) \
-        + json.dumps(ATTACK_REQUIREMENT, sort_keys=True) + USER_TEMPLATE \
+        + json.dumps(ATTACK_REQUIREMENT, sort_keys=True) + json.dumps(RUNTIME_ERRORS) + PROMPT_VERSION + USER_TEMPLATE \
         + RETRY_TEMPLATE + TEST_FILE + (HARNESS / "src" / "lib.rs").read_text(encoding="utf-8")
     return {"dynamic_prompt_version": PROMPT_VERSION,
             "dynamic_prompt_sha256": hashlib.sha256(blob.encode()).hexdigest()[:16]}
@@ -321,6 +321,14 @@ def _post_state(attack: dict) -> str:
             + "\n".join(rows)) if rows else ""
 
 
+# Erros do runtime (nao do programa): o programa aceitou a entrada e tentou uma operacao
+# que a SVM proibe para qualquer programa (ex.: gravar em conta de outro dono). Isso nao e
+# defesa do programa analisado, entao nao conta como rejeicao do ataque.
+RUNTIME_ERRORS = ("ExternalAccountDataModified", "ExternalAccountLamportSpend", "ReadonlyDataModified",
+                  "ReadonlyLamportChange", "ExecutableDataModified", "ExecutableLamportChange",
+                  "ModifiedProgramId", "UnbalancedInstruction")
+
+
 def judge(run: dict, category: str = "") -> tuple:
     """(verdict, motivo). verdict None = cenario invalido (nova tentativa). Regras fixas, sem LLM.
     'not_confirmed' tambem permite nova tentativa: o ataque pode ter sido mal montado."""
@@ -348,6 +356,12 @@ def judge(run: dict, category: str = "") -> tuple:
     if not attack_exercises(category, baselines, att, attacker_invoked):
         return None, (f"o ataque nao exercita a hipotese de {category}: e preciso que {ATTACK_REQUIREMENT[category]}. "
                       "Mantenha o baseline como uso legitimo e faca no ataque exatamente essa mudanca.")
+    rt = next((e for e in RUNTIME_ERRORS if e in att["result"]), None)
+    if rt:
+        return None, (f"o ataque parou com {att['result']}, erro do runtime da Solana e nao do programa: o programa "
+                      "aceitou a entrada e tentou uma operacao que nenhum programa pode fazer (ex.: gravar em conta "
+                      "cujo dono e outro programa). Demonstre o dano por outra via, por exemplo uma decisao do "
+                      "programa tomada a partir dos dados da conta forjada, gravada numa conta que pertence a ele.")
     if att["result"] != "Success":
         return "not_confirmed", f"baseline ok; ataque rejeitado: {explain(att['result'])}"
     if run["kind"] == "panic":

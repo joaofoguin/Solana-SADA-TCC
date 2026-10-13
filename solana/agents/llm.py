@@ -84,14 +84,15 @@ def _http_post(payload: dict) -> dict:
     return r.json()
 
 
-def chat_json(system: str, user: str, client=None, sleep=time.sleep) -> LLMResult:
-    """client: funcao payload -> resposta JSON (os testes usam uma falsa)."""
+def chat_json(system: str, user: str, client=None, sleep=time.sleep, max_tokens: int = MAX_TOKENS) -> LLMResult:
+    """client: funcao payload -> resposta JSON (os testes usam uma falsa).
+    max_tokens: o Dynamic Agent precisa de mais espaco (gera codigo Rust)."""
     post = client or _http_post
     payload = {
         "model": MODEL,
         "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
         "temperature": TEMPERATURE,
-        "max_tokens": MAX_TOKENS,
+        "max_tokens": max_tokens,
     }
     if JSON_MODE:
         payload["response_format"] = {"type": "json_object"}
