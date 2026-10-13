@@ -1,0 +1,18 @@
+{
+  "dynamic_prompt_version": "dynamic-v3",
+  "dynamic_prompt_sha256": "b0a4ac2020eccf31",
+  "llm_base_url": "https://api.deepseek.com",
+  "llm_model": "deepseek-flash",
+  "llm_json_mode": true,
+  "llm_extra_body": {
+    "thinking": {
+      "type": "disabled"
+    }
+  },
+  "temperature": 0.0,
+  "mode": "forced",
+  "static_run": null,
+  "split": "development",
+  "started": "2026-10-13T21:55:43.892166",
+  "ground_truth_version": "1.3"
+}

@@ -156,7 +156,7 @@ impl Env {
         Instruction::new_with_bytes(self.program_id, &data.bytes(), metas)
     }
 
-    fn record(&self, step: &str, note: &str, ix: &Instruction, r: &InstructionResult) {
+    fn record(&self, step: &str, note: &str, ix: &Instruction, accounts: &[(Pubkey, AccountSharedData)], r: &InstructionResult) {
         let result = match &r.program_result {
             ProgramResult::Success => "Success".to_string(),
             ProgramResult::Failure(e) => format!("Failure({e:?})"),
@@ -167,12 +167,46 @@ impl Env {
             .iter()
             .map(|m| format!("{}{}", if m.is_signer { "s" } else { "-" }, if m.is_writable { "w" } else { "r" }))
             .collect();
+        // Contas de cada posicao (antes da execucao), para as regras de validade do
+        // ataque, e estado depois da execucao das contas gravaveis (retorno ao LLM
+        // quando o ataque e aceito sem dano). Sao dados de conta, nao logs do programa.
+        let detail: Vec<String> = ix
+            .accounts
+            .iter()
+            .map(|m| {
+                let pre = accounts.iter().find(|(k, _)| *k == m.pubkey).map(|(_, a)| a);
+                let (owner, len, head, digest) = match pre {
+                    Some(a) => (
+                        a.owner().to_string(),
+                        a.data().len(),
+                        hex(&a.data()[..a.data().len().min(8)]),
+                        hex(&Sha256::digest(a.data())[..8]),
+                    ),
+                    None => ("?".to_string(), 0, String::new(), String::new()),
+                };
+                let post = if m.is_writable {
+                    r.resulting_accounts
+                        .iter()
+                        .find(|(k, _)| *k == m.pubkey)
+                        .map(|(_, a)| hex(&a.data()[..a.data().len().min(256)]))
+                        .unwrap_or_default()
+                } else {
+                    String::new()
+                };
+                format!(
+                    "{{\"key\":\"{}\",\"signer\":{},\"writable\":{},\"owner\":\"{}\",\"data_len\":{},\"head\":\"{}\",\"digest\":\"{}\",\"post\":\"{}\"}}",
+                    m.pubkey, m.is_signer, m.is_writable, owner, len, head, digest, post
+                )
+            })
+            .collect();
         println!(
-            "@@DYN {{\"step\":\"{step}\",\"note\":{},\"result\":\"{}\",\"compute_units\":{},\"account_flags\":\"{}\"}}",
+            "@@DYN {{\"step\":\"{step}\",\"note\":{},\"result\":\"{}\",\"compute_units\":{},\"account_flags\":\"{}\",\"ix_head\":\"{}\",\"accounts\":[{}]}}",
             json_str(note),
             result.replace('"', "'"),
             r.compute_units_consumed,
-            metas.join(",")
+            metas.join(","),
+            hex(&ix.data[..ix.data.len().min(8)]),
+            detail.join(",")
         );
         self.steps.borrow_mut().push(step.to_string());
     }
@@ -180,14 +214,14 @@ impl Env {
     /// Uso legitimo da instrucao (ou preparacao de estado). Deve ter sucesso.
     pub fn baseline(&self, note: &str, ix: &Instruction, accounts: &[(Pubkey, AccountSharedData)]) -> InstructionResult {
         let r = self.mollusk.process_instruction(ix, accounts);
-        self.record("baseline", note, ix, &r);
+        self.record("baseline", note, ix, accounts, &r);
         r
     }
 
     /// A tentativa de ataque.
     pub fn attack(&self, note: &str, ix: &Instruction, accounts: &[(Pubkey, AccountSharedData)]) -> InstructionResult {
         let r = self.mollusk.process_instruction(ix, accounts);
-        self.record("attack", note, ix, &r);
+        self.record("attack", note, ix, accounts, &r);
         r
     }
 
@@ -196,6 +230,10 @@ impl Env {
     pub fn effect(&self, note: &str, holds: bool) {
         println!("@@DYN {{\"step\":\"effect\",\"note\":{},\"holds\":{holds}}}", json_str(note));
     }
+}
+
+fn hex(b: &[u8]) -> String {
+    b.iter().map(|x| format!("{x:02x}")).collect()
 }
 
 fn json_str(s: &str) -> String {

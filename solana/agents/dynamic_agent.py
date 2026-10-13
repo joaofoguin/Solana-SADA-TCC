@@ -38,7 +38,7 @@ from pathlib import Path
 
 from agents.llm import LLMResult, chat_json, parse_json
 
-PROMPT_VERSION = "dynamic-v2"
+PROMPT_VERSION = "dynamic-v3"
 MAX_ATTEMPTS = 5
 MAX_TOKENS = 4000
 HERE = Path(__file__).resolve().parents[1]  # ~/sada-tcc/solana
@@ -113,6 +113,7 @@ O QUE O CENARIO DEVE FAZER:
 1. Montar as contas como o programa espera encontra-las (layout dos dados, dono, PDAs com as mesmas seeds do codigo).
 2. Chamar env.baseline com um uso LEGITIMO da instrucao-alvo (ou de outra instrucao do programa que prepare o estado). O baseline precisa ter sucesso: ele prova que o cenario esta montado corretamente. Se o ataque depende de um estado anterior (ex.: conta ja inicializada), produza esse estado com o baseline e use resultado.resulting_accounts.
 3. Chamar env.attack exatamente uma vez, com a menor mudanca em relacao ao uso legitimo que realiza a hipotese de ataque.
+   Para {category}, o harness so aceita o ataque como valido se {requirement} (compara com o baseline da mesma instrucao).
 4. Depois do ataque, registrar com env.effect as condicoes que demonstram o dano, lendo o estado resultante com after(..). Para a categoria {category}, o dano esperado e: {effect}
    Se o ataque for rejeitado, nao tente ler o estado resultante (os efeitos podem simplesmente nao ser registrados).
 
@@ -121,6 +122,8 @@ REGRAS:
 - Nao use assert!, unwrap ou expect sobre resultados de execucao; o harness ja registra tudo.
 - O efeito precisa ser uma comparacao real com o estado depois do ataque, nunca uma constante. Registre so condicoes
   que o ataque bem-sucedido torna verdadeiras; basta uma condicao verdadeira para demonstrar o dano.
+- O efeito precisa ser algo que o uso legitimo nao produziria (ex.: o valor que a propria instrucao grava
+  normalmente nao e dano).
 - Escreva apenas o corpo da funcao de teste (ja existe `let env = Env::load();` antes dele).
 
 FORMATO DE SAIDA (somente JSON valido):
@@ -198,11 +201,13 @@ RUNTIME_TRACE = re.compile(r"Program (\w{32,44}) (invoke \[\d+\]|success|failed:
 
 def build_system_prompt(category: str) -> str:
     return SYSTEM_TEMPLATE.format(harness_api=HARNESS_API, category=category,
-                                  effect=CATEGORY_EFFECTS.get(category, "dano observavel no estado."))
+                                  effect=CATEGORY_EFFECTS.get(category, "dano observavel no estado."),
+                                  requirement=ATTACK_REQUIREMENT.get(category, "o ataque executar a hipotese"))
 
 
 def prompt_fingerprint() -> dict:
-    blob = SYSTEM_TEMPLATE + HARNESS_API + json.dumps(CATEGORY_EFFECTS, sort_keys=True) + USER_TEMPLATE \
+    blob = SYSTEM_TEMPLATE + HARNESS_API + json.dumps(CATEGORY_EFFECTS, sort_keys=True) \
+        + json.dumps(ATTACK_REQUIREMENT, sort_keys=True) + USER_TEMPLATE \
         + RETRY_TEMPLATE + TEST_FILE + (HARNESS / "src" / "lib.rs").read_text(encoding="utf-8")
     return {"dynamic_prompt_version": PROMPT_VERSION,
             "dynamic_prompt_sha256": hashlib.sha256(blob.encode()).hexdigest()[:16]}
@@ -267,7 +272,56 @@ def execute_scenario(body: str, target: dict) -> dict:
     return {"kind": "ran", "events": events, "runtime_trace": trace, "elapsed_s": elapsed}
 
 
-def judge(run: dict) -> tuple:
+# O ataque precisa exercitar a categoria em relacao ao uso legitimo: compara, posicao a
+# posicao, as contas do ataque com as de um baseline da mesma instrucao. Sem isso, uma
+# chamada legitima com efeito normal (ex.: valor gravado) seria "confirmada".
+ATTACK_REQUIREMENT = {
+    "SIGNER": "uma conta que assina no baseline nao assina no ataque",
+    "OWNER": "uma conta do ataque tem dono diferente da conta na mesma posicao do baseline",
+    "COSPLAY": "uma conta do ataque tem discriminador (8 primeiros bytes) diferente da conta na mesma posicao do baseline",
+    "PDA": "uma conta do ataque esta em endereco diferente da conta na mesma posicao do baseline",
+    "SYSVAR": "uma conta do ataque esta em endereco diferente da conta na mesma posicao do baseline",
+    "CPI": ("uma conta do ataque esta em endereco diferente da conta na mesma posicao do baseline "
+            "(ex.: o programa do atacante no lugar do esperado)"),
+    "REINIT": ("a instrucao do ataque seja a mesma do baseline e uma conta com dados chegue ao ataque com estado diferente "
+               "do que tinha no baseline (ex.: o estado ja inicializado em resultado.resulting_accounts)"),
+}
+
+
+def _pair_holds(category: str, b: dict, a: dict) -> bool:
+    ba, aa = b.get("accounts") or [], a.get("accounts") or []
+    pairs = list(zip(ba, aa))
+    if category == "SIGNER":
+        return any(x["signer"] and not y["signer"] for x, y in pairs)
+    if category == "OWNER":
+        return any("?" not in (x["owner"], y["owner"]) and x["owner"] != y["owner"] for x, y in pairs)
+    if category == "COSPLAY":
+        return any(y["data_len"] > 0 and x["head"] != y["head"] for x, y in pairs)
+    if category in ("PDA", "SYSVAR", "CPI"):
+        return any(x["key"] != y["key"] for x, y in pairs)
+    if category == "REINIT":
+        return b.get("ix_head") == a.get("ix_head") and any(
+            x["key"] == y["key"] and y["data_len"] > 0 and x["digest"] != y["digest"] for x, y in pairs)
+    return True
+
+
+def attack_exercises(category: str, baselines: list, attack: dict, attacker_invoked: bool = False) -> bool:
+    if category not in ATTACK_REQUIREMENT or "accounts" not in attack:
+        return True
+    if category == "CPI" and attacker_invoked:
+        return True
+    same = [b for b in baselines if b.get("ix_head") == attack.get("ix_head")] or baselines
+    return any(_pair_holds(category, b, attack) for b in same)
+
+
+def _post_state(attack: dict) -> str:
+    rows = [f"conta #{i} ({acc['key'][:8]}..): {len(acc['post']) // 2} bytes = {acc['post']}"
+            for i, acc in enumerate(attack.get("accounts") or []) if acc.get("writable") and acc.get("post")]
+    return ("\nEstado das contas gravaveis depois do ataque (hex, ate 256 bytes; confira os offsets):\n"
+            + "\n".join(rows)) if rows else ""
+
+
+def judge(run: dict, category: str = "") -> tuple:
     """(verdict, motivo). verdict None = cenario invalido (nova tentativa). Regras fixas, sem LLM.
     'not_confirmed' tambem permite nova tentativa: o ataque pode ter sido mal montado."""
     if run["kind"] == "compile_error":
@@ -290,6 +344,10 @@ def judge(run: dict) -> tuple:
     if len(attacks) != 1:
         return None, f"env.attack deve ser chamado exatamente uma vez (foi chamado {len(attacks)} vezes)"
     att = attacks[0]
+    attacker_invoked = any(e["step"] == "effect" and e["note"].startswith("programa do atacante") for e in effects)
+    if not attack_exercises(category, baselines, att, attacker_invoked):
+        return None, (f"o ataque nao exercita a hipotese de {category}: e preciso que {ATTACK_REQUIREMENT[category]}. "
+                      "Mantenha o baseline como uso legitimo e faca no ataque exatamente essa mudanca.")
     if att["result"] != "Success":
         return "not_confirmed", f"baseline ok; ataque rejeitado: {explain(att['result'])}"
     if run["kind"] == "panic":
@@ -297,7 +355,7 @@ def judge(run: dict) -> tuple:
     held = [e for e in effects if e["holds"]]
     if effects and not held:
         return "not_confirmed", ("ataque aceito, mas nenhuma condicao de dano foi verdadeira: "
-                                 + "; ".join(e["note"] for e in effects))
+                                 + "; ".join(e["note"] for e in effects) + _post_state(att))
     return "confirmed", "ataque aceito" + (" e dano verificado: " + "; ".join(e["note"] for e in held)
                                            if held else " (nenhum efeito registrado)")
 
@@ -332,7 +390,7 @@ def run_dynamic_analysis(case_ctx: dict, finding: dict, target: dict, client=Non
                                          problem="a resposta nao era o JSON pedido com as chaves plan e scenario")
             continue
         run = execute_scenario(body, target)
-        verdict, why = judge(run)
+        verdict, why = judge(run, category)
         rec.update({"plan": plan, "scenario": body, "run": run, "verdict": verdict, "reason": why})
         attempts.append(rec)
         if verdict == "confirmed":

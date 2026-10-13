@@ -1,0 +1,134 @@
+{
+  "category": "MATH",
+  "verdict": "not_confirmed",
+  "exploit_successful": false,
+  "attack_result": "Failure(Custom(6001))",
+  "reason": "baseline ok; ataque rejeitado: Failure(Custom(6001)) = variante 1 do enum de erros do programa (#[error_code])",
+  "attempts_used": 2,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2311,
+        "completion_tokens": 612,
+        "latency_s": 3.21
+      },
+      "raw": "{\"plan\": \"O cenário inicializa a conta Ledger com total_supply=100 e user_balance=0 via a instrução initialize (baseline). Em seguida, o ataque chama burn com amount=1, o que deveria causar underflow em user_balance (0 - 1). Como o programa usa checked_sub e retorna ArithmeticUnderflow, o ataque deve ser rejeitado. O efeito medido seria a alteração indevida de user_balance ou total_supply, mas como o ataque falha, nenhum efeito é registrado.\", \"scenario\": \"let authority = Pubkey::new_unique();\\nlet ledger_key = Pubkey::new_unique();\\n\\nlet init_ix = env.anchor_ix(\\n    \\\"initialize\\\",\\n    &(100u64,),\\n    vec![\\n        AccountMeta::new(ledger_key, true),\\n        AccountMeta::new(authority, true),\\n        AccountMeta::new_readonly(solana_program::system_program::id(), false),\\n    ],\\n);\\n\\nlet init_accounts = vec![\\n    (ledger_key, empty_account()),\\n    (authority, wallet(1_000_000_000)),\\n    system_program_account(),\\n];\\n\\nlet baseline_result = env.baseline(\\\"initialize ledger\\\", &init_ix, &init_accounts);\\n\\nlet ledger_data = after(&baseline_result, &ledger_key).data().to_vec();\\nlet ledger_account = account(&env.program_id, &ledger_data, None);\\n\\nlet burn_ix = env.anchor_ix(\\n    \\\"burn\\\",\\n    &(1u64,),\\n    vec![\\n        AccountMeta::new(ledger_key, false),\\n        AccountMeta::new_readonly(authority, true),\\n    ],\\n);\\n\\nlet burn_accounts = vec![\\n    (ledger_key, ledger_account),\\n    (authority, wallet(1_000_000_000)),\\n];\\n\\nlet attack_result = env.attack(\\\"burn underflow\\\", &burn_ix, &burn_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let user_balance = read_u64(after(&attack_result, &ledger_key).data(), 40);\\n    let total_supply = read_u64(after(&attack_result, &ledger_key).data(), 72);\\n    env.effect(\\\"user_balance underflowed\\\", user_balance > 100);\\n    env.effect(\\\"total_supply underflowed\\\", total_supply > 100);\\n}\"}",
+      "plan": "O cenário inicializa a conta Ledger com total_supply=100 e user_balance=0 via a instrução initialize (baseline). Em seguida, o ataque chama burn com amount=1, o que deveria causar underflow em user_balance (0 - 1). Como o programa usa checked_sub e retorna ArithmeticUnderflow, o ataque deve ser rejeitado. O efeito medido seria a alteração indevida de user_balance ou total_supply, mas como o ataque falha, nenhum efeito é registrado.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet ledger_key = Pubkey::new_unique();\n\nlet init_ix = env.anchor_ix(\n    \"initialize\",\n    &(100u64,),\n    vec![\n        AccountMeta::new(ledger_key, true),\n        AccountMeta::new(authority, true),\n        AccountMeta::new_readonly(solana_program::system_program::id(), false),\n    ],\n);\n\nlet init_accounts = vec![\n    (ledger_key, empty_account()),\n    (authority, wallet(1_000_000_000)),\n    system_program_account(),\n];\n\nlet baseline_result = env.baseline(\"initialize ledger\", &init_ix, &init_accounts);\n\nlet ledger_data = after(&baseline_result, &ledger_key).data().to_vec();\nlet ledger_account = account(&env.program_id, &ledger_data, None);\n\nlet burn_ix = env.anchor_ix(\n    \"burn\",\n    &(1u64,),\n    vec![\n        AccountMeta::new(ledger_key, false),\n        AccountMeta::new_readonly(authority, true),\n    ],\n);\n\nlet burn_accounts = vec![\n    (ledger_key, ledger_account),\n    (authority, wallet(1_000_000_000)),\n];\n\nlet attack_result = env.attack(\"burn underflow\", &burn_ix, &burn_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let user_balance = read_u64(after(&attack_result, &ledger_key).data(), 40);\n    let total_supply = read_u64(after(&attack_result, &ledger_key).data(), 72);\n    env.effect(\"user_balance underflowed\", user_balance > 100);\n    env.effect(\"total_supply underflowed\", total_supply > 100);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "initialize ledger",
+            "result": "Success",
+            "compute_units": 5815,
+            "account_flags": "sw,sw,-r",
+            "ix_head": "afaf6d1f0d989bed",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": "2b2915d5b4b05f20000000000000000100000000000000000000000000000000000000000000000064000000000000000000000000000000"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "11111111111111111111111111111111",
+                "signer": false,
+                "writable": false,
+                "owner": "NativeLoader1111111111111111111111111111111",
+                "data_len": 14,
+                "head": "73797374656d5f70",
+                "digest": "d8e11c483f20607a",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "burn underflow",
+            "result": "Failure(Custom(6001))",
+            "compute_units": 2264,
+            "account_flags": "-w,sr",
+            "ix_head": "cec9793ac4be50e7",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA",
+                "data_len": 56,
+                "head": "2b2915d5b4b05f20",
+                "digest": "cb531efdc4dbda2e",
+                "post": "2b2915d5b4b05f20000000000000000100000000000000000000000000000000000000000000000064000000000000000000000000000000"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA invoke [1]",
+          "Program 11111111111111111111111111111111 invoke [2]",
+          "Program 11111111111111111111111111111111 success",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA consumed 5815 of 1400000 compute units",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA success",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA invoke [1]",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA consumed 2264 of 1400000 compute units",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA failed: custom program error: 0x1771"
+        ],
+        "elapsed_s": 1.7
+      },
+      "verdict": "not_confirmed",
+      "reason": "baseline ok; ataque rejeitado: Failure(Custom(6001)) = variante 1 do enum de erros do programa (#[error_code])"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2803,
+        "completion_tokens": 117,
+        "latency_s": 1.77
+      },
+      "raw": "{\"plan\": \"A tentativa anterior montou corretamente o estado (initialize com supply 100, user_balance 0) e o ataque de burn(1) foi rejeitado com ArithmeticUnderflow (6001), exatamente o comportamento esperado do checked_sub. Como o programa usa checked_sub em ambos os campos e retorna erro em vez de dar a volta, nao ha caminho de overflow/underflow exploravel. A hipotese do Static Agent esta bloqueada pelo proprio codigo.\", \"conclusion\": \"blocked\"}",
+      "plan": "A tentativa anterior montou corretamente o estado (initialize com supply 100, user_balance 0) e o ataque de burn(1) foi rejeitado com ArithmeticUnderflow (6001), exatamente o comportamento esperado do checked_sub. Como o programa usa checked_sub em ambos os campos e retorna erro em vez de dar a volta, nao ha caminho de overflow/underflow exploravel. A hipotese do Static Agent esta bloqueada pelo proprio codigo.",
+      "verdict": "not_confirmed",
+      "reason": "LLM concluiu que o programa bloqueia o ataque"
+    }
+  ],
+  "case_id": "SSP-03-A-S2",
+  "static_finding": {
+    "category": "MATH",
+    "evidence": "",
+    "explanation": "",
+    "attack_hypothesis": "Verificar por execucao se a instrucao e vulneravel a Integer Overflow / Underflow."
+  }
+}

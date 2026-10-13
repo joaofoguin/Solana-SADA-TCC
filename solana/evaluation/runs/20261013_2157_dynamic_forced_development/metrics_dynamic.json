@@ -1,0 +1,97 @@
+{
+  "static_only": null,
+  "static_plus_dynamic": {
+    "global": {
+      "TP": 7,
+      "FP": 0,
+      "FN": 0,
+      "TN": 8,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "by_category": {
+      "Improper Owner Check": {
+        "TP": 1,
+        "FP": 0,
+        "FN": 0,
+        "TN": 1,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "Improper PDA Validation / Canonicalization": {
+        "TP": 1,
+        "FP": 0,
+        "FN": 0,
+        "TN": 1,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "Integer Overflow / Underflow": {
+        "TP": 2,
+        "FP": 0,
+        "FN": 0,
+        "TN": 2,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "Missing Signer Check": {
+        "TP": 1,
+        "FP": 0,
+        "FN": 0,
+        "TN": 1,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "Reinitialization Attacks": {
+        "TP": 1,
+        "FP": 0,
+        "FN": 0,
+        "TN": 2,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "Type Cosplay": {
+        "TP": 1,
+        "FP": 0,
+        "FN": 0,
+        "TN": 1,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      }
+    },
+    "cases_scored": 15
+  },
+  "checkpoint_target_category": {
+    "vulnerable": {
+      "confirmed": 7,
+      "not_confirmed": 0,
+      "inconclusive": 0
+    },
+    "secure": {
+      "confirmed": 0,
+      "not_confirmed": 8,
+      "inconclusive": 0
+    }
+  },
+  "run_id": "20261013_2157_dynamic_forced_development",
+  "dynamic_prompt_version": "dynamic-v3",
+  "dynamic_prompt_sha256": "b0a4ac2020eccf31",
+  "llm_base_url": "https://api.deepseek.com",
+  "llm_model": "deepseek-flash",
+  "llm_json_mode": true,
+  "llm_extra_body": {
+    "thinking": {
+      "type": "disabled"
+    }
+  },
+  "temperature": 0.0,
+  "mode": "forced",
+  "static_run": null
+}

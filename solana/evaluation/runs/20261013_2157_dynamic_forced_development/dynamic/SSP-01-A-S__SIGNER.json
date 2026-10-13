@@ -1,0 +1,189 @@
+{
+  "category": "SIGNER",
+  "verdict": "not_confirmed",
+  "exploit_successful": false,
+  "attack_result": "Failure(Custom(3010))",
+  "reason": "baseline ok; ataque rejeitado: Failure(Custom(3010)) = AccountNotSigner (erro do Anchor)",
+  "attempts_used": 2,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2602,
+        "completion_tokens": 901,
+        "latency_s": 4.61
+      },
+      "raw": "{\n  \"plan\": \"O programa Anchor declara `authority: Signer<'info>` na struct Withdraw, portanto o compilador Anchor ja insere a verificacao de assinatura. O cenario monta um vault PDA com seeds [b\\\"vault\\\", authority] e authority como dono, faz um deposit legitimo para popular o saldo, e entao tenta chamar withdraw removendo a flag de signer da authority (mantendo-a como writable/readonly nao-signer) para testar a hipotese de Missing Signer Check. Se o ataque for rejeitado, a hipotese esta bloqueada; se passar, o saldo do vault diminui e os lamports vao para o recipient sem assinatura da autoridade.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet recipient = Pubkey::new_unique();\\nlet (vault_pda, _bump) = Pubkey::find_program_address(&[b\\\"vault\\\", authority.as_ref()], &env.program_id);\\n\\nlet (system_id, system_acc) = system_program_account();\\n\\n// Baseline: initialize cria o vault PDA\\nlet init_ix = env.anchor_ix(\\\"initialize\\\", &(), vec![\\n    AccountMeta::new(vault_pda, false),\\n    AccountMeta::new(authority, true),\\n    AccountMeta::new_readonly(system_id, false),\\n]);\\nlet init_accounts = vec![\\n    (vault_pda, empty_account()),\\n    (authority, wallet(10_000_000_000)),\\n    (system_id, system_acc.clone()),\\n];\\nlet r_init = env.baseline(\\\"initialize vault\\\", &init_ix, &init_accounts);\\n\\n// Baseline: deposit para popular o saldo\\nlet deposit_ix = env.anchor_ix(\\\"deposit\\\", &(1_000_000u64,), vec![\\n    AccountMeta::new(vault_pda, false),\\n    AccountMeta::new(authority, true),\\n    AccountMeta::new_readonly(system_id, false),\\n]);\\nlet deposit_accounts = vec![\\n    (vault_pda, after(&r_init, &vault_pda).clone()),\\n    (authority, after(&r_init, &authority).clone()),\\n    (system_id, system_acc.clone()),\\n];\\nlet r_dep = env.baseline(\\\"deposit 1000000\\\", &deposit_ix, &deposit_accounts);\\n\\n// Ataque: withdraw sem a assinatura da authority\\nlet attack_ix = env.anchor_ix(\\\"withdraw\\\", &(500_000u64,), vec![\\n    AccountMeta::new(vault_pda, false),\\n    AccountMeta::new_readonly(authority, false), // sem signer\\n    AccountMeta::new(recipient, false),\\n]);\\nlet attack_accounts = vec![\\n    (vault_pda, after(&r_dep, &vault_pda).clone()),\\n    (authority, after(&r_dep, &authority).clone()),\\n    (recipient, wallet(1_000_000)),\\n];\\nlet r = env.attack(\\\"withdraw sem assinatura da authority\\\", &attack_ix, &attack_accounts);\\n\\nif r.program_result == ProgramResult::Success {\\n    let vault_after = after(&r, &vault_pda);\\n    let recipient_after = after(&r, &recipient);\\n    let balance_after = read_u64(vault_after.data(), 40);\\n    env.effect(\\\"saldo do vault reduzido sem assinatura da authority\\\", balance_after == 500_000);\\n    env.effect(\\\"recipient recebeu lamports sem assinatura da authority\\\", recipient_after.lamports() == 1_500_000);\\n}\"\n}",
+      "plan": "O programa Anchor declara `authority: Signer<'info>` na struct Withdraw, portanto o compilador Anchor ja insere a verificacao de assinatura. O cenario monta um vault PDA com seeds [b\"vault\", authority] e authority como dono, faz um deposit legitimo para popular o saldo, e entao tenta chamar withdraw removendo a flag de signer da authority (mantendo-a como writable/readonly nao-signer) para testar a hipotese de Missing Signer Check. Se o ataque for rejeitado, a hipotese esta bloqueada; se passar, o saldo do vault diminui e os lamports vao para o recipient sem assinatura da autoridade.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet recipient = Pubkey::new_unique();\nlet (vault_pda, _bump) = Pubkey::find_program_address(&[b\"vault\", authority.as_ref()], &env.program_id);\n\nlet (system_id, system_acc) = system_program_account();\n\n// Baseline: initialize cria o vault PDA\nlet init_ix = env.anchor_ix(\"initialize\", &(), vec![\n    AccountMeta::new(vault_pda, false),\n    AccountMeta::new(authority, true),\n    AccountMeta::new_readonly(system_id, false),\n]);\nlet init_accounts = vec![\n    (vault_pda, empty_account()),\n    (authority, wallet(10_000_000_000)),\n    (system_id, system_acc.clone()),\n];\nlet r_init = env.baseline(\"initialize vault\", &init_ix, &init_accounts);\n\n// Baseline: deposit para popular o saldo\nlet deposit_ix = env.anchor_ix(\"deposit\", &(1_000_000u64,), vec![\n    AccountMeta::new(vault_pda, false),\n    AccountMeta::new(authority, true),\n    AccountMeta::new_readonly(system_id, false),\n]);\nlet deposit_accounts = vec![\n    (vault_pda, after(&r_init, &vault_pda).clone()),\n    (authority, after(&r_init, &authority).clone()),\n    (system_id, system_acc.clone()),\n];\nlet r_dep = env.baseline(\"deposit 1000000\", &deposit_ix, &deposit_accounts);\n\n// Ataque: withdraw sem a assinatura da authority\nlet attack_ix = env.anchor_ix(\"withdraw\", &(500_000u64,), vec![\n    AccountMeta::new(vault_pda, false),\n    AccountMeta::new_readonly(authority, false), // sem signer\n    AccountMeta::new(recipient, false),\n]);\nlet attack_accounts = vec![\n    (vault_pda, after(&r_dep, &vault_pda).clone()),\n    (authority, after(&r_dep, &authority).clone()),\n    (recipient, wallet(1_000_000)),\n];\nlet r = env.attack(\"withdraw sem assinatura da authority\", &attack_ix, &attack_accounts);\n\nif r.program_result == ProgramResult::Success {\n    let vault_after = after(&r, &vault_pda);\n    let recipient_after = after(&r, &recipient);\n    let balance_after = read_u64(vault_after.data(), 40);\n    env.effect(\"saldo do vault reduzido sem assinatura da authority\", balance_after == 500_000);\n    env.effect(\"recipient recebeu lamports sem assinatura da authority\", recipient_after.lamports() == 1_500_000);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "initialize vault",
+            "result": "Success",
+            "compute_units": 15866,
+            "account_flags": "-w,sw,-r",
+            "ix_head": "afaf6d1f0d989bed",
+            "accounts": [
+              {
+                "key": "5zsk6WSYtnbdUvjmovQLQtknEZdhWtDG8kpPiw8igarJ",
+                "signer": false,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": "d308e82b0298757700000000000000010000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "11111111111111111111111111111111",
+                "signer": false,
+                "writable": false,
+                "owner": "NativeLoader1111111111111111111111111111111",
+                "data_len": 14,
+                "head": "73797374656d5f70",
+                "digest": "d8e11c483f20607a",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "baseline",
+            "note": "deposit 1000000",
+            "result": "Success",
+            "compute_units": 4280,
+            "account_flags": "-w,sw,-r",
+            "ix_head": "f223c68952e1f2b6",
+            "accounts": [
+              {
+                "key": "5zsk6WSYtnbdUvjmovQLQtknEZdhWtDG8kpPiw8igarJ",
+                "signer": false,
+                "writable": true,
+                "owner": "HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC",
+                "data_len": 48,
+                "head": "d308e82b02987577",
+                "digest": "6bfea51d479d8ea0",
+                "post": "d308e82b02987577000000000000000100000000000000000000000000000000000000000000000040420f0000000000"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "11111111111111111111111111111111",
+                "signer": false,
+                "writable": false,
+                "owner": "NativeLoader1111111111111111111111111111111",
+                "data_len": 14,
+                "head": "73797374656d5f70",
+                "digest": "d8e11c483f20607a",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "withdraw sem assinatura da authority",
+            "result": "Failure(Custom(3010))",
+            "compute_units": 2778,
+            "account_flags": "-w,-r,-w",
+            "ix_head": "16ad7207afb3a83a",
+            "accounts": [
+              {
+                "key": "5zsk6WSYtnbdUvjmovQLQtknEZdhWtDG8kpPiw8igarJ",
+                "signer": false,
+                "writable": true,
+                "owner": "HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC",
+                "data_len": 48,
+                "head": "d308e82b02987577",
+                "digest": "e1eb3bca956a6804",
+                "post": "d308e82b02987577000000000000000100000000000000000000000000000000000000000000000040420f0000000000"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC invoke [1]",
+          "Program 11111111111111111111111111111111 invoke [2]",
+          "Program 11111111111111111111111111111111 success",
+          "Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC consumed 15866 of 1400000 compute units",
+          "Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC success",
+          "Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC invoke [1]",
+          "Program 11111111111111111111111111111111 invoke [2]",
+          "Program 11111111111111111111111111111111 success",
+          "Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC consumed 4280 of 1400000 compute units",
+          "Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC success",
+          "Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC invoke [1]",
+          "Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC consumed 2778 of 1400000 compute units",
+          "Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC failed: custom program error: 0xbc2"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "not_confirmed",
+      "reason": "baseline ok; ataque rejeitado: Failure(Custom(3010)) = AccountNotSigner (erro do Anchor)"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3327,
+        "completion_tokens": 120,
+        "latency_s": 1.49
+      },
+      "raw": "{\"plan\": \"O cenario anterior montou corretamente o vault via initialize e deposit, e o ataque sem assinatura da authority foi rejeitado com AccountNotSigner (3010), confirmando que o Anchor exige a assinatura. A hipotese de Missing Signer Check nao se sustenta: a constraint `authority: Signer<'info>` e `has_one = authority` bloqueiam a execucao sem assinatura. Portanto, a vulnerabilidade esta bloqueada pelo programa.\", \"conclusion\": \"blocked\"}",
+      "plan": "O cenario anterior montou corretamente o vault via initialize e deposit, e o ataque sem assinatura da authority foi rejeitado com AccountNotSigner (3010), confirmando que o Anchor exige a assinatura. A hipotese de Missing Signer Check nao se sustenta: a constraint `authority: Signer<'info>` e `has_one = authority` bloqueiam a execucao sem assinatura. Portanto, a vulnerabilidade esta bloqueada pelo programa.",
+      "verdict": "not_confirmed",
+      "reason": "LLM concluiu que o programa bloqueia o ataque"
+    }
+  ],
+  "case_id": "SSP-01-A-S",
+  "static_finding": {
+    "category": "SIGNER",
+    "evidence": "",
+    "explanation": "",
+    "attack_hypothesis": "Verificar por execucao se a instrucao e vulneravel a Missing Signer Check."
+  }
+}

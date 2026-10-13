@@ -1,0 +1,215 @@
+{
+  "category": "OWNER",
+  "verdict": "not_confirmed",
+  "exploit_successful": false,
+  "attack_result": "UnknownError(ExternalAccountDataModified)",
+  "reason": "baseline ok; ataque rejeitado: UnknownError(ExternalAccountDataModified)",
+  "attempts_used": 3,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2418,
+        "completion_tokens": 689,
+        "latency_s": 4.23
+      },
+      "raw": "{\n  \"plan\": \"Preparamos uma conta `config` legítima com owner = program_id e admin = authority, e executamos `update_fee` legitimamente para provar o cenário. Em seguida, o ataque fornece uma conta forjada cujo owner é o atacante (diferente do programa), mas cujos bytes 8..40 contêm a pubkey do authority signer, permitindo que a checagem `require_keys_eq!` passe. Medimos o dano verificando que a conta forjada teve seus bytes 40..48 sobrescritos com o novo fee, apesar de não pertencer ao programa.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet config_key = Pubkey::new_unique();\\n\\n// Conta legítima: owner = program_id, admin = authority, fee inicial = 100\\nlet mut legit_data = anchor_account_data(\\\"AdminConfig\\\", &(authority, 100u64));\\nlet legit_config = account(&env.program_id, &legit_data, None);\\n\\nlet metas_legit = vec![\\n    AccountMeta::new(config_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n];\\nlet ix_legit = env.anchor_ix(\\\"update_fee\\\", &(500u64,), metas_legit);\\nlet contas_legit = vec![\\n    (config_key, legit_config),\\n    (authority, wallet(1_000_000_000)),\\n];\\nlet r_base = env.baseline(\\\"update_fee legitimo\\\", &ix_legit, &contas_legit);\\n\\n// Ataque: conta forjada com owner = atacante, mas bytes 8..40 = authority\\nlet attacker_owner = Pubkey::new_unique();\\nlet mut forged_data = anchor_account_data(\\\"AdminConfig\\\", &(authority, 100u64));\\nlet forged_config = account(&attacker_owner, &forged_data, None);\\n\\nlet metas_attack = vec![\\n    AccountMeta::new(config_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n];\\nlet ix_attack = env.anchor_ix(\\\"update_fee\\\", &(999u64,), metas_attack);\\nlet contas_attack = vec![\\n    (config_key, forged_config),\\n    (authority, wallet(1_000_000_000)),\\n];\\nlet r = env.attack(\\\"update_fee com conta forjada\\\", &ix_attack, &contas_attack);\\n\\nif r.program_result == ProgramResult::Success {\\n    let cfg = after(&r, &config_key);\\n    env.effect(\\\"conta forjada (owner != program) aceita e fee sobrescrito\\\",\\n        cfg.owner() == &attacker_owner && read_u64(cfg.data(), 40) == 999u64);\\n}\"\n}",
+      "plan": "Preparamos uma conta `config` legítima com owner = program_id e admin = authority, e executamos `update_fee` legitimamente para provar o cenário. Em seguida, o ataque fornece uma conta forjada cujo owner é o atacante (diferente do programa), mas cujos bytes 8..40 contêm a pubkey do authority signer, permitindo que a checagem `require_keys_eq!` passe. Medimos o dano verificando que a conta forjada teve seus bytes 40..48 sobrescritos com o novo fee, apesar de não pertencer ao programa.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet config_key = Pubkey::new_unique();\n\n// Conta legítima: owner = program_id, admin = authority, fee inicial = 100\nlet mut legit_data = anchor_account_data(\"AdminConfig\", &(authority, 100u64));\nlet legit_config = account(&env.program_id, &legit_data, None);\n\nlet metas_legit = vec![\n    AccountMeta::new(config_key, false),\n    AccountMeta::new_readonly(authority, true),\n];\nlet ix_legit = env.anchor_ix(\"update_fee\", &(500u64,), metas_legit);\nlet contas_legit = vec![\n    (config_key, legit_config),\n    (authority, wallet(1_000_000_000)),\n];\nlet r_base = env.baseline(\"update_fee legitimo\", &ix_legit, &contas_legit);\n\n// Ataque: conta forjada com owner = atacante, mas bytes 8..40 = authority\nlet attacker_owner = Pubkey::new_unique();\nlet mut forged_data = anchor_account_data(\"AdminConfig\", &(authority, 100u64));\nlet forged_config = account(&attacker_owner, &forged_data, None);\n\nlet metas_attack = vec![\n    AccountMeta::new(config_key, false),\n    AccountMeta::new_readonly(authority, true),\n];\nlet ix_attack = env.anchor_ix(\"update_fee\", &(999u64,), metas_attack);\nlet contas_attack = vec![\n    (config_key, forged_config),\n    (authority, wallet(1_000_000_000)),\n];\nlet r = env.attack(\"update_fee com conta forjada\", &ix_attack, &contas_attack);\n\nif r.program_result == ProgramResult::Success {\n    let cfg = after(&r, &config_key);\n    env.effect(\"conta forjada (owner != program) aceita e fee sobrescrito\",\n        cfg.owner() == &attacker_owner && read_u64(cfg.data(), 40) == 999u64);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "update_fee legitimo",
+            "result": "Success",
+            "compute_units": 1493,
+            "account_flags": "-w,sr",
+            "ix_head": "bc5e51de3e8f7fa8",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP",
+                "data_len": 48,
+                "head": "9c0a4fa147093e4d",
+                "digest": "bb2574fd7d2eefb2",
+                "post": "9c0a4fa147093e4d0000000000000001000000000000000000000000000000000000000000000000f401000000000000"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "update_fee com conta forjada",
+            "result": "UnknownError(ExternalAccountDataModified)",
+            "compute_units": 961,
+            "account_flags": "-w,sr",
+            "ix_head": "bc5e51de3e8f7fa8",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "data_len": 48,
+                "head": "9c0a4fa147093e4d",
+                "digest": "bb2574fd7d2eefb2",
+                "post": "9c0a4fa147093e4d00000000000000010000000000000000000000000000000000000000000000006400000000000000"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP invoke [1]",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP consumed 1493 of 1400000 compute units",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP success",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP invoke [1]",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP consumed 961 of 1400000 compute units",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP failed: instruction modified data of an account it does not own"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "not_confirmed",
+      "reason": "baseline ok; ataque rejeitado: UnknownError(ExternalAccountDataModified)"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2962,
+        "completion_tokens": 675,
+        "latency_s": 3.33
+      },
+      "raw": "{\"plan\": \"O baseline usa uma conta AdminConfig legítima (owner = program_id) com admin = authority e fee = 100, e a instrução update_fee altera a fee para 500. O ataque fornece uma conta forjada cujo owner é um Pubkey arbitrário (não o programa), mas cujos bytes 8..40 contêm a pubkey da authority, tentando explorar a ausência de checagem de owner. O efeito mede se a conta forjada foi aceita e teve a fee sobrescrita para 999.\", \"scenario\": \"let authority = Pubkey::new_unique();\\nlet config_key = Pubkey::new_unique();\\n\\n// Conta legítima: owner = program_id, admin = authority, fee inicial = 100\\nlet legit_data = anchor_account_data(\\\"AdminConfig\\\", &(authority, 100u64));\\nlet legit_config = account(&env.program_id, &legit_data, None);\\n\\nlet metas_legit = vec![\\n    AccountMeta::new(config_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n];\\nlet ix_legit = env.anchor_ix(\\\"update_fee\\\", &(500u64,), metas_legit);\\nlet contas_legit = vec![\\n    (config_key, legit_config),\\n    (authority, wallet(1_000_000_000)),\\n];\\nlet _r_base = env.baseline(\\\"update_fee legitimo\\\", &ix_legit, &contas_legit);\\n\\n// Ataque: conta forjada com owner = atacante, mas bytes 8..40 = authority\\nlet attacker_owner = Pubkey::new_unique();\\nlet forged_data = anchor_account_data(\\\"AdminConfig\\\", &(authority, 100u64));\\nlet forged_config = account(&attacker_owner, &forged_data, None);\\n\\nlet metas_attack = vec![\\n    AccountMeta::new(config_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n];\\nlet ix_attack = env.anchor_ix(\\\"update_fee\\\", &(999u64,), metas_attack);\\nlet contas_attack = vec![\\n    (config_key, forged_config),\\n    (authority, wallet(1_000_000_000)),\\n];\\nlet r = env.attack(\\\"update_fee com conta forjada\\\", &ix_attack, &contas_attack);\\n\\nif r.program_result == ProgramResult::Success {\\n    let cfg = after(&r, &config_key);\\n    env.effect(\\n        \\\"conta forjada (owner != program) aceita e fee sobrescrito\\\",\\n        cfg.owner() == &attacker_owner && read_u64(cfg.data(), 40) == 999u64,\\n    );\\n}\"}",
+      "plan": "O baseline usa uma conta AdminConfig legítima (owner = program_id) com admin = authority e fee = 100, e a instrução update_fee altera a fee para 500. O ataque fornece uma conta forjada cujo owner é um Pubkey arbitrário (não o programa), mas cujos bytes 8..40 contêm a pubkey da authority, tentando explorar a ausência de checagem de owner. O efeito mede se a conta forjada foi aceita e teve a fee sobrescrita para 999.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet config_key = Pubkey::new_unique();\n\n// Conta legítima: owner = program_id, admin = authority, fee inicial = 100\nlet legit_data = anchor_account_data(\"AdminConfig\", &(authority, 100u64));\nlet legit_config = account(&env.program_id, &legit_data, None);\n\nlet metas_legit = vec![\n    AccountMeta::new(config_key, false),\n    AccountMeta::new_readonly(authority, true),\n];\nlet ix_legit = env.anchor_ix(\"update_fee\", &(500u64,), metas_legit);\nlet contas_legit = vec![\n    (config_key, legit_config),\n    (authority, wallet(1_000_000_000)),\n];\nlet _r_base = env.baseline(\"update_fee legitimo\", &ix_legit, &contas_legit);\n\n// Ataque: conta forjada com owner = atacante, mas bytes 8..40 = authority\nlet attacker_owner = Pubkey::new_unique();\nlet forged_data = anchor_account_data(\"AdminConfig\", &(authority, 100u64));\nlet forged_config = account(&attacker_owner, &forged_data, None);\n\nlet metas_attack = vec![\n    AccountMeta::new(config_key, false),\n    AccountMeta::new_readonly(authority, true),\n];\nlet ix_attack = env.anchor_ix(\"update_fee\", &(999u64,), metas_attack);\nlet contas_attack = vec![\n    (config_key, forged_config),\n    (authority, wallet(1_000_000_000)),\n];\nlet r = env.attack(\"update_fee com conta forjada\", &ix_attack, &contas_attack);\n\nif r.program_result == ProgramResult::Success {\n    let cfg = after(&r, &config_key);\n    env.effect(\n        \"conta forjada (owner != program) aceita e fee sobrescrito\",\n        cfg.owner() == &attacker_owner && read_u64(cfg.data(), 40) == 999u64,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "update_fee legitimo",
+            "result": "Success",
+            "compute_units": 1493,
+            "account_flags": "-w,sr",
+            "ix_head": "bc5e51de3e8f7fa8",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP",
+                "data_len": 48,
+                "head": "9c0a4fa147093e4d",
+                "digest": "bb2574fd7d2eefb2",
+                "post": "9c0a4fa147093e4d0000000000000001000000000000000000000000000000000000000000000000f401000000000000"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "update_fee com conta forjada",
+            "result": "UnknownError(ExternalAccountDataModified)",
+            "compute_units": 961,
+            "account_flags": "-w,sr",
+            "ix_head": "bc5e51de3e8f7fa8",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "data_len": 48,
+                "head": "9c0a4fa147093e4d",
+                "digest": "bb2574fd7d2eefb2",
+                "post": "9c0a4fa147093e4d00000000000000010000000000000000000000000000000000000000000000006400000000000000"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP invoke [1]",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP consumed 1493 of 1400000 compute units",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP success",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP invoke [1]",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP consumed 961 of 1400000 compute units",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP failed: instruction modified data of an account it does not own"
+        ],
+        "elapsed_s": 1.7
+      },
+      "verdict": "not_confirmed",
+      "reason": "baseline ok; ataque rejeitado: UnknownError(ExternalAccountDataModified)"
+    },
+    {
+      "attempt": 3,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2965,
+        "completion_tokens": 160,
+        "latency_s": 2.15
+      },
+      "raw": "{\"plan\": \"O baseline usa uma conta AdminConfig legítima (owner = program_id) com admin = authority e fee = 100, e a instrução update_fee altera a fee para 500 com sucesso. O ataque fornece uma conta forjada cujo owner é um Pubkey arbitrário (não o programa), mas cujos bytes 8..40 contêm a pubkey da authority signatária, para que a checagem require_keys_eq! passe. Como o Anchor rejeita a modificação de dados de uma conta cujo owner não é o programa (ExternalAccountDataModified), o ataque é bloqueado; portanto a hipótese OWNER não se confirma.\", \"conclusion\": \"blocked\"}",
+      "plan": "O baseline usa uma conta AdminConfig legítima (owner = program_id) com admin = authority e fee = 100, e a instrução update_fee altera a fee para 500 com sucesso. O ataque fornece uma conta forjada cujo owner é um Pubkey arbitrário (não o programa), mas cujos bytes 8..40 contêm a pubkey da authority signatária, para que a checagem require_keys_eq! passe. Como o Anchor rejeita a modificação de dados de uma conta cujo owner não é o programa (ExternalAccountDataModified), o ataque é bloqueado; portanto a hipótese OWNER não se confirma.",
+      "verdict": "not_confirmed",
+      "reason": "LLM concluiu que o programa bloqueia o ataque"
+    }
+  ],
+  "case_id": "SSP-06-A-V",
+  "static_finding": {
+    "category": "OWNER",
+    "confidence": "high",
+    "evidence": "#[account(mut)]\npub config: UncheckedAccount<'info>,",
+    "explanation": "A conta `config` e recebida como `UncheckedAccount`, portanto o Anchor nao valida seu proprietario. O handler le e escreve diretamente nos bytes da conta (`try_borrow_data`/`try_borrow_mut_data`) sem verificar `config.owner == program_id`, permitindo que qualquer conta com layout semelhante seja usada.",
+    "attack_hypothesis": "Um atacante fornece uma conta cujo owner nao e o programa, mas cujos bytes nas posicoes 8..40 contem a pubkey do proprio atacante (ou de um cúmplice). Como nao ha checagem de owner, a comparacao `require_keys_eq!(admin, authority.key())` passa e o atacante sobrescreve o campo de fee (bytes 40..48) de uma conta arbitraria."
+  }
+}

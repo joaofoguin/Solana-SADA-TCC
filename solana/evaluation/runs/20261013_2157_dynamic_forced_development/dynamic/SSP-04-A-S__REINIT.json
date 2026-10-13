@@ -1,0 +1,122 @@
+{
+  "category": "REINIT",
+  "verdict": "not_confirmed",
+  "exploit_successful": false,
+  "attack_result": "Failure(Custom(6000))",
+  "reason": "baseline ok; ataque rejeitado: Failure(Custom(6000)) = variante 0 do enum de erros do programa (#[error_code])",
+  "attempts_used": 2,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2136,
+        "completion_tokens": 627,
+        "latency_s": 3.98
+      },
+      "raw": "{\"plan\": \"O programa usa uma flag `is_initialized` na conta Config para impedir reinicialização, mas a conta não é criada com `init` (apenas `Account<'info, Config>`), então o atacante pode fornecer uma conta já inicializada. O baseline chama `init` legitimamente sobre uma conta Config recém-criada (com is_initialized=false) e deve ter sucesso. O ataque reutiliza a mesma instrução `init` sobre a conta resultante do baseline, que já tem is_initialized=true, tentando sobrescrever o estado. O efeito mede se a conta foi reinicializada (is_initialized permanece true e authority/vault_balance foram sobrescritos), o que o uso legítimo não faria.\", \"scenario\": \"let authority = Pubkey::new_unique();\\nlet config_key = Pubkey::new_unique();\\n\\n// Conta Config ainda não inicializada (is_initialized = false)\\nlet config_data = anchor_account_data(\\\"Config\\\", &(authority, false, 0u64));\\nlet config_account = account(&env.program_id, &config_data, None);\\n\\nlet contas = vec![\\n    (config_key, config_account.clone()),\\n    (authority, wallet(1_000_000_000)),\\n];\\n\\nlet ix = env.anchor_ix(\\\"init\\\", &(), vec![\\n    AccountMeta::new(config_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n]);\\n\\n// Uso legítimo: inicializa a conta\\nlet r = env.baseline(\\\"init legitimo\\\", &ix, &contas);\\n\\n// Estado após o baseline (conta já inicializada)\\nlet config_pos = after(&r, &config_key).clone();\\n\\n// Ataque: mesma instrução init sobre a conta já inicializada\\nlet contas_ataque = vec![\\n    (config_key, config_pos),\\n    (authority, wallet(1_000_000_000)),\\n];\\n\\nlet r_ataque = env.attack(\\\"reinit\\\", &ix, &contas_ataque);\\n\\nif r_ataque.program_result == ProgramResult::Success {\\n    let dados = after(&r_ataque, &config_key).data();\\n    let is_init = dados[32 + 32] != 0; // offset: authority(32) + is_initialized(1)\\n    let vault = read_u64(dados, 32 + 32 + 1);\\n    env.effect(\\\"conta reinicializada: is_initialized permanece true e vault_balance zerado\\\", is_init && vault == 0);\\n}\"}",
+      "plan": "O programa usa uma flag `is_initialized` na conta Config para impedir reinicialização, mas a conta não é criada com `init` (apenas `Account<'info, Config>`), então o atacante pode fornecer uma conta já inicializada. O baseline chama `init` legitimamente sobre uma conta Config recém-criada (com is_initialized=false) e deve ter sucesso. O ataque reutiliza a mesma instrução `init` sobre a conta resultante do baseline, que já tem is_initialized=true, tentando sobrescrever o estado. O efeito mede se a conta foi reinicializada (is_initialized permanece true e authority/vault_balance foram sobrescritos), o que o uso legítimo não faria.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet config_key = Pubkey::new_unique();\n\n// Conta Config ainda não inicializada (is_initialized = false)\nlet config_data = anchor_account_data(\"Config\", &(authority, false, 0u64));\nlet config_account = account(&env.program_id, &config_data, None);\n\nlet contas = vec![\n    (config_key, config_account.clone()),\n    (authority, wallet(1_000_000_000)),\n];\n\nlet ix = env.anchor_ix(\"init\", &(), vec![\n    AccountMeta::new(config_key, false),\n    AccountMeta::new_readonly(authority, true),\n]);\n\n// Uso legítimo: inicializa a conta\nlet r = env.baseline(\"init legitimo\", &ix, &contas);\n\n// Estado após o baseline (conta já inicializada)\nlet config_pos = after(&r, &config_key).clone();\n\n// Ataque: mesma instrução init sobre a conta já inicializada\nlet contas_ataque = vec![\n    (config_key, config_pos),\n    (authority, wallet(1_000_000_000)),\n];\n\nlet r_ataque = env.attack(\"reinit\", &ix, &contas_ataque);\n\nif r_ataque.program_result == ProgramResult::Success {\n    let dados = after(&r_ataque, &config_key).data();\n    let is_init = dados[32 + 32] != 0; // offset: authority(32) + is_initialized(1)\n    let vault = read_u64(dados, 32 + 32 + 1);\n    env.effect(\"conta reinicializada: is_initialized permanece true e vault_balance zerado\", is_init && vault == 0);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "init legitimo",
+            "result": "Success",
+            "compute_units": 8696,
+            "account_flags": "-w,sr",
+            "ix_head": "6e19559c06337261",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg",
+                "data_len": 49,
+                "head": "9b0caae01efacc82",
+                "digest": "513474ce30802464",
+                "post": "9b0caae01efacc820000000000000001000000000000000000000000000000000000000000000000010000000000000000"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "reinit",
+            "result": "Failure(Custom(6000))",
+            "compute_units": 2803,
+            "account_flags": "-w,sr",
+            "ix_head": "6e19559c06337261",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg",
+                "data_len": 49,
+                "head": "9b0caae01efacc82",
+                "digest": "c766d34ba6a92a43",
+                "post": "9b0caae01efacc820000000000000001000000000000000000000000000000000000000000000000010000000000000000"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg invoke [1]",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg consumed 8696 of 1400000 compute units",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg success",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg invoke [1]",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg consumed 2803 of 1400000 compute units",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg failed: custom program error: 0x1770"
+        ],
+        "elapsed_s": 1.9
+      },
+      "verdict": "not_confirmed",
+      "reason": "baseline ok; ataque rejeitado: Failure(Custom(6000)) = variante 0 do enum de erros do programa (#[error_code])"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2613,
+        "completion_tokens": 114,
+        "latency_s": 1.73
+      },
+      "raw": "{\"plan\": \"O cenário anterior montou corretamente a conta Config não inicializada e o baseline `init` teve sucesso, mas o ataque foi rejeitado com Custom(6000) = AlreadyInitialized. Isso indica que o programa de fato bloqueia a reinitialization via a flag `is_initialized` e o `require!`. A hipótese do Static Agent está bloqueada: a instrução `init` não pode ser executada duas vezes sobre a mesma conta.\", \"conclusion\": \"blocked\"}",
+      "plan": "O cenário anterior montou corretamente a conta Config não inicializada e o baseline `init` teve sucesso, mas o ataque foi rejeitado com Custom(6000) = AlreadyInitialized. Isso indica que o programa de fato bloqueia a reinitialization via a flag `is_initialized` e o `require!`. A hipótese do Static Agent está bloqueada: a instrução `init` não pode ser executada duas vezes sobre a mesma conta.",
+      "verdict": "not_confirmed",
+      "reason": "LLM concluiu que o programa bloqueia o ataque"
+    }
+  ],
+  "case_id": "SSP-04-A-S",
+  "static_finding": {
+    "category": "REINIT",
+    "evidence": "",
+    "explanation": "",
+    "attack_hypothesis": "Verificar por execucao se a instrucao e vulneravel a Reinitialization Attacks."
+  }
+}
