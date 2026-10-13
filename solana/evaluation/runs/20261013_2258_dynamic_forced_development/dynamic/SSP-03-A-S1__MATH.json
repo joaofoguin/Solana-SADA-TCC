@@ -1,0 +1,187 @@
+{
+  "category": "MATH",
+  "verdict": "not_confirmed",
+  "exploit_successful": false,
+  "attack_result": "Failure(Custom(6000))",
+  "reason": "baseline ok; ataque rejeitado: Failure(Custom(6000)) = variante 0 do enum de erros do programa (#[error_code])",
+  "attempts_used": 3,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2312,
+        "completion_tokens": 844,
+        "latency_s": 4.35
+      },
+      "raw": "{\n  \"plan\": \"O programa usa checked_add em mint, portanto a hipotese de overflow aritmetico deve ser testada executando mint com amount = u64::MAX sobre um ledger cujo total_supply ja e 1. O baseline inicializa o ledger com initial_supply = 1 e depois chama mint com amount = 1, provando que o cenario esta montado corretamente. O ataque repete mint com amount = u64::MAX, que se fosse vulneravel faria total_supply dar a volta; como o codigo usa checked_add, espera-se rejeicao. O efeito medido seria total_supply menor que o valor anterior ou igual a u64::MAX, demonstrando wrap-around.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet ledger_key = Pubkey::new_unique();\\n\\nlet init_ix = env.anchor_ix(\\n    \\\"initialize\\\",\\n    &(1u64,),\\n    &[\\n        AccountMeta::new(ledger_key, true),\\n        AccountMeta::new(authority, true),\\n        AccountMeta::new_readonly(solana_program::system_program::id(), false),\\n    ],\\n);\\n\\nlet init_accounts = [\\n    (ledger_key, empty_account()),\\n    (authority, wallet(1_000_000_000)),\\n    system_program_account(),\\n];\\n\\nlet init_result = env.baseline(\\\"initialize ledger with supply 1\\\", &init_ix, &init_accounts);\\n\\nlet ledger_after_init = after(&init_result, &ledger_key).clone();\\n\\nlet mint_ix = env.anchor_ix(\\n    \\\"mint\\\",\\n    &(1u64,),\\n    &[\\n        AccountMeta::new(ledger_key, false),\\n        AccountMeta::new_readonly(authority, true),\\n    ],\\n);\\n\\nlet mint_accounts = [\\n    (ledger_key, ledger_after_init.clone()),\\n    (authority, wallet(1_000_000_000)),\\n];\\n\\nlet baseline_result = env.baseline(\\\"mint 1 token\\\", &mint_ix, &mint_accounts);\\n\\nlet ledger_after_baseline = after(&baseline_result, &ledger_key).clone();\\n\\nlet attack_ix = env.anchor_ix(\\n    \\\"mint\\\",\\n    &(u64::MAX,),\\n    &[\\n        AccountMeta::new(ledger_key, false),\\n        AccountMeta::new_readonly(authority, true),\\n    ],\\n);\\n\\nlet attack_accounts = [\\n    (ledger_key, ledger_after_baseline.clone()),\\n    (authority, wallet(1_000_000_000)),\\n];\\n\\nlet attack_result = env.attack(\\\"mint u64::MAX to overflow total_supply\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let data = after(&attack_result, &ledger_key).data();\\n    let total_supply = read_u64(data, 40);\\n    let user_balance = read_u64(data, 48);\\n    env.effect(\\n        \\\"total_supply wrapped around instead of failing\\\",\\n        total_supply < 2 || total_supply == u64::MAX,\\n    );\\n    env.effect(\\n        \\\"user_balance wrapped around instead of failing\\\",\\n        user_balance < 1 || user_balance == u64::MAX,\\n    );\\n}\"\n}",
+      "plan": "O programa usa checked_add em mint, portanto a hipotese de overflow aritmetico deve ser testada executando mint com amount = u64::MAX sobre um ledger cujo total_supply ja e 1. O baseline inicializa o ledger com initial_supply = 1 e depois chama mint com amount = 1, provando que o cenario esta montado corretamente. O ataque repete mint com amount = u64::MAX, que se fosse vulneravel faria total_supply dar a volta; como o codigo usa checked_add, espera-se rejeicao. O efeito medido seria total_supply menor que o valor anterior ou igual a u64::MAX, demonstrando wrap-around.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet ledger_key = Pubkey::new_unique();\n\nlet init_ix = env.anchor_ix(\n    \"initialize\",\n    &(1u64,),\n    &[\n        AccountMeta::new(ledger_key, true),\n        AccountMeta::new(authority, true),\n        AccountMeta::new_readonly(solana_program::system_program::id(), false),\n    ],\n);\n\nlet init_accounts = [\n    (ledger_key, empty_account()),\n    (authority, wallet(1_000_000_000)),\n    system_program_account(),\n];\n\nlet init_result = env.baseline(\"initialize ledger with supply 1\", &init_ix, &init_accounts);\n\nlet ledger_after_init = after(&init_result, &ledger_key).clone();\n\nlet mint_ix = env.anchor_ix(\n    \"mint\",\n    &(1u64,),\n    &[\n        AccountMeta::new(ledger_key, false),\n        AccountMeta::new_readonly(authority, true),\n    ],\n);\n\nlet mint_accounts = [\n    (ledger_key, ledger_after_init.clone()),\n    (authority, wallet(1_000_000_000)),\n];\n\nlet baseline_result = env.baseline(\"mint 1 token\", &mint_ix, &mint_accounts);\n\nlet ledger_after_baseline = after(&baseline_result, &ledger_key).clone();\n\nlet attack_ix = env.anchor_ix(\n    \"mint\",\n    &(u64::MAX,),\n    &[\n        AccountMeta::new(ledger_key, false),\n        AccountMeta::new_readonly(authority, true),\n    ],\n);\n\nlet attack_accounts = [\n    (ledger_key, ledger_after_baseline.clone()),\n    (authority, wallet(1_000_000_000)),\n];\n\nlet attack_result = env.attack(\"mint u64::MAX to overflow total_supply\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let data = after(&attack_result, &ledger_key).data();\n    let total_supply = read_u64(data, 40);\n    let user_balance = read_u64(data, 48);\n    env.effect(\n        \"total_supply wrapped around instead of failing\",\n        total_supply < 2 || total_supply == u64::MAX,\n    );\n    env.effect(\n        \"user_balance wrapped around instead of failing\",\n        user_balance < 1 || user_balance == u64::MAX,\n    );\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0308]: mismatched types\n   --> tests/attempt.rs:15:9\n    |\n 12 |       let init_ix = env.anchor_ix(\n    |                         --------- arguments to this method are incorrect\n...\n 15 | /         &[\n 16 | |             AccountMeta::new(ledger_key, true),\n 17 | |             AccountMeta::new(authority, true),\n 18 | |             AccountMeta::new_readonly(solana_program::system_progra...\n 19 | |         ],\n    | |_________^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 3]`\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:35:9\n    |\n 32 |       let mint_ix = env.anchor_ix(\n    |                         --------- arguments to this method are incorrect\n...\n 35 | /         &[\n 36 | |             AccountMeta::new(ledger_key, false),\n 37 | |             AccountMeta::new_readonly(authority, true),\n 38 | |         ],\n    | |_________^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:53:9\n    |\n 50 |       let attack_ix = env.anchor_ix(\n    |                           --------- arguments to this method are incorrect\n...\n 53 | /         &[\n 54 | |             AccountMeta::new(ledger_key, false),\n 55 | |             AccountMeta::new_readonly(authority, true),\n 56 | |         ],\n    | |_________^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 3 previous errors",
+        "elapsed_s": 0.6
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:15:9\n    |\n 12 |       let init_ix = env.anchor_ix(\n    |                         --------- arguments to this method are incorrect\n...\n 15 | /         &[\n 16 | |             AccountMeta::new(ledger_key, true),\n 17 | |             AccountMeta::new(authority, true),\n 18 | |             AccountMeta::new_readonly(solana_program::system_progra...\n 19 | |         ],\n    | |_________^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 3]`\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:35:9\n    |\n 32 |       let mint_ix = env.anchor_ix(\n    |                         --------- arguments to this method are incorrect\n...\n 35 | /         &[\n 36 | |             AccountMeta::new(ledger_key, false),\n 37 | |             AccountMeta::new_readonly(authority, true),\n 38 | |         ],\n    | |_________^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:53:9\n    |\n 50 |       let attack_ix = env.anchor_ix(\n    |                           --------- arguments to this method are incorrect\n...\n 53 | /         &[\n 54 | |             AccountMeta::new(ledger_key, false),\n 55 | |             AccountMeta::new_readonly(authority, true),\n 56 | |         ],\n    | |_________^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 3 previous errors"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3340,
+        "completion_tokens": 791,
+        "latency_s": 3.74
+      },
+      "raw": "{\"plan\": \"Inicializo a conta Ledger com a instrucao initialize (baseline) usando uma autoridade e um ledger novos. Depois faco um mint legitimo de 1 token como baseline para provar que o cenario esta correto. O ataque chama mint com u64::MAX, que somado ao total_supply/user_balance existentes deveria causar overflow; se o checked_add estiver correto, a instrucao falha. Se executar com sucesso, leio total_supply e user_balance e registro o wrap-around como dano.\", \"scenario\": \"let authority = Pubkey::new_unique();\\nlet ledger_key = Pubkey::new_unique();\\n\\nlet init_ix = env.anchor_ix(\\n    \\\"initialize\\\",\\n    &(1u64,),\\n    vec![\\n        AccountMeta::new(ledger_key, true),\\n        AccountMeta::new(authority, true),\\n        AccountMeta::new_readonly(solana_program::system_program::id(), false),\\n    ],\\n);\\n\\nlet init_accounts = [\\n    (ledger_key, empty_account()),\\n    (authority, wallet(1_000_000_000)),\\n    system_program_account(),\\n];\\n\\nlet init_result = env.baseline(\\\"initialize ledger with supply 1\\\", &init_ix, &init_accounts);\\n\\nlet ledger_after_init = after(&init_result, &ledger_key).clone();\\n\\nlet mint_ix = env.anchor_ix(\\n    \\\"mint\\\",\\n    &(1u64,),\\n    vec![\\n        AccountMeta::new(ledger_key, false),\\n        AccountMeta::new_readonly(authority, true),\\n    ],\\n);\\n\\nlet mint_accounts = [\\n    (ledger_key, ledger_after_init.clone()),\\n    (authority, wallet(1_000_000_000)),\\n];\\n\\nlet baseline_result = env.baseline(\\\"mint 1 token\\\", &mint_ix, &mint_accounts);\\n\\nlet ledger_after_baseline = after(&baseline_result, &ledger_key).clone();\\n\\nlet attack_ix = env.anchor_ix(\\n    \\\"mint\\\",\\n    &(u64::MAX,),\\n    vec![\\n        AccountMeta::new(ledger_key, false),\\n        AccountMeta::new_readonly(authority, true),\\n    ],\\n);\\n\\nlet attack_accounts = [\\n    (ledger_key, ledger_after_baseline.clone()),\\n    (authority, wallet(1_000_000_000)),\\n];\\n\\nlet attack_result = env.attack(\\\"mint u64::MAX to overflow total_supply\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let data = after(&attack_result, &ledger_key).data();\\n    let total_supply = read_u64(data, 40);\\n    let user_balance = read_u64(data, 48);\\n    env.effect(\\n        \\\"total_supply wrapped around instead of failing\\\",\\n        total_supply < 2,\\n    );\\n    env.effect(\\n        \\\"user_balance wrapped around instead of failing\\\",\\n        user_balance < 1,\\n    );\\n}\\n\"}",
+      "plan": "Inicializo a conta Ledger com a instrucao initialize (baseline) usando uma autoridade e um ledger novos. Depois faco um mint legitimo de 1 token como baseline para provar que o cenario esta correto. O ataque chama mint com u64::MAX, que somado ao total_supply/user_balance existentes deveria causar overflow; se o checked_add estiver correto, a instrucao falha. Se executar com sucesso, leio total_supply e user_balance e registro o wrap-around como dano.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet ledger_key = Pubkey::new_unique();\n\nlet init_ix = env.anchor_ix(\n    \"initialize\",\n    &(1u64,),\n    vec![\n        AccountMeta::new(ledger_key, true),\n        AccountMeta::new(authority, true),\n        AccountMeta::new_readonly(solana_program::system_program::id(), false),\n    ],\n);\n\nlet init_accounts = [\n    (ledger_key, empty_account()),\n    (authority, wallet(1_000_000_000)),\n    system_program_account(),\n];\n\nlet init_result = env.baseline(\"initialize ledger with supply 1\", &init_ix, &init_accounts);\n\nlet ledger_after_init = after(&init_result, &ledger_key).clone();\n\nlet mint_ix = env.anchor_ix(\n    \"mint\",\n    &(1u64,),\n    vec![\n        AccountMeta::new(ledger_key, false),\n        AccountMeta::new_readonly(authority, true),\n    ],\n);\n\nlet mint_accounts = [\n    (ledger_key, ledger_after_init.clone()),\n    (authority, wallet(1_000_000_000)),\n];\n\nlet baseline_result = env.baseline(\"mint 1 token\", &mint_ix, &mint_accounts);\n\nlet ledger_after_baseline = after(&baseline_result, &ledger_key).clone();\n\nlet attack_ix = env.anchor_ix(\n    \"mint\",\n    &(u64::MAX,),\n    vec![\n        AccountMeta::new(ledger_key, false),\n        AccountMeta::new_readonly(authority, true),\n    ],\n);\n\nlet attack_accounts = [\n    (ledger_key, ledger_after_baseline.clone()),\n    (authority, wallet(1_000_000_000)),\n];\n\nlet attack_result = env.attack(\"mint u64::MAX to overflow total_supply\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let data = after(&attack_result, &ledger_key).data();\n    let total_supply = read_u64(data, 40);\n    let user_balance = read_u64(data, 48);\n    env.effect(\n        \"total_supply wrapped around instead of failing\",\n        total_supply < 2,\n    );\n    env.effect(\n        \"user_balance wrapped around instead of failing\",\n        user_balance < 1,\n    );\n}\n",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "initialize ledger with supply 1",
+            "result": "Success",
+            "compute_units": 5799,
+            "account_flags": "sw,sw,-r",
+            "ix_head": "afaf6d1f0d989bed",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": "2b2915d5b4b05f20000000000000000100000000000000000000000000000000000000000000000001000000000000000000000000000000"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "11111111111111111111111111111111",
+                "signer": false,
+                "writable": false,
+                "owner": "NativeLoader1111111111111111111111111111111",
+                "data_len": 14,
+                "head": "73797374656d5f70",
+                "digest": "d8e11c483f20607a",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "baseline",
+            "note": "mint 1 token",
+            "result": "Success",
+            "compute_units": 2228,
+            "account_flags": "-w,sr",
+            "ix_head": "19a145d016564d29",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA",
+                "data_len": 56,
+                "head": "2b2915d5b4b05f20",
+                "digest": "747bb58ce224324d",
+                "post": "2b2915d5b4b05f20000000000000000100000000000000000000000000000000000000000000000002000000000000000100000000000000"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "mint u64::MAX to overflow total_supply",
+            "result": "Failure(Custom(6000))",
+            "compute_units": 2264,
+            "account_flags": "-w,sr",
+            "ix_head": "19a145d016564d29",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA",
+                "data_len": 56,
+                "head": "2b2915d5b4b05f20",
+                "digest": "7e20f02b0de99a5f",
+                "post": "2b2915d5b4b05f20000000000000000100000000000000000000000000000000000000000000000002000000000000000100000000000000"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA invoke [1]",
+          "Program 11111111111111111111111111111111 invoke [2]",
+          "Program 11111111111111111111111111111111 success",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA consumed 5799 of 1400000 compute units",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA success",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA invoke [1]",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA consumed 2228 of 1400000 compute units",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA success",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA invoke [1]",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA consumed 2264 of 1400000 compute units",
+          "Program 3w5jyYEgbsnHjFcTUH9xdyH3KfN2YRppPCFUkskyYSxA failed: custom program error: 0x1770"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "not_confirmed",
+      "reason": "baseline ok; ataque rejeitado: Failure(Custom(6000)) = variante 0 do enum de erros do programa (#[error_code])"
+    },
+    {
+      "attempt": 3,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2946,
+        "completion_tokens": 100,
+        "latency_s": 1.73
+      },
+      "raw": "{\"plan\": \"A tentativa anterior mostrou que o ataque com u64::MAX foi rejeitado com o erro ArithmeticOverflow (Custom(6000)), indicando que checked_add esta funcionando corretamente. O cenario estava bem montado (baseline ok), entao a hipotese de overflow nao se confirma. A instrucao mint usa checked_add em ambos os campos, bloqueando qualquer overflow.\", \"conclusion\": \"blocked\"}",
+      "plan": "A tentativa anterior mostrou que o ataque com u64::MAX foi rejeitado com o erro ArithmeticOverflow (Custom(6000)), indicando que checked_add esta funcionando corretamente. O cenario estava bem montado (baseline ok), entao a hipotese de overflow nao se confirma. A instrucao mint usa checked_add em ambos os campos, bloqueando qualquer overflow.",
+      "verdict": "not_confirmed",
+      "reason": "LLM concluiu que o programa bloqueia o ataque"
+    }
+  ],
+  "case_id": "SSP-03-A-S1",
+  "static_finding": {
+    "category": "MATH",
+    "evidence": "",
+    "explanation": "",
+    "attack_hypothesis": "Verificar por execucao se a instrucao e vulneravel a Integer Overflow / Underflow."
+  }
+}

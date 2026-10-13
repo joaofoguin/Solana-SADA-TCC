@@ -38,7 +38,7 @@ from pathlib import Path
 
 from agents.llm import LLMResult, chat_json, parse_json
 
-PROMPT_VERSION = "dynamic-v4"
+PROMPT_VERSION = "dynamic-v5"
 MAX_ATTEMPTS = 5
 MAX_TOKENS = 4000
 HERE = Path(__file__).resolve().parents[1]  # ~/sada-tcc/solana
@@ -382,7 +382,8 @@ def run_dynamic_analysis(case_ctx: dict, finding: dict, target: dict, client=Non
         instruction=case_ctx["instruction"], framework=case_ctx["framework"], category=category,
         evidence=finding.get("evidence", ""), explanation=finding.get("explanation", ""),
         attack_hypothesis=finding.get("attack_hypothesis", ""), code=case_ctx["code"])
-    user, attempts, final, reason, why, seen_rejection = base_user, [], None, "", "", None
+    user, attempts, final, reason, why, seen_rejection, seen_no_damage = base_user, [], None, "", "", None, None
+    last_body, last_why, last_rejected = "", "", False
     for n in range(1, MAX_ATTEMPTS + 1):
         res: LLMResult = chat_json(system, user, client=client, max_tokens=MAX_TOKENS)
         rec = {"attempt": n, "llm": {"model": res.model, "prompt_tokens": res.prompt_tokens,
@@ -390,7 +391,18 @@ def run_dynamic_analysis(case_ctx: dict, finding: dict, target: dict, client=Non
                "raw": res.text}
         try:
             out = parse_json(res.text)
-            if out.get("conclusion") == "blocked" and seen_rejection:
+            if out.get("conclusion") == "blocked" and not last_rejected:
+                # "blocked" so vale depois de um ataque REJEITADO pelo programa; ataque aceito sem
+                # dano medido indica efeito mal medido, nao bloqueio
+                rec.update({"plan": str(out.get("plan", "")), "problem": "blocked sem ataque rejeitado"})
+                attempts.append(rec)
+                user = RETRY_TEMPLATE.format(
+                    base=base_user, n=n, max=MAX_ATTEMPTS, scenario=last_body or "(nenhum)",
+                    problem=(last_why + "\n\nVoce respondeu \"blocked\", mas o ultimo ataque valido nao foi rejeitado pelo programa: "
+                             "ele foi ACEITO. Confira no estado acima se o dano ocorreu e corrija a medicao do efeito "
+                             "(offsets e valores esperados)."))
+                continue
+            if out.get("conclusion") == "blocked":
                 rec.update({"plan": str(out.get("plan", "")), "verdict": "not_confirmed",
                             "reason": "LLM concluiu que o programa bloqueia o ataque"})
                 attempts.append(rec)
@@ -411,11 +423,18 @@ def run_dynamic_analysis(case_ctx: dict, finding: dict, target: dict, client=Non
             final, reason = verdict, why
             break
         if verdict == "not_confirmed":
-            seen_rejection = why
+            last_rejected = not why.startswith("ataque aceito")
+            if last_rejected:
+                seen_rejection = why
+            else:
+                seen_no_damage = why
+        if verdict is not None or not last_body:
+            last_body, last_why = body, why
         user = RETRY_TEMPLATE.format(base=base_user, n=n, max=MAX_ATTEMPTS, scenario=body, problem=why)
     if final is None:
         # cenario valido com ataque rejeitado em alguma tentativa -> not_confirmed; nenhum valido -> inconclusive
-        final, reason = ("not_confirmed", seen_rejection) if seen_rejection else ("inconclusive", reason or why)
+        seen = seen_rejection or seen_no_damage
+        final, reason = ("not_confirmed", seen) if seen else ("inconclusive", reason or why)
     last_run = next((a["run"] for a in reversed(attempts) if "run" in a), {})
     attack = next((e for e in last_run.get("events", []) if e["step"] == "attack"), None)
     return {

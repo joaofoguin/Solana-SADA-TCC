@@ -1,0 +1,262 @@
+{
+  "category": "REINIT",
+  "verdict": "not_confirmed",
+  "exploit_successful": false,
+  "attack_result": "Failure(Custom(0))",
+  "reason": "baseline ok; ataque rejeitado: Failure(Custom(0))",
+  "attempts_used": 3,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2159,
+        "completion_tokens": 545,
+        "latency_s": 3.73
+      },
+      "raw": "{\"plan\": \"O cenário monta uma conta `config` já inicializada (com authority, is_initialized=true e vault_balance=0) usando a própria instrução `init` como baseline, que deve ter sucesso. Em seguida, o ataque chama novamente `init` sobre a mesma conta já inicializada, tentando sobrescrever o estado. O efeito medido é que a conta foi reinicializada com sucesso e o estado foi sobrescrito (por exemplo, authority alterado para o novo signer), o que o uso legítimo não produziria.\", \"scenario\": \"let authority = Pubkey::new_unique();\\nlet config_key = Pubkey::new_unique();\\n\\nlet payer = wallet(10_000_000_000);\\nlet (system_id, system_account) = system_program_account();\\n\\nlet contas = vec![\\n    (config_key, empty_account()),\\n    (authority, payer.clone()),\\n    (system_id, system_account.clone()),\\n];\\n\\nlet metas = vec![\\n    AccountMeta::new(config_key, true),\\n    AccountMeta::new(authority, true),\\n    AccountMeta::new_readonly(system_id, false),\\n];\\n\\nlet ix = env.anchor_ix(\\\"init\\\", &(), metas.clone());\\nlet r = env.baseline(\\\"init legitimo\\\", &ix, &contas);\\n\\nlet config_apos = after(&r, &config_key).clone();\\n\\nlet contas_ataque = vec![\\n    (config_key, config_apos.clone()),\\n    (authority, payer.clone()),\\n    (system_id, system_account.clone()),\\n];\\n\\nlet ix_ataque = env.anchor_ix(\\\"init\\\", &(), metas);\\nlet r_ataque = env.attack(\\\"reinit da conta config\\\", &ix_ataque, &contas_ataque);\\n\\nif r_ataque.program_result == ProgramResult::Success {\\n    let dados = after(&r_ataque, &config_key).data();\\n    let authority_lida = read_pubkey(dados, 8);\\n    let is_init = dados[40] != 0;\\n    env.effect(\\\"conta config foi reinicializada e authority sobrescrito\\\", authority_lida == authority && is_init);\\n}\"}",
+      "plan": "O cenário monta uma conta `config` já inicializada (com authority, is_initialized=true e vault_balance=0) usando a própria instrução `init` como baseline, que deve ter sucesso. Em seguida, o ataque chama novamente `init` sobre a mesma conta já inicializada, tentando sobrescrever o estado. O efeito medido é que a conta foi reinicializada com sucesso e o estado foi sobrescrito (por exemplo, authority alterado para o novo signer), o que o uso legítimo não produziria.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet config_key = Pubkey::new_unique();\n\nlet payer = wallet(10_000_000_000);\nlet (system_id, system_account) = system_program_account();\n\nlet contas = vec![\n    (config_key, empty_account()),\n    (authority, payer.clone()),\n    (system_id, system_account.clone()),\n];\n\nlet metas = vec![\n    AccountMeta::new(config_key, true),\n    AccountMeta::new(authority, true),\n    AccountMeta::new_readonly(system_id, false),\n];\n\nlet ix = env.anchor_ix(\"init\", &(), metas.clone());\nlet r = env.baseline(\"init legitimo\", &ix, &contas);\n\nlet config_apos = after(&r, &config_key).clone();\n\nlet contas_ataque = vec![\n    (config_key, config_apos.clone()),\n    (authority, payer.clone()),\n    (system_id, system_account.clone()),\n];\n\nlet ix_ataque = env.anchor_ix(\"init\", &(), metas);\nlet r_ataque = env.attack(\"reinit da conta config\", &ix_ataque, &contas_ataque);\n\nif r_ataque.program_result == ProgramResult::Success {\n    let dados = after(&r_ataque, &config_key).data();\n    let authority_lida = read_pubkey(dados, 8);\n    let is_init = dados[40] != 0;\n    env.effect(\"conta config foi reinicializada e authority sobrescrito\", authority_lida == authority && is_init);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "init legitimo",
+            "result": "Success",
+            "compute_units": 12634,
+            "account_flags": "sw,sw,-r",
+            "ix_head": "c4ef4be03cf48749",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": "9b0caae01efacc820000000000000001000000000000000000000000000000000000000000000000010000000000000000"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "11111111111111111111111111111111",
+                "signer": false,
+                "writable": false,
+                "owner": "NativeLoader1111111111111111111111111111111",
+                "data_len": 14,
+                "head": "73797374656d5f70",
+                "digest": "d8e11c483f20607a",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "reinit da conta config",
+            "result": "Failure(Custom(0))",
+            "compute_units": 3447,
+            "account_flags": "sw,sw,-r",
+            "ix_head": "c4ef4be03cf48749",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": true,
+                "owner": "2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg",
+                "data_len": 49,
+                "head": "9b0caae01efacc82",
+                "digest": "c766d34ba6a92a43",
+                "post": "9b0caae01efacc820000000000000001000000000000000000000000000000000000000000000000010000000000000000"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "11111111111111111111111111111111",
+                "signer": false,
+                "writable": false,
+                "owner": "NativeLoader1111111111111111111111111111111",
+                "data_len": 14,
+                "head": "73797374656d5f70",
+                "digest": "d8e11c483f20607a",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg invoke [1]",
+          "Program 11111111111111111111111111111111 invoke [2]",
+          "Program 11111111111111111111111111111111 success",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg consumed 12634 of 1400000 compute units",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg success",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg invoke [1]",
+          "Program 11111111111111111111111111111111 invoke [2]",
+          "Program 11111111111111111111111111111111 failed: custom program error: 0x0",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg consumed 3447 of 1400000 compute units",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg failed: custom program error: 0x0"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "not_confirmed",
+      "reason": "baseline ok; ataque rejeitado: Failure(Custom(0))"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2573,
+        "completion_tokens": 523,
+        "latency_s": 3.3
+      },
+      "raw": "{\"plan\": \"O baseline inicializa a conta config com sucesso usando a instrucao init. O ataque tenta chamar init novamente sobre a mesma conta ja inicializada, passando-a como writable e signer. O efeito medido seria a sobrescrita do campo authority e a reinicializacao de is_initialized. A tentativa anterior mostrou que o ataque foi rejeitado com Custom(0), indicando que o programa bloqueia a reinicializacao.\", \"scenario\": \"let authority = Pubkey::new_unique();\\nlet config_key = Pubkey::new_unique();\\n\\nlet payer = wallet(10_000_000_000);\\nlet (system_id, system_account) = system_program_account();\\n\\nlet contas = vec![\\n    (config_key, empty_account()),\\n    (authority, payer.clone()),\\n    (system_id, system_account.clone()),\\n];\\n\\nlet metas = vec![\\n    AccountMeta::new(config_key, true),\\n    AccountMeta::new(authority, true),\\n    AccountMeta::new_readonly(system_id, false),\\n];\\n\\nlet ix = env.anchor_ix(\\\"init\\\", &(), metas.clone());\\nlet r = env.baseline(\\\"init legitimo\\\", &ix, &contas);\\n\\nlet config_apos = after(&r, &config_key).clone();\\n\\nlet contas_ataque = vec![\\n    (config_key, config_apos.clone()),\\n    (authority, payer.clone()),\\n    (system_id, system_account.clone()),\\n];\\n\\nlet ix_ataque = env.anchor_ix(\\\"init\\\", &(), metas);\\nlet r_ataque = env.attack(\\\"reinit da conta config\\\", &ix_ataque, &contas_ataque);\\n\\nif r_ataque.program_result == ProgramResult::Success {\\n    let dados = after(&r_ataque, &config_key).data();\\n    let authority_lida = read_pubkey(dados, 8);\\n    let is_init = dados[40] != 0;\\n    env.effect(\\\"conta config foi reinicializada e authority sobrescrito\\\", authority_lida == authority && is_init);\\n}\"}",
+      "plan": "O baseline inicializa a conta config com sucesso usando a instrucao init. O ataque tenta chamar init novamente sobre a mesma conta ja inicializada, passando-a como writable e signer. O efeito medido seria a sobrescrita do campo authority e a reinicializacao de is_initialized. A tentativa anterior mostrou que o ataque foi rejeitado com Custom(0), indicando que o programa bloqueia a reinicializacao.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet config_key = Pubkey::new_unique();\n\nlet payer = wallet(10_000_000_000);\nlet (system_id, system_account) = system_program_account();\n\nlet contas = vec![\n    (config_key, empty_account()),\n    (authority, payer.clone()),\n    (system_id, system_account.clone()),\n];\n\nlet metas = vec![\n    AccountMeta::new(config_key, true),\n    AccountMeta::new(authority, true),\n    AccountMeta::new_readonly(system_id, false),\n];\n\nlet ix = env.anchor_ix(\"init\", &(), metas.clone());\nlet r = env.baseline(\"init legitimo\", &ix, &contas);\n\nlet config_apos = after(&r, &config_key).clone();\n\nlet contas_ataque = vec![\n    (config_key, config_apos.clone()),\n    (authority, payer.clone()),\n    (system_id, system_account.clone()),\n];\n\nlet ix_ataque = env.anchor_ix(\"init\", &(), metas);\nlet r_ataque = env.attack(\"reinit da conta config\", &ix_ataque, &contas_ataque);\n\nif r_ataque.program_result == ProgramResult::Success {\n    let dados = after(&r_ataque, &config_key).data();\n    let authority_lida = read_pubkey(dados, 8);\n    let is_init = dados[40] != 0;\n    env.effect(\"conta config foi reinicializada e authority sobrescrito\", authority_lida == authority && is_init);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "init legitimo",
+            "result": "Success",
+            "compute_units": 12634,
+            "account_flags": "sw,sw,-r",
+            "ix_head": "c4ef4be03cf48749",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": "9b0caae01efacc820000000000000001000000000000000000000000000000000000000000000000010000000000000000"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "11111111111111111111111111111111",
+                "signer": false,
+                "writable": false,
+                "owner": "NativeLoader1111111111111111111111111111111",
+                "data_len": 14,
+                "head": "73797374656d5f70",
+                "digest": "d8e11c483f20607a",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "reinit da conta config",
+            "result": "Failure(Custom(0))",
+            "compute_units": 3447,
+            "account_flags": "sw,sw,-r",
+            "ix_head": "c4ef4be03cf48749",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": true,
+                "owner": "2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg",
+                "data_len": 49,
+                "head": "9b0caae01efacc82",
+                "digest": "c766d34ba6a92a43",
+                "post": "9b0caae01efacc820000000000000001000000000000000000000000000000000000000000000000010000000000000000"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "11111111111111111111111111111111",
+                "signer": false,
+                "writable": false,
+                "owner": "NativeLoader1111111111111111111111111111111",
+                "data_len": 14,
+                "head": "73797374656d5f70",
+                "digest": "d8e11c483f20607a",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg invoke [1]",
+          "Program 11111111111111111111111111111111 invoke [2]",
+          "Program 11111111111111111111111111111111 success",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg consumed 12634 of 1400000 compute units",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg success",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg invoke [1]",
+          "Program 11111111111111111111111111111111 invoke [2]",
+          "Program 11111111111111111111111111111111 failed: custom program error: 0x0",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg consumed 3447 of 1400000 compute units",
+          "Program 2P1GgtagVaYR8B6FhrPHdP4Mmy3pUFAZtSyeWFK293vg failed: custom program error: 0x0"
+        ],
+        "elapsed_s": 1.7
+      },
+      "verdict": "not_confirmed",
+      "reason": "baseline ok; ataque rejeitado: Failure(Custom(0))"
+    },
+    {
+      "attempt": 3,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2573,
+        "completion_tokens": 133,
+        "latency_s": 1.97
+      },
+      "raw": "{\"plan\": \"O baseline inicializa a conta config com sucesso usando a instrucao init. O ataque tenta chamar init novamente sobre a mesma conta ja inicializada, passando a conta resultante do baseline. O erro Custom(0) indica que o programa rejeitou a reinicializacao, provavelmente porque a constraint init do Anchor falha ao tentar criar uma conta que ja existe. Como o ataque foi rejeitado e o cenario estava corretamente montado (baseline ok), a hipotese de REINIT esta bloqueada.\", \"conclusion\": \"blocked\"}",
+      "plan": "O baseline inicializa a conta config com sucesso usando a instrucao init. O ataque tenta chamar init novamente sobre a mesma conta ja inicializada, passando a conta resultante do baseline. O erro Custom(0) indica que o programa rejeitou a reinicializacao, provavelmente porque a constraint init do Anchor falha ao tentar criar uma conta que ja existe. Como o ataque foi rejeitado e o cenario estava corretamente montado (baseline ok), a hipotese de REINIT esta bloqueada.",
+      "verdict": "not_confirmed",
+      "reason": "LLM concluiu que o programa bloqueia o ataque"
+    }
+  ],
+  "case_id": "SSP-04-A-S2",
+  "static_finding": {
+    "category": "REINIT",
+    "evidence": "",
+    "explanation": "",
+    "attack_hypothesis": "Verificar por execucao se a instrucao e vulneravel a Reinitialization Attacks."
+  }
+}

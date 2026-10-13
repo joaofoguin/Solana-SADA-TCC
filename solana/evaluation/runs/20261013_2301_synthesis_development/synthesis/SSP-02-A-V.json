@@ -1,0 +1,47 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 1578,
+    "completion_tokens": 603,
+    "latency_s": 4.24,
+    "attempts": 1
+  },
+  "raw": "{\n  \"summary\": \"A instrução `process` apresenta falhas críticas de validação de contas: tanto a verificação de proprietário quanto a validação do discriminador de tipo estão ausentes, permitindo que contas forjadas ou de tipos diferentes sejam aceitas e processadas. Ambas as vulnerabilidades foram confirmadas dinamicamente, resultando em alto risco de manipulação de estado e bypass de lógica de negócio.\",\n  \"findings\": [\n    {\n      \"category\": \"OWNER\",\n      \"decision\": \"report\",\n      \"severity\": \"critica\",\n      \"confidence\": \"alta\",\n      \"justification\": \"A análise estática identificou que a conta `treasury` é do tipo `AccountInfo` e seus dados são lidos diretamente sem verificar se o proprietário é o programa atual. A análise dinâmica confirmou o ataque: uma conta forjada com dono diferente do programa foi aceita e usada com sucesso, mantendo os dados forjados. Isso permite que atacantes contornem a validação de estado e manipulem a lógica do programa.\",\n      \"recommendation\": \"Substituir `AccountInfo` por `Account<'info, Treasury>` para que o Anchor valide automaticamente o proprietário da conta. Caso seja necessário manter `AccountInfo`, adicionar uma verificação explícita: `require!(ctx.accounts.treasury.owner == ctx.program_id, ErrorCode::InvalidOwner);` antes de acessar os dados.\"\n    },\n    {\n      \"category\": \"COSPLAY\",\n      \"decision\": \"report\",\n      \"severity\": \"critica\",\n      \"confidence\": \"alta\",\n      \"justification\": \"A análise estática mostrou que os dados são desserializados manualmente a partir de offsets fixos sem validar o discriminador de 8 bytes do Anchor. A análise dinâmica confirmou que uma conta com discriminador incorreto (de outro tipo) foi processada com sucesso, demonstrando que o programa aceita contas que não são do tipo `Treasury`. Isso permite que atacantes forneçam contas com layout semelhante para manipular campos como `authority`, `balance` e `is_active`.\",\n      \"recommendation\": \"Utilizar o tipo `Account<'info, Treasury>` em vez de `AccountInfo` para que o Anchor valide automaticamente o discriminador. Se a desserialização manual for necessária, verificar explicitamente os primeiros 8 bytes do buffer contra o discriminador esperado de `Treasury` antes de ler os campos: `require!(&data[0..8] == Treasury::DISCRIMINATOR, ErrorCode::InvalidDiscriminator);`.\"\n    }\n  ]\n}",
+  "summary": "A instrução `process` apresenta falhas críticas de validação de contas: tanto a verificação de proprietário quanto a validação do discriminador de tipo estão ausentes, permitindo que contas forjadas ou de tipos diferentes sejam aceitas e processadas. Ambas as vulnerabilidades foram confirmadas dinamicamente, resultando em alto risco de manipulação de estado e bypass de lógica de negócio.",
+  "findings": [
+    {
+      "category": "OWNER",
+      "decision": "report",
+      "severity": "critica",
+      "confidence": "alta",
+      "justification": "A análise estática identificou que a conta `treasury` é do tipo `AccountInfo` e seus dados são lidos diretamente sem verificar se o proprietário é o programa atual. A análise dinâmica confirmou o ataque: uma conta forjada com dono diferente do programa foi aceita e usada com sucesso, mantendo os dados forjados. Isso permite que atacantes contornem a validação de estado e manipulem a lógica do programa.",
+      "recommendation": "Substituir `AccountInfo` por `Account<'info, Treasury>` para que o Anchor valide automaticamente o proprietário da conta. Caso seja necessário manter `AccountInfo`, adicionar uma verificação explícita: `require!(ctx.accounts.treasury.owner == ctx.program_id, ErrorCode::InvalidOwner);` antes de acessar os dados."
+    },
+    {
+      "category": "COSPLAY",
+      "decision": "report",
+      "severity": "critica",
+      "confidence": "alta",
+      "justification": "A análise estática mostrou que os dados são desserializados manualmente a partir de offsets fixos sem validar o discriminador de 8 bytes do Anchor. A análise dinâmica confirmou que uma conta com discriminador incorreto (de outro tipo) foi processada com sucesso, demonstrando que o programa aceita contas que não são do tipo `Treasury`. Isso permite que atacantes forneçam contas com layout semelhante para manipular campos como `authority`, `balance` e `is_active`.",
+      "recommendation": "Utilizar o tipo `Account<'info, Treasury>` em vez de `AccountInfo` para que o Anchor valide automaticamente o discriminador. Se a desserialização manual for necessária, verificar explicitamente os primeiros 8 bytes do buffer contra o discriminador esperado de `Treasury` antes de ler os campos: `require!(&data[0..8] == Treasury::DISCRIMINATOR, ErrorCode::InvalidDiscriminator);`."
+    }
+  ],
+  "predicted": [
+    "COSPLAY",
+    "OWNER"
+  ],
+  "extra_categories": [],
+  "omitted": [],
+  "parse_error": null,
+  "inputs": [
+    {
+      "category": "OWNER",
+      "dynamic_verdict": "confirmed"
+    },
+    {
+      "category": "COSPLAY",
+      "dynamic_verdict": "confirmed"
+    }
+  ],
+  "case_id": "SSP-02-A-V"
+}

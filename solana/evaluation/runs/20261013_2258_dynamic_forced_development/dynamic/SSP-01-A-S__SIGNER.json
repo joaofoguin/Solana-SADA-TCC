@@ -1,0 +1,368 @@
+{
+  "category": "SIGNER",
+  "verdict": "not_confirmed",
+  "exploit_successful": false,
+  "attack_result": "Failure(Custom(3010))",
+  "reason": "baseline ok; ataque rejeitado: Failure(Custom(3010)) = AccountNotSigner (erro do Anchor)",
+  "attempts_used": 4,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2602,
+        "completion_tokens": 1051,
+        "latency_s": 5.1
+      },
+      "raw": "{\n  \"plan\": \"O cenário inicializa um vault PDA com autoridade legítima e deposita fundos via baseline (initialize + deposit). Em seguida, tenta executar withdraw sem a assinatura da autoridade, mantendo o mesmo vault e recipient, para testar a hipótese de Missing Signer Check. O efeito medido é a redução do saldo do vault e o aumento do saldo do recipient sem a assinatura da autoridade, o que não ocorreria no uso legítimo.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet recipient = Pubkey::new_unique();\\nlet (vault_pda, _bump) = Pubkey::find_program_address(&[b\\\"vault\\\", authority.as_ref()], &env.program_id);\\n\\n// Contas iniciais\\nlet authority_account = wallet(10_000_000_000);\\nlet recipient_account = wallet(1_000_000_000);\\nlet vault_account = empty_account();\\nlet system_program = system_program_account();\\n\\n// Baseline: initialize\\nlet ix_init = env.anchor_ix(\\\"initialize\\\", &(), &[\\n    AccountMeta::new(vault_pda, false),\\n    AccountMeta::new(authority, true),\\n    AccountMeta::new_readonly(system_program.0, false),\\n]);\\nlet accounts_init = vec![\\n    (vault_pda, vault_account.clone()),\\n    (authority, authority_account.clone()),\\n    system_program.clone(),\\n];\\nlet r_init = env.baseline(\\\"initialize vault\\\", &ix_init, &accounts_init);\\n\\n// Extrair vault após initialize\\nlet vault_after_init = after(&r_init, &vault_pda).clone();\\n\\n// Baseline: deposit\\nlet ix_deposit = env.anchor_ix(\\\"deposit\\\", &(1_000_000_000u64,), &[\\n    AccountMeta::new(vault_pda, false),\\n    AccountMeta::new(authority, true),\\n    AccountMeta::new_readonly(system_program.0, false),\\n]);\\nlet accounts_deposit = vec![\\n    (vault_pda, vault_after_init.clone()),\\n    (authority, authority_account.clone()),\\n    system_program.clone(),\\n];\\nlet r_deposit = env.baseline(\\\"deposit 1 SOL\\\", &ix_deposit, &accounts_deposit);\\n\\n// Estado após deposit\\nlet vault_after_deposit = after(&r_deposit, &vault_pda).clone();\\nlet authority_after_deposit = after(&r_deposit, &authority).clone();\\nlet recipient_after_deposit = recipient_account.clone();\\n\\n// Ataque: withdraw sem assinatura da autoridade\\nlet ix_attack = env.anchor_ix(\\\"withdraw\\\", &(500_000_000u64,), &[\\n    AccountMeta::new(vault_pda, false),\\n    AccountMeta::new_readonly(authority, false), // NÃO assina\\n    AccountMeta::new(recipient, false),\\n]);\\nlet accounts_attack = vec![\\n    (vault_pda, vault_after_deposit.clone()),\\n    (authority, authority_after_deposit.clone()),\\n    (recipient, recipient_after_deposit.clone()),\\n];\\nlet r_attack = env.attack(\\\"withdraw sem assinatura da autoridade\\\", &ix_attack, &accounts_attack);\\n\\nif r_attack.program_result == ProgramResult::Success {\\n    let vault_after_attack = after(&r_attack, &vault_pda);\\n    let recipient_after_attack = after(&r_attack, &recipient);\\n    let vault_balance_before = read_u64(vault_after_deposit.data(), 40);\\n    let vault_balance_after = read_u64(vault_after_attack.data(), 40);\\n    let recipient_lamports_before = recipient_after_deposit.lamports();\\n    let recipient_lamports_after = recipient_after_attack.lamports();\\n    env.effect(\\\"saldo do vault reduzido sem assinatura da autoridade\\\", vault_balance_after == vault_balance_before - 500_000_000);\\n    env.effect(\\\"lamports do recipient aumentados sem assinatura da autoridade\\\", recipient_lamports_after == recipient_lamports_before + 500_000_000);\\n}\"\n}",
+      "plan": "O cenário inicializa um vault PDA com autoridade legítima e deposita fundos via baseline (initialize + deposit). Em seguida, tenta executar withdraw sem a assinatura da autoridade, mantendo o mesmo vault e recipient, para testar a hipótese de Missing Signer Check. O efeito medido é a redução do saldo do vault e o aumento do saldo do recipient sem a assinatura da autoridade, o que não ocorreria no uso legítimo.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet recipient = Pubkey::new_unique();\nlet (vault_pda, _bump) = Pubkey::find_program_address(&[b\"vault\", authority.as_ref()], &env.program_id);\n\n// Contas iniciais\nlet authority_account = wallet(10_000_000_000);\nlet recipient_account = wallet(1_000_000_000);\nlet vault_account = empty_account();\nlet system_program = system_program_account();\n\n// Baseline: initialize\nlet ix_init = env.anchor_ix(\"initialize\", &(), &[\n    AccountMeta::new(vault_pda, false),\n    AccountMeta::new(authority, true),\n    AccountMeta::new_readonly(system_program.0, false),\n]);\nlet accounts_init = vec![\n    (vault_pda, vault_account.clone()),\n    (authority, authority_account.clone()),\n    system_program.clone(),\n];\nlet r_init = env.baseline(\"initialize vault\", &ix_init, &accounts_init);\n\n// Extrair vault após initialize\nlet vault_after_init = after(&r_init, &vault_pda).clone();\n\n// Baseline: deposit\nlet ix_deposit = env.anchor_ix(\"deposit\", &(1_000_000_000u64,), &[\n    AccountMeta::new(vault_pda, false),\n    AccountMeta::new(authority, true),\n    AccountMeta::new_readonly(system_program.0, false),\n]);\nlet accounts_deposit = vec![\n    (vault_pda, vault_after_init.clone()),\n    (authority, authority_account.clone()),\n    system_program.clone(),\n];\nlet r_deposit = env.baseline(\"deposit 1 SOL\", &ix_deposit, &accounts_deposit);\n\n// Estado após deposit\nlet vault_after_deposit = after(&r_deposit, &vault_pda).clone();\nlet authority_after_deposit = after(&r_deposit, &authority).clone();\nlet recipient_after_deposit = recipient_account.clone();\n\n// Ataque: withdraw sem assinatura da autoridade\nlet ix_attack = env.anchor_ix(\"withdraw\", &(500_000_000u64,), &[\n    AccountMeta::new(vault_pda, false),\n    AccountMeta::new_readonly(authority, false), // NÃO assina\n    AccountMeta::new(recipient, false),\n]);\nlet accounts_attack = vec![\n    (vault_pda, vault_after_deposit.clone()),\n    (authority, authority_after_deposit.clone()),\n    (recipient, recipient_after_deposit.clone()),\n];\nlet r_attack = env.attack(\"withdraw sem assinatura da autoridade\", &ix_attack, &accounts_attack);\n\nif r_attack.program_result == ProgramResult::Success {\n    let vault_after_attack = after(&r_attack, &vault_pda);\n    let recipient_after_attack = after(&r_attack, &recipient);\n    let vault_balance_before = read_u64(vault_after_deposit.data(), 40);\n    let vault_balance_after = read_u64(vault_after_attack.data(), 40);\n    let recipient_lamports_before = recipient_after_deposit.lamports();\n    let recipient_lamports_after = recipient_after_attack.lamports();\n    env.effect(\"saldo do vault reduzido sem assinatura da autoridade\", vault_balance_after == vault_balance_before - 500_000_000);\n    env.effect(\"lamports do recipient aumentados sem assinatura da autoridade\", recipient_lamports_after == recipient_lamports_before + 500_000_000);\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0308]: mismatched types\n   --> tests/attempt.rs:20:52\n    |\n 20 |       let ix_init = env.anchor_ix(\"initialize\", &(), &[\n    |  _______________________---------____________________^\n    | |                       |\n    | |                       arguments to this method are incorrect\n 21 | |         AccountMeta::new(vault_pda, false),\n 22 | |         AccountMeta::new(authority, true),\n 23 | |         AccountMeta::new_readonly(system_program.0, false),\n 24 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 3]`\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:36:69\n    |\n 36 |       let ix_deposit = env.anchor_ix(\"deposit\", &(1_000_000_000u64,), &[\n    |  __________________________---------__________________________________^\n    | |                          |\n    | |                          arguments to this method are incorrect\n 37 | |         AccountMeta::new(vault_pda, false),\n 38 | |         AccountMeta::new(authority, true),\n 39 | |         AccountMeta::new_readonly(system_program.0, false),\n 40 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 3]`\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:54:67\n    |\n 54 |       let ix_attack = env.anchor_ix(\"withdraw\", &(500_000_000u64,), &[\n    |  _________________________---------_________________________________^\n    | |                         |\n    | |                         arguments to this method are incorrect\n 55 | |         AccountMeta::new(vault_pda, false),\n 56 | |         AccountMeta::new_readonly(authority, false), // NÃO assina\n 57 | |         AccountMeta::new(recipient, false),\n 58 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 3]`\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 3 previous errors",
+        "elapsed_s": 0.7
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:20:52\n    |\n 20 |       let ix_init = env.anchor_ix(\"initialize\", &(), &[\n    |  _______________________---------____________________^\n    | |                       |\n    | |                       arguments to this method are incorrect\n 21 | |         AccountMeta::new(vault_pda, false),\n 22 | |         AccountMeta::new(authority, true),\n 23 | |         AccountMeta::new_readonly(system_program.0, false),\n 24 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 3]`\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:36:69\n    |\n 36 |       let ix_deposit = env.anchor_ix(\"deposit\", &(1_000_000_000u64,), &[\n    |  __________________________---------__________________________________^\n    | |                          |\n    | |                          arguments to this method are incorrect\n 37 | |         AccountMeta::new(vault_pda, false),\n 38 | |         AccountMeta::new(authority, true),\n 39 | |         AccountMeta::new_readonly(system_program.0, false),\n 40 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 3]`\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:54:67\n    |\n 54 |       let ix_attack = env.anchor_ix(\"withdraw\", &(500_000_000u64,), &[\n    |  _________________________---------_________________________________^\n    | |                         |\n    | |                         arguments to this method are incorrect\n 55 | |         AccountMeta::new(vault_pda, false),\n 56 | |         AccountMeta::new_readonly(authority, false), // NÃO assina\n 57 | |         AccountMeta::new(recipient, false),\n 58 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 3]`\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 3 previous errors"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3987,
+        "completion_tokens": 992,
+        "latency_s": 4.54
+      },
+      "raw": "{\"plan\": \"Preparo o vault via initialize (PDA com seeds [b\\\"vault\\\", authority]) e deposito 1 SOL para dar saldo. O uso legitimo de withdraw assina com a authority. O ataque repete withdraw com a mesma authority mas sem assina-la, tentando drenar o vault para o recipient. O efeito mede a reducao do saldo do vault e o aumento dos lamports do recipient sem assinatura.\", \"scenario\": \"let authority = Pubkey::new_unique();\\nlet recipient = Pubkey::new_unique();\\nlet (vault_pda, _bump) = Pubkey::find_program_address(&[b\\\"vault\\\", authority.as_ref()], &env.program_id);\\n\\nlet authority_account = wallet(10_000_000_000);\\nlet recipient_account = wallet(1_000_000_000);\\nlet vault_account = empty_account();\\nlet system_program = system_program_account();\\n\\nlet ix_init = env.anchor_ix(\\\"initialize\\\", &(), vec![\\n    AccountMeta::new(vault_pda, false),\\n    AccountMeta::new(authority, true),\\n    AccountMeta::new_readonly(system_program.0, false),\\n]);\\nlet accounts_init = vec![\\n    (vault_pda, vault_account.clone()),\\n    (authority, authority_account.clone()),\\n    system_program.clone(),\\n];\\nlet r_init = env.baseline(\\\"initialize vault\\\", &ix_init, &accounts_init);\\n\\nlet vault_after_init = after(&r_init, &vault_pda).clone();\\n\\nlet ix_deposit = env.anchor_ix(\\\"deposit\\\", &(1_000_000_000u64,), vec![\\n    AccountMeta::new(vault_pda, false),\\n    AccountMeta::new(authority, true),\\n    AccountMeta::new_readonly(system_program.0, false),\\n]);\\nlet accounts_deposit = vec![\\n    (vault_pda, vault_after_init.clone()),\\n    (authority, authority_account.clone()),\\n    system_program.clone(),\\n];\\nlet r_deposit = env.baseline(\\\"deposit 1 SOL\\\", &ix_deposit, &accounts_deposit);\\n\\nlet vault_after_deposit = after(&r_deposit, &vault_pda).clone();\\nlet authority_after_deposit = after(&r_deposit, &authority).clone();\\nlet recipient_after_deposit = recipient_account.clone();\\n\\nlet ix_attack = env.anchor_ix(\\\"withdraw\\\", &(500_000_000u64,), vec![\\n    AccountMeta::new(vault_pda, false),\\n    AccountMeta::new_readonly(authority, false),\\n    AccountMeta::new(recipient, false),\\n]);\\nlet accounts_attack = vec![\\n    (vault_pda, vault_after_deposit.clone()),\\n    (authority, authority_after_deposit.clone()),\\n    (recipient, recipient_after_deposit.clone()),\\n];\\nlet r_attack = env.attack(\\\"withdraw sem assinatura da autoridade\\\", &ix_attack, &accounts_attack);\\n\\nif r_attack.program_result == ProgramResult::Success {\\n    let vault_after_attack = after(&r_attack, &vault_pda);\\n    let recipient_after_attack = after(&r_attack, &recipient);\\n    let vault_balance_before = read_u64(vault_after_deposit.data(), 40);\\n    let vault_balance_after = read_u64(vault_after_attack.data(), 40);\\n    let recipient_lamports_before = recipient_after_deposit.lamports();\\n    let recipient_lamports_after = recipient_after_attack.lamports();\\n    env.effect(\\\"saldo do vault reduzido sem assinatura da autoridade\\\", vault_balance_after == vault_balance_before - 500_000_000);\\n    env.effect(\\\"lamports do recipient aumentados sem assinatura da autoridade\\\", recipient_lamports_after == recipient_lamports_before + 500_000_000);\\n}\"}",
+      "plan": "Preparo o vault via initialize (PDA com seeds [b\"vault\", authority]) e deposito 1 SOL para dar saldo. O uso legitimo de withdraw assina com a authority. O ataque repete withdraw com a mesma authority mas sem assina-la, tentando drenar o vault para o recipient. O efeito mede a reducao do saldo do vault e o aumento dos lamports do recipient sem assinatura.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet recipient = Pubkey::new_unique();\nlet (vault_pda, _bump) = Pubkey::find_program_address(&[b\"vault\", authority.as_ref()], &env.program_id);\n\nlet authority_account = wallet(10_000_000_000);\nlet recipient_account = wallet(1_000_000_000);\nlet vault_account = empty_account();\nlet system_program = system_program_account();\n\nlet ix_init = env.anchor_ix(\"initialize\", &(), vec![\n    AccountMeta::new(vault_pda, false),\n    AccountMeta::new(authority, true),\n    AccountMeta::new_readonly(system_program.0, false),\n]);\nlet accounts_init = vec![\n    (vault_pda, vault_account.clone()),\n    (authority, authority_account.clone()),\n    system_program.clone(),\n];\nlet r_init = env.baseline(\"initialize vault\", &ix_init, &accounts_init);\n\nlet vault_after_init = after(&r_init, &vault_pda).clone();\n\nlet ix_deposit = env.anchor_ix(\"deposit\", &(1_000_000_000u64,), vec![\n    AccountMeta::new(vault_pda, false),\n    AccountMeta::new(authority, true),\n    AccountMeta::new_readonly(system_program.0, false),\n]);\nlet accounts_deposit = vec![\n    (vault_pda, vault_after_init.clone()),\n    (authority, authority_account.clone()),\n    system_program.clone(),\n];\nlet r_deposit = env.baseline(\"deposit 1 SOL\", &ix_deposit, &accounts_deposit);\n\nlet vault_after_deposit = after(&r_deposit, &vault_pda).clone();\nlet authority_after_deposit = after(&r_deposit, &authority).clone();\nlet recipient_after_deposit = recipient_account.clone();\n\nlet ix_attack = env.anchor_ix(\"withdraw\", &(500_000_000u64,), vec![\n    AccountMeta::new(vault_pda, false),\n    AccountMeta::new_readonly(authority, false),\n    AccountMeta::new(recipient, false),\n]);\nlet accounts_attack = vec![\n    (vault_pda, vault_after_deposit.clone()),\n    (authority, authority_after_deposit.clone()),\n    (recipient, recipient_after_deposit.clone()),\n];\nlet r_attack = env.attack(\"withdraw sem assinatura da autoridade\", &ix_attack, &accounts_attack);\n\nif r_attack.program_result == ProgramResult::Success {\n    let vault_after_attack = after(&r_attack, &vault_pda);\n    let recipient_after_attack = after(&r_attack, &recipient);\n    let vault_balance_before = read_u64(vault_after_deposit.data(), 40);\n    let vault_balance_after = read_u64(vault_after_attack.data(), 40);\n    let recipient_lamports_before = recipient_after_deposit.lamports();\n    let recipient_lamports_after = recipient_after_attack.lamports();\n    env.effect(\"saldo do vault reduzido sem assinatura da autoridade\", vault_balance_after == vault_balance_before - 500_000_000);\n    env.effect(\"lamports do recipient aumentados sem assinatura da autoridade\", recipient_lamports_after == recipient_lamports_before + 500_000_000);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "initialize vault",
+            "result": "Success",
+            "compute_units": 15866,
+            "account_flags": "-w,sw,-r",
+            "ix_head": "afaf6d1f0d989bed",
+            "accounts": [
+              {
+                "key": "5zsk6WSYtnbdUvjmovQLQtknEZdhWtDG8kpPiw8igarJ",
+                "signer": false,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": "d308e82b0298757700000000000000010000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "11111111111111111111111111111111",
+                "signer": false,
+                "writable": false,
+                "owner": "NativeLoader1111111111111111111111111111111",
+                "data_len": 14,
+                "head": "73797374656d5f70",
+                "digest": "d8e11c483f20607a",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "baseline",
+            "note": "deposit 1 SOL",
+            "result": "Success",
+            "compute_units": 4312,
+            "account_flags": "-w,sw,-r",
+            "ix_head": "f223c68952e1f2b6",
+            "accounts": [
+              {
+                "key": "5zsk6WSYtnbdUvjmovQLQtknEZdhWtDG8kpPiw8igarJ",
+                "signer": false,
+                "writable": true,
+                "owner": "HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC",
+                "data_len": 48,
+                "head": "d308e82b02987577",
+                "digest": "6bfea51d479d8ea0",
+                "post": "d308e82b02987577000000000000000100000000000000000000000000000000000000000000000000ca9a3b00000000"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "11111111111111111111111111111111",
+                "signer": false,
+                "writable": false,
+                "owner": "NativeLoader1111111111111111111111111111111",
+                "data_len": 14,
+                "head": "73797374656d5f70",
+                "digest": "d8e11c483f20607a",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "withdraw sem assinatura da autoridade",
+            "result": "Failure(Custom(3010))",
+            "compute_units": 2778,
+            "account_flags": "-w,-r,-w",
+            "ix_head": "16ad7207afb3a83a",
+            "accounts": [
+              {
+                "key": "5zsk6WSYtnbdUvjmovQLQtknEZdhWtDG8kpPiw8igarJ",
+                "signer": false,
+                "writable": true,
+                "owner": "HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC",
+                "data_len": 48,
+                "head": "d308e82b02987577",
+                "digest": "39c070e00014d5ee",
+                "post": "d308e82b02987577000000000000000100000000000000000000000000000000000000000000000000ca9a3b00000000"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC invoke [1]",
+          "Program 11111111111111111111111111111111 invoke [2]",
+          "Program 11111111111111111111111111111111 success",
+          "Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC consumed 15866 of 1400000 compute units",
+          "Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC success",
+          "Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC invoke [1]",
+          "Program 11111111111111111111111111111111 invoke [2]",
+          "Program 11111111111111111111111111111111 success",
+          "Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC consumed 4312 of 1400000 compute units",
+          "Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC success",
+          "Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC invoke [1]",
+          "Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC consumed 2778 of 1400000 compute units",
+          "Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC failed: custom program error: 0xbc2"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "not_confirmed",
+      "reason": "baseline ok; ataque rejeitado: Failure(Custom(3010)) = AccountNotSigner (erro do Anchor)"
+    },
+    {
+      "attempt": 3,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3462,
+        "completion_tokens": 1015,
+        "latency_s": 4.51
+      },
+      "raw": "{\"plan\": \"A tentativa anterior montou corretamente o estado (vault inicializado e com saldo via deposit) e tentou withdraw sem a assinatura da authority, mas o Anchor rejeitou com AccountNotSigner (3010) porque o campo `authority: Signer<'info>` exige a assinatura. A hipotese de Missing Signer Check nao se sustenta: o proprio tipo Signer do Anchor impoe a verificacao. Vou reproduzir o mesmo cenario para confirmar que o ataque e consistentemente bloqueado.\", \"scenario\": \"let authority = Pubkey::new_unique();\\nlet recipient = Pubkey::new_unique();\\nlet (vault_pda, _bump) = Pubkey::find_program_address(&[b\\\"vault\\\", authority.as_ref()], &env.program_id);\\n\\nlet authority_account = wallet(10_000_000_000);\\nlet recipient_account = wallet(1_000_000_000);\\nlet vault_account = empty_account();\\nlet system_program = system_program_account();\\n\\nlet ix_init = env.anchor_ix(\\\"initialize\\\", &(), vec![\\n    AccountMeta::new(vault_pda, false),\\n    AccountMeta::new(authority, true),\\n    AccountMeta::new_readonly(system_program.0, false),\\n]);\\nlet accounts_init = vec![\\n    (vault_pda, vault_account.clone()),\\n    (authority, authority_account.clone()),\\n    system_program.clone(),\\n];\\nlet r_init = env.baseline(\\\"initialize vault\\\", &ix_init, &accounts_init);\\n\\nlet vault_after_init = after(&r_init, &vault_pda).clone();\\n\\nlet ix_deposit = env.anchor_ix(\\\"deposit\\\", &(1_000_000_000u64,), vec![\\n    AccountMeta::new(vault_pda, false),\\n    AccountMeta::new(authority, true),\\n    AccountMeta::new_readonly(system_program.0, false),\\n]);\\nlet accounts_deposit = vec![\\n    (vault_pda, vault_after_init.clone()),\\n    (authority, authority_account.clone()),\\n    system_program.clone(),\\n];\\nlet r_deposit = env.baseline(\\\"deposit 1 SOL\\\", &ix_deposit, &accounts_deposit);\\n\\nlet vault_after_deposit = after(&r_deposit, &vault_pda).clone();\\nlet authority_after_deposit = after(&r_deposit, &authority).clone();\\nlet recipient_after_deposit = recipient_account.clone();\\n\\nlet ix_attack = env.anchor_ix(\\\"withdraw\\\", &(500_000_000u64,), vec![\\n    AccountMeta::new(vault_pda, false),\\n    AccountMeta::new_readonly(authority, false),\\n    AccountMeta::new(recipient, false),\\n]);\\nlet accounts_attack = vec![\\n    (vault_pda, vault_after_deposit.clone()),\\n    (authority, authority_after_deposit.clone()),\\n    (recipient, recipient_after_deposit.clone()),\\n];\\nlet r_attack = env.attack(\\\"withdraw sem assinatura da autoridade\\\", &ix_attack, &accounts_attack);\\n\\nif r_attack.program_result == ProgramResult::Success {\\n    let vault_after_attack = after(&r_attack, &vault_pda);\\n    let recipient_after_attack = after(&r_attack, &recipient);\\n    let vault_balance_before = read_u64(vault_after_deposit.data(), 40);\\n    let vault_balance_after = read_u64(vault_after_attack.data(), 40);\\n    let recipient_lamports_before = recipient_after_deposit.lamports();\\n    let recipient_lamports_after = recipient_after_attack.lamports();\\n    env.effect(\\\"saldo do vault reduzido sem assinatura da autoridade\\\", vault_balance_after == vault_balance_before - 500_000_000);\\n    env.effect(\\\"lamports do recipient aumentados sem assinatura da autoridade\\\", recipient_lamports_after == recipient_lamports_before + 500_000_000);\\n}\"}",
+      "plan": "A tentativa anterior montou corretamente o estado (vault inicializado e com saldo via deposit) e tentou withdraw sem a assinatura da authority, mas o Anchor rejeitou com AccountNotSigner (3010) porque o campo `authority: Signer<'info>` exige a assinatura. A hipotese de Missing Signer Check nao se sustenta: o proprio tipo Signer do Anchor impoe a verificacao. Vou reproduzir o mesmo cenario para confirmar que o ataque e consistentemente bloqueado.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet recipient = Pubkey::new_unique();\nlet (vault_pda, _bump) = Pubkey::find_program_address(&[b\"vault\", authority.as_ref()], &env.program_id);\n\nlet authority_account = wallet(10_000_000_000);\nlet recipient_account = wallet(1_000_000_000);\nlet vault_account = empty_account();\nlet system_program = system_program_account();\n\nlet ix_init = env.anchor_ix(\"initialize\", &(), vec![\n    AccountMeta::new(vault_pda, false),\n    AccountMeta::new(authority, true),\n    AccountMeta::new_readonly(system_program.0, false),\n]);\nlet accounts_init = vec![\n    (vault_pda, vault_account.clone()),\n    (authority, authority_account.clone()),\n    system_program.clone(),\n];\nlet r_init = env.baseline(\"initialize vault\", &ix_init, &accounts_init);\n\nlet vault_after_init = after(&r_init, &vault_pda).clone();\n\nlet ix_deposit = env.anchor_ix(\"deposit\", &(1_000_000_000u64,), vec![\n    AccountMeta::new(vault_pda, false),\n    AccountMeta::new(authority, true),\n    AccountMeta::new_readonly(system_program.0, false),\n]);\nlet accounts_deposit = vec![\n    (vault_pda, vault_after_init.clone()),\n    (authority, authority_account.clone()),\n    system_program.clone(),\n];\nlet r_deposit = env.baseline(\"deposit 1 SOL\", &ix_deposit, &accounts_deposit);\n\nlet vault_after_deposit = after(&r_deposit, &vault_pda).clone();\nlet authority_after_deposit = after(&r_deposit, &authority).clone();\nlet recipient_after_deposit = recipient_account.clone();\n\nlet ix_attack = env.anchor_ix(\"withdraw\", &(500_000_000u64,), vec![\n    AccountMeta::new(vault_pda, false),\n    AccountMeta::new_readonly(authority, false),\n    AccountMeta::new(recipient, false),\n]);\nlet accounts_attack = vec![\n    (vault_pda, vault_after_deposit.clone()),\n    (authority, authority_after_deposit.clone()),\n    (recipient, recipient_after_deposit.clone()),\n];\nlet r_attack = env.attack(\"withdraw sem assinatura da autoridade\", &ix_attack, &accounts_attack);\n\nif r_attack.program_result == ProgramResult::Success {\n    let vault_after_attack = after(&r_attack, &vault_pda);\n    let recipient_after_attack = after(&r_attack, &recipient);\n    let vault_balance_before = read_u64(vault_after_deposit.data(), 40);\n    let vault_balance_after = read_u64(vault_after_attack.data(), 40);\n    let recipient_lamports_before = recipient_after_deposit.lamports();\n    let recipient_lamports_after = recipient_after_attack.lamports();\n    env.effect(\"saldo do vault reduzido sem assinatura da autoridade\", vault_balance_after == vault_balance_before - 500_000_000);\n    env.effect(\"lamports do recipient aumentados sem assinatura da autoridade\", recipient_lamports_after == recipient_lamports_before + 500_000_000);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "initialize vault",
+            "result": "Success",
+            "compute_units": 15866,
+            "account_flags": "-w,sw,-r",
+            "ix_head": "afaf6d1f0d989bed",
+            "accounts": [
+              {
+                "key": "5zsk6WSYtnbdUvjmovQLQtknEZdhWtDG8kpPiw8igarJ",
+                "signer": false,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": "d308e82b0298757700000000000000010000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "11111111111111111111111111111111",
+                "signer": false,
+                "writable": false,
+                "owner": "NativeLoader1111111111111111111111111111111",
+                "data_len": 14,
+                "head": "73797374656d5f70",
+                "digest": "d8e11c483f20607a",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "baseline",
+            "note": "deposit 1 SOL",
+            "result": "Success",
+            "compute_units": 4312,
+            "account_flags": "-w,sw,-r",
+            "ix_head": "f223c68952e1f2b6",
+            "accounts": [
+              {
+                "key": "5zsk6WSYtnbdUvjmovQLQtknEZdhWtDG8kpPiw8igarJ",
+                "signer": false,
+                "writable": true,
+                "owner": "HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC",
+                "data_len": 48,
+                "head": "d308e82b02987577",
+                "digest": "6bfea51d479d8ea0",
+                "post": "d308e82b02987577000000000000000100000000000000000000000000000000000000000000000000ca9a3b00000000"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "11111111111111111111111111111111",
+                "signer": false,
+                "writable": false,
+                "owner": "NativeLoader1111111111111111111111111111111",
+                "data_len": 14,
+                "head": "73797374656d5f70",
+                "digest": "d8e11c483f20607a",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "withdraw sem assinatura da autoridade",
+            "result": "Failure(Custom(3010))",
+            "compute_units": 2778,
+            "account_flags": "-w,-r,-w",
+            "ix_head": "16ad7207afb3a83a",
+            "accounts": [
+              {
+                "key": "5zsk6WSYtnbdUvjmovQLQtknEZdhWtDG8kpPiw8igarJ",
+                "signer": false,
+                "writable": true,
+                "owner": "HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC",
+                "data_len": 48,
+                "head": "d308e82b02987577",
+                "digest": "39c070e00014d5ee",
+                "post": "d308e82b02987577000000000000000100000000000000000000000000000000000000000000000000ca9a3b00000000"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC invoke [1]",
+          "Program 11111111111111111111111111111111 invoke [2]",
+          "Program 11111111111111111111111111111111 success",
+          "Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC consumed 15866 of 1400000 compute units",
+          "Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC success",
+          "Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC invoke [1]",
+          "Program 11111111111111111111111111111111 invoke [2]",
+          "Program 11111111111111111111111111111111 success",
+          "Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC consumed 4312 of 1400000 compute units",
+          "Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC success",
+          "Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC invoke [1]",
+          "Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC consumed 2778 of 1400000 compute units",
+          "Program HF33f3iZYeK7qz7AE1aWWGvQuxArTudNjKVseAhTYCRC failed: custom program error: 0xbc2"
+        ],
+        "elapsed_s": 1.6
+      },
+      "verdict": "not_confirmed",
+      "reason": "baseline ok; ataque rejeitado: Failure(Custom(3010)) = AccountNotSigner (erro do Anchor)"
+    },
+    {
+      "attempt": 4,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3462,
+        "completion_tokens": 122,
+        "latency_s": 1.93
+      },
+      "raw": "{\"plan\": \"A tentativa anterior foi rejeitada com AccountNotSigner (3010), o que indica que o Anchor exige a assinatura da autoridade na instrucao withdraw. A hipotese de Missing Signer Check nao se confirma: o campo `authority: Signer<'info>` no struct Withdraw garante a verificacao de assinatura. Como o ataque foi rejeitado pelo proprio programa (nao por erro de montagem do cenario), a vulnerabilidade esta bloqueada.\", \"conclusion\": \"blocked\"}",
+      "plan": "A tentativa anterior foi rejeitada com AccountNotSigner (3010), o que indica que o Anchor exige a assinatura da autoridade na instrucao withdraw. A hipotese de Missing Signer Check nao se confirma: o campo `authority: Signer<'info>` no struct Withdraw garante a verificacao de assinatura. Como o ataque foi rejeitado pelo proprio programa (nao por erro de montagem do cenario), a vulnerabilidade esta bloqueada.",
+      "verdict": "not_confirmed",
+      "reason": "LLM concluiu que o programa bloqueia o ataque"
+    }
+  ],
+  "case_id": "SSP-01-A-S",
+  "static_finding": {
+    "category": "SIGNER",
+    "evidence": "",
+    "explanation": "",
+    "attack_hypothesis": "Verificar por execucao se a instrucao e vulneravel a Missing Signer Check."
+  }
+}

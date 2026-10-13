@@ -1,0 +1,122 @@
+{
+  "category": "COSPLAY",
+  "verdict": "not_confirmed",
+  "exploit_successful": false,
+  "attack_result": "Failure(Custom(3002))",
+  "reason": "baseline ok; ataque rejeitado: Failure(Custom(3002)) = AccountDiscriminatorMismatch (erro do Anchor)",
+  "attempts_used": 2,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2163,
+        "completion_tokens": 662,
+        "latency_s": 4.2
+      },
+      "raw": "{\n  \"plan\": \"O cenário monta uma conta AdminConfig legítima com admin = authority e fee_basis_points = 100, e uma conta UserData com o mesmo layout de tamanho (discriminador diferente, authority = authority, balance = 999). O baseline chama update_fee com a conta AdminConfig e a authority como signer, provando que o cenário está correto. O ataque chama update_fee passando a conta UserData no lugar da AdminConfig, mantendo a mesma authority signer. O efeito mede se a instrução aceitou a conta de tipo errado: se o ataque tiver sucesso, o campo balance da UserData (offset 40) terá sido sobrescrito com o novo fee, demonstrando o type cosplay.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet config_key = Pubkey::new_unique();\\nlet user_key = Pubkey::new_unique();\\n\\nlet config_data = anchor_account_data(\\\"AdminConfig\\\", &(authority, 100u64));\\nlet user_data = anchor_account_data(\\\"UserData\\\", &(authority, 999u64));\\n\\nlet config_account = account(&env.program_id, &config_data, None);\\nlet user_account = account(&env.program_id, &user_data, None);\\nlet authority_account = wallet(1_000_000_000);\\n\\nlet metas = vec![\\n    AccountMeta::new(config_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n];\\nlet ix = env.anchor_ix(\\\"update_fee\\\", &(500u64,), metas);\\n\\nlet contas = vec![\\n    (config_key, config_account.clone()),\\n    (authority, authority_account.clone()),\\n];\\n\\nlet baseline = env.baseline(\\\"update_fee legitimo com AdminConfig\\\", &ix, &contas);\\n\\nlet attack_metas = vec![\\n    AccountMeta::new(user_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n];\\nlet attack_ix = env.anchor_ix(\\\"update_fee\\\", &(500u64,), attack_metas);\\n\\nlet attack_contas = vec![\\n    (user_key, user_account.clone()),\\n    (authority, authority_account.clone()),\\n];\\n\\nlet r = env.attack(\\\"update_fee com UserData no lugar de AdminConfig\\\", &attack_ix, &attack_contas);\\n\\nif r.program_result == ProgramResult::Success {\\n    let user_after = after(&r, &user_key);\\n    env.effect(\\n        \\\"UserData aceita como AdminConfig: balance sobrescrito com o novo fee\\\",\\n        read_u64(user_after.data(), 40) == 500u64,\\n    );\\n}\"\n}",
+      "plan": "O cenário monta uma conta AdminConfig legítima com admin = authority e fee_basis_points = 100, e uma conta UserData com o mesmo layout de tamanho (discriminador diferente, authority = authority, balance = 999). O baseline chama update_fee com a conta AdminConfig e a authority como signer, provando que o cenário está correto. O ataque chama update_fee passando a conta UserData no lugar da AdminConfig, mantendo a mesma authority signer. O efeito mede se a instrução aceitou a conta de tipo errado: se o ataque tiver sucesso, o campo balance da UserData (offset 40) terá sido sobrescrito com o novo fee, demonstrando o type cosplay.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet config_key = Pubkey::new_unique();\nlet user_key = Pubkey::new_unique();\n\nlet config_data = anchor_account_data(\"AdminConfig\", &(authority, 100u64));\nlet user_data = anchor_account_data(\"UserData\", &(authority, 999u64));\n\nlet config_account = account(&env.program_id, &config_data, None);\nlet user_account = account(&env.program_id, &user_data, None);\nlet authority_account = wallet(1_000_000_000);\n\nlet metas = vec![\n    AccountMeta::new(config_key, false),\n    AccountMeta::new_readonly(authority, true),\n];\nlet ix = env.anchor_ix(\"update_fee\", &(500u64,), metas);\n\nlet contas = vec![\n    (config_key, config_account.clone()),\n    (authority, authority_account.clone()),\n];\n\nlet baseline = env.baseline(\"update_fee legitimo com AdminConfig\", &ix, &contas);\n\nlet attack_metas = vec![\n    AccountMeta::new(user_key, false),\n    AccountMeta::new_readonly(authority, true),\n];\nlet attack_ix = env.anchor_ix(\"update_fee\", &(500u64,), attack_metas);\n\nlet attack_contas = vec![\n    (user_key, user_account.clone()),\n    (authority, authority_account.clone()),\n];\n\nlet r = env.attack(\"update_fee com UserData no lugar de AdminConfig\", &attack_ix, &attack_contas);\n\nif r.program_result == ProgramResult::Success {\n    let user_after = after(&r, &user_key);\n    env.effect(\n        \"UserData aceita como AdminConfig: balance sobrescrito com o novo fee\",\n        read_u64(user_after.data(), 40) == 500u64,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "update_fee legitimo com AdminConfig",
+            "result": "Success",
+            "compute_units": 1866,
+            "account_flags": "-w,sr",
+            "ix_head": "b8bdc8e36c7b6022",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP",
+                "data_len": 48,
+                "head": "9c0a4fa147093e4d",
+                "digest": "bb2574fd7d2eefb2",
+                "post": "9c0a4fa147093e4d0000000000000001000000000000000000000000000000000000000000000000f401000000000000"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "update_fee com UserData no lugar de AdminConfig",
+            "result": "Failure(Custom(3002))",
+            "compute_units": 2683,
+            "account_flags": "-w,sr",
+            "ix_head": "b8bdc8e36c7b6022",
+            "accounts": [
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP",
+                "data_len": 48,
+                "head": "8bf8a7cbfddcd2dd",
+                "digest": "25554c6ecb015b51",
+                "post": "8bf8a7cbfddcd2dd0000000000000001000000000000000000000000000000000000000000000000e703000000000000"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP invoke [1]",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP consumed 1866 of 1400000 compute units",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP success",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP invoke [1]",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP consumed 2683 of 1400000 compute units",
+          "Program HS241bzcteDvCTi6UMEfecj3o8JieRvZVL3F1zhZGPxP failed: custom program error: 0xbba"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "not_confirmed",
+      "reason": "baseline ok; ataque rejeitado: Failure(Custom(3002)) = AccountDiscriminatorMismatch (erro do Anchor)"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2656,
+        "completion_tokens": 106,
+        "latency_s": 1.84
+      },
+      "raw": "{\"plan\": \"O ataque anterior foi rejeitado porque o Anchor valida o discriminador de 8 bytes da conta contra o tipo AdminConfig, retornando AccountDiscriminatorMismatch (3002). Isso demonstra que o framework Anchor bloqueia o type cosplay nesse caso. Como o erro e do proprio Anchor (validacao de discriminador) e nao um erro de montagem do cenario, a hipotese esta bloqueada.\", \"conclusion\": \"blocked\"}",
+      "plan": "O ataque anterior foi rejeitado porque o Anchor valida o discriminador de 8 bytes da conta contra o tipo AdminConfig, retornando AccountDiscriminatorMismatch (3002). Isso demonstra que o framework Anchor bloqueia o type cosplay nesse caso. Como o erro e do proprio Anchor (validacao de discriminador) e nao um erro de montagem do cenario, a hipotese esta bloqueada.",
+      "verdict": "not_confirmed",
+      "reason": "LLM concluiu que o programa bloqueia o ataque"
+    }
+  ],
+  "case_id": "SSP-06-A-S",
+  "static_finding": {
+    "category": "COSPLAY",
+    "evidence": "",
+    "explanation": "",
+    "attack_hypothesis": "Verificar por execucao se a instrucao e vulneravel a Type Cosplay."
+  }
+}

