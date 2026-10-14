@@ -1,0 +1,47 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 1594,
+    "completion_tokens": 571,
+    "latency_s": 3.96,
+    "attempts": 1
+  },
+  "raw": "{\n  \"summary\": \"A instrução `burn` apresenta falhas críticas de segurança: ausência de verificação de proprietário (owner) e uso de aritmética com wrapping_sub que permite underflow. A análise dinâmica confirmou a exploração do underflow, enquanto a falha de owner foi considerada inconclusiva devido a erro de runtime, mas a evidência estática é forte. Ambas as vulnerabilidades devem ser corrigidas com urgência.\",\n  \"findings\": [\n    {\n      \"category\": \"OWNER\",\n      \"decision\": \"report\",\n      \"severity\": \"critica\",\n      \"confidence\": \"alta\",\n      \"justification\": \"A análise estática identificou que a conta `ledger` é usada sem verificação de proprietário, permitindo que contas forjadas de outros programas sejam passadas. A análise dinâmica foi inconclusiva porque o ataque resultou em erro de runtime (ExternalAccountDataModified), mas isso não invalida a vulnerabilidade: o programa aceitou a entrada e tentou modificar dados de uma conta não pertencente a ele, o que é bloqueado pelo runtime. A ausência de verificação de owner é uma falha crítica que pode levar à manipulação de dados não autenticados.\",\n      \"recommendation\": \"Adicione uma verificação explícita de que `ledger.owner == program_id` antes de ler ou modificar os dados da conta. Alternativamente, utilize o tipo `Account<'info, T>` do framework Anchor ou equivalente para garantir a validação automática de proprietário.\"\n    },\n    {\n      \"category\": \"MATH\",\n      \"decision\": \"report\",\n      \"severity\": \"critica\",\n      \"confidence\": \"alta\",\n      \"justification\": \"A análise estática revelou o uso de `wrapping_sub` para subtrair `amount` de `supply` e `balance`, permitindo underflow silencioso. A análise dinâmica confirmou o ataque: com supply=100 e balance=100, queimar 200 resultou em valores próximos de u64::MAX, demonstrando o wrap-around. O dano é verificado e a exploração é trivial, permitindo inflacionar saldos arbitrariamente.\",\n      \"recommendation\": \"Substitua `wrapping_sub` por `checked_sub` e trate o erro adequadamente, ou adicione uma pré-condição `require!(balance >= amount && supply >= amount)` antes das subtrações. Isso garante que a operação falhe de forma segura em caso de underflow.\"\n    }\n  ]\n}",
+  "summary": "A instrução `burn` apresenta falhas críticas de segurança: ausência de verificação de proprietário (owner) e uso de aritmética com wrapping_sub que permite underflow. A análise dinâmica confirmou a exploração do underflow, enquanto a falha de owner foi considerada inconclusiva devido a erro de runtime, mas a evidência estática é forte. Ambas as vulnerabilidades devem ser corrigidas com urgência.",
+  "findings": [
+    {
+      "category": "OWNER",
+      "decision": "report",
+      "severity": "critica",
+      "confidence": "alta",
+      "justification": "A análise estática identificou que a conta `ledger` é usada sem verificação de proprietário, permitindo que contas forjadas de outros programas sejam passadas. A análise dinâmica foi inconclusiva porque o ataque resultou em erro de runtime (ExternalAccountDataModified), mas isso não invalida a vulnerabilidade: o programa aceitou a entrada e tentou modificar dados de uma conta não pertencente a ele, o que é bloqueado pelo runtime. A ausência de verificação de owner é uma falha crítica que pode levar à manipulação de dados não autenticados.",
+      "recommendation": "Adicione uma verificação explícita de que `ledger.owner == program_id` antes de ler ou modificar os dados da conta. Alternativamente, utilize o tipo `Account<'info, T>` do framework Anchor ou equivalente para garantir a validação automática de proprietário."
+    },
+    {
+      "category": "MATH",
+      "decision": "report",
+      "severity": "critica",
+      "confidence": "alta",
+      "justification": "A análise estática revelou o uso de `wrapping_sub` para subtrair `amount` de `supply` e `balance`, permitindo underflow silencioso. A análise dinâmica confirmou o ataque: com supply=100 e balance=100, queimar 200 resultou em valores próximos de u64::MAX, demonstrando o wrap-around. O dano é verificado e a exploração é trivial, permitindo inflacionar saldos arbitrariamente.",
+      "recommendation": "Substitua `wrapping_sub` por `checked_sub` e trate o erro adequadamente, ou adicione uma pré-condição `require!(balance >= amount && supply >= amount)` antes das subtrações. Isso garante que a operação falhe de forma segura em caso de underflow."
+    }
+  ],
+  "predicted": [
+    "MATH",
+    "OWNER"
+  ],
+  "extra_categories": [],
+  "omitted": [],
+  "parse_error": null,
+  "inputs": [
+    {
+      "category": "OWNER",
+      "dynamic_verdict": "inconclusive"
+    },
+    {
+      "category": "MATH",
+      "dynamic_verdict": "confirmed"
+    }
+  ],
+  "case_id": "SSP-03-P-V2"
+}

@@ -1,0 +1,595 @@
+{
+  "category": "OWNER",
+  "verdict": "inconclusive",
+  "exploit_successful": false,
+  "attack_result": "Failure(InvalidAccountData)",
+  "reason": "o baseline 'transfer SPL Token legitimo' falhou com Failure(InvalidAccountData); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)",
+  "attempts_used": 5,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2275,
+        "completion_tokens": 1347,
+        "latency_s": 6.29
+      },
+      "raw": "{\n  \"plan\": \"O programa-alvo apenas repassa uma CPI de transfer do SPL Token sem validar que source/destination/authority pertencem ao SPL Token. O baseline usa contas SPL Token reais (mint, source, destination, authority) e deve ter sucesso. O ataque substitui source/destination por contas forjadas com dono diferente (ex.: o proprio program_id do alvo ou outro programa), mantendo o mesmo layout de token, para verificar se a CPI aceita contas com dono invalido. O efeito mede que a conta forjada foi aceita/alterada ou que a CPI nao rejeitou o dono invalido.\",\n  \"scenario\": \"let env = Env::load();\\n\\n// Contas SPL Token reais para o baseline\\nlet mint = Pubkey::new_unique();\\nlet source_owner = Pubkey::new_unique();\\nlet dest_owner = Pubkey::new_unique();\\nlet authority = Pubkey::new_unique();\\n\\n// Layout de conta SPL Token: mint(32) + owner(32) + amount(8) = 72 bytes\\nlet mut source_data = vec![0u8; 72];\\nsource_data[0..32].copy_from_slice(mint.as_ref());\\nsource_data[32..64].copy_from_slice(source_owner.as_ref());\\nsource_data[64..72].copy_from_slice(&1000u64.to_le_bytes());\\n\\nlet mut dest_data = vec![0u8; 72];\\ndest_data[0..32].copy_from_slice(mint.as_ref());\\ndest_data[32..64].copy_from_slice(dest_owner.as_ref());\\ndest_data[64..72].copy_from_slice(&0u64.to_le_bytes());\\n\\nlet spl_token_id = Pubkey::new_unique(); // placeholder para o token program\\n\\nlet source_legit = account(&spl_token_id, &source_data, None);\\nlet dest_legit = account(&spl_token_id, &dest_data, None);\\nlet authority_legit = wallet(1_000_000_000);\\nlet token_program_legit = program_account(&spl_token_id);\\n\\nlet ix_legit = env.anchor_ix(\\n    \\\"cpi\\\",\\n    &(100u64,),\\n    vec![\\n        AccountMeta::new(source_legit_key, false),\\n        AccountMeta::new(dest_legit_key, false),\\n        AccountMeta::new_readonly(authority_legit_key, true),\\n        AccountMeta::new_readonly(spl_token_id, false),\\n    ],\\n);\\n\\nlet contas_legit = vec![\\n    (source_legit_key, source_legit),\\n    (dest_legit_key, dest_legit),\\n    (authority_legit_key, authority_legit),\\n    (spl_token_id, token_program_legit),\\n];\\n\\nlet _ = env.baseline(\\\"transfer SPL Token legitimo\\\", &ix_legit, &contas_legit);\\n\\n// Ataque: contas forjadas com dono diferente do SPL Token\\nlet attacker_owner = env.program_id; // dono diferente do SPL Token\\n\\nlet mut source_forged_data = vec![0u8; 72];\\nsource_forged_data[0..32].copy_from_slice(mint.as_ref());\\nsource_forged_data[32..64].copy_from_slice(source_owner.as_ref());\\nsource_forged_data[64..72].copy_from_slice(&1000u64.to_le_bytes());\\n\\nlet mut dest_forged_data = vec![0u8; 72];\\ndest_forged_data[0..32].copy_from_slice(mint.as_ref());\\ndest_forged_data[32..64].copy_from_slice(dest_owner.as_ref());\\ndest_forged_data[64..72].copy_from_slice(&0u64.to_le_bytes());\\n\\nlet source_forged_key = Pubkey::new_unique();\\nlet dest_forged_key = Pubkey::new_unique();\\nlet authority_forged_key = Pubkey::new_unique();\\n\\nlet source_forged = account(&attacker_owner, &source_forged_data, None);\\nlet dest_forged = account(&attacker_owner, &dest_forged_data, None);\\nlet authority_forged = wallet(1_000_000_000);\\nlet token_program_forged = program_account(&spl_token_id);\\n\\nlet ix_attack = env.anchor_ix(\\n    \\\"cpi\\\",\\n    &(100u64,),\\n    vec![\\n        AccountMeta::new(source_forged_key, false),\\n        AccountMeta::new(dest_forged_key, false),\\n        AccountMeta::new_readonly(authority_forged_key, true),\\n        AccountMeta::new_readonly(spl_token_id, false),\\n    ],\\n);\\n\\nlet contas_attack = vec![\\n    (source_forged_key, source_forged),\\n    (dest_forged_key, dest_forged),\\n    (authority_forged_key, authority_forged),\\n    (spl_token_id, token_program_forged),\\n];\\n\\nlet r = env.attack(\\\"CPI com contas forjadas de dono invalido\\\", &ix_attack, &contas_attack);\\n\\nif r.program_result == ProgramResult::Success {\\n    let dest_after = after(&r, &dest_forged_key);\\n    env.effect(\\n        \\\"conta forjada com dono invalido foi aceita e usada na CPI\\\",\\n        dest_after.owner() == &attacker_owner && read_u64(dest_after.data(), 64) == 100,\\n    );\\n}\"\n}",
+      "plan": "O programa-alvo apenas repassa uma CPI de transfer do SPL Token sem validar que source/destination/authority pertencem ao SPL Token. O baseline usa contas SPL Token reais (mint, source, destination, authority) e deve ter sucesso. O ataque substitui source/destination por contas forjadas com dono diferente (ex.: o proprio program_id do alvo ou outro programa), mantendo o mesmo layout de token, para verificar se a CPI aceita contas com dono invalido. O efeito mede que a conta forjada foi aceita/alterada ou que a CPI nao rejeitou o dono invalido.",
+      "scenario": "let env = Env::load();\n\n// Contas SPL Token reais para o baseline\nlet mint = Pubkey::new_unique();\nlet source_owner = Pubkey::new_unique();\nlet dest_owner = Pubkey::new_unique();\nlet authority = Pubkey::new_unique();\n\n// Layout de conta SPL Token: mint(32) + owner(32) + amount(8) = 72 bytes\nlet mut source_data = vec![0u8; 72];\nsource_data[0..32].copy_from_slice(mint.as_ref());\nsource_data[32..64].copy_from_slice(source_owner.as_ref());\nsource_data[64..72].copy_from_slice(&1000u64.to_le_bytes());\n\nlet mut dest_data = vec![0u8; 72];\ndest_data[0..32].copy_from_slice(mint.as_ref());\ndest_data[32..64].copy_from_slice(dest_owner.as_ref());\ndest_data[64..72].copy_from_slice(&0u64.to_le_bytes());\n\nlet spl_token_id = Pubkey::new_unique(); // placeholder para o token program\n\nlet source_legit = account(&spl_token_id, &source_data, None);\nlet dest_legit = account(&spl_token_id, &dest_data, None);\nlet authority_legit = wallet(1_000_000_000);\nlet token_program_legit = program_account(&spl_token_id);\n\nlet ix_legit = env.anchor_ix(\n    \"cpi\",\n    &(100u64,),\n    vec![\n        AccountMeta::new(source_legit_key, false),\n        AccountMeta::new(dest_legit_key, false),\n        AccountMeta::new_readonly(authority_legit_key, true),\n        AccountMeta::new_readonly(spl_token_id, false),\n    ],\n);\n\nlet contas_legit = vec![\n    (source_legit_key, source_legit),\n    (dest_legit_key, dest_legit),\n    (authority_legit_key, authority_legit),\n    (spl_token_id, token_program_legit),\n];\n\nlet _ = env.baseline(\"transfer SPL Token legitimo\", &ix_legit, &contas_legit);\n\n// Ataque: contas forjadas com dono diferente do SPL Token\nlet attacker_owner = env.program_id; // dono diferente do SPL Token\n\nlet mut source_forged_data = vec![0u8; 72];\nsource_forged_data[0..32].copy_from_slice(mint.as_ref());\nsource_forged_data[32..64].copy_from_slice(source_owner.as_ref());\nsource_forged_data[64..72].copy_from_slice(&1000u64.to_le_bytes());\n\nlet mut dest_forged_data = vec![0u8; 72];\ndest_forged_data[0..32].copy_from_slice(mint.as_ref());\ndest_forged_data[32..64].copy_from_slice(dest_owner.as_ref());\ndest_forged_data[64..72].copy_from_slice(&0u64.to_le_bytes());\n\nlet source_forged_key = Pubkey::new_unique();\nlet dest_forged_key = Pubkey::new_unique();\nlet authority_forged_key = Pubkey::new_unique();\n\nlet source_forged = account(&attacker_owner, &source_forged_data, None);\nlet dest_forged = account(&attacker_owner, &dest_forged_data, None);\nlet authority_forged = wallet(1_000_000_000);\nlet token_program_forged = program_account(&spl_token_id);\n\nlet ix_attack = env.anchor_ix(\n    \"cpi\",\n    &(100u64,),\n    vec![\n        AccountMeta::new(source_forged_key, false),\n        AccountMeta::new(dest_forged_key, false),\n        AccountMeta::new_readonly(authority_forged_key, true),\n        AccountMeta::new_readonly(spl_token_id, false),\n    ],\n);\n\nlet contas_attack = vec![\n    (source_forged_key, source_forged),\n    (dest_forged_key, dest_forged),\n    (authority_forged_key, authority_forged),\n    (spl_token_id, token_program_forged),\n];\n\nlet r = env.attack(\"CPI com contas forjadas de dono invalido\", &ix_attack, &contas_attack);\n\nif r.program_result == ProgramResult::Success {\n    let dest_after = after(&r, &dest_forged_key);\n    env.effect(\n        \"conta forjada com dono invalido foi aceita e usada na CPI\",\n        dest_after.owner() == &attacker_owner && read_u64(dest_after.data(), 64) == 100,\n    );\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0425]: cannot find value `source_legit_key` in this scope\n  --> tests/attempt.rs:39:30\n   |\n39 |             AccountMeta::new(source_legit_key, false),\n   |                              ^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n39 -             AccountMeta::new(source_legit_key, false),\n39 +             AccountMeta::new(source_legit, false),\n   |\n\nerror[E0425]: cannot find value `dest_legit_key` in this scope\n  --> tests/attempt.rs:40:30\n   |\n40 |             AccountMeta::new(dest_legit_key, false),\n   |                              ^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n40 -             AccountMeta::new(dest_legit_key, false),\n40 +             AccountMeta::new(dest_legit, false),\n   |\n\nerror[E0425]: cannot find value `authority_legit_key` in this scope\n  --> tests/attempt.rs:41:39\n   |\n41 |             AccountMeta::new_readonly(authority_legit_key, true),\n   |                                       ^^^^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n41 -             AccountMeta::new_readonly(authority_legit_key, true),\n41 +             AccountMeta::new_readonly(authority_legit, true),\n   |\n\nerror[E0425]: cannot find value `source_legit_key` in this scope\n  --> tests/attempt.rs:47:10\n   |\n47 |         (source_legit_key, source_legit),",
+        "elapsed_s": 0.6
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0425]: cannot find value `source_legit_key` in this scope\n  --> tests/attempt.rs:39:30\n   |\n39 |             AccountMeta::new(source_legit_key, false),\n   |                              ^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n39 -             AccountMeta::new(source_legit_key, false),\n39 +             AccountMeta::new(source_legit, false),\n   |\n\nerror[E0425]: cannot find value `dest_legit_key` in this scope\n  --> tests/attempt.rs:40:30\n   |\n40 |             AccountMeta::new(dest_legit_key, false),\n   |                              ^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n40 -             AccountMeta::new(dest_legit_key, false),\n40 +             AccountMeta::new(dest_legit, false),\n   |\n\nerror[E0425]: cannot find value `authority_legit_key` in this scope\n  --> tests/attempt.rs:41:39\n   |\n41 |             AccountMeta::new_readonly(authority_legit_key, true),\n   |                                       ^^^^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n41 -             AccountMeta::new_readonly(authority_legit_key, true),\n41 +             AccountMeta::new_readonly(authority_legit, true),\n   |\n\nerror[E0425]: cannot find value `source_legit_key` in this scope\n  --> tests/attempt.rs:47:10\n   |\n47 |         (source_legit_key, source_legit),"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3752,
+        "completion_tokens": 1131,
+        "latency_s": 4.68
+      },
+      "raw": "{\"plan\": \"O baseline usa contas SPL Token reais (dono = token program) e chama a instrucao `cpi` legitimamente. O ataque substitui source/destination por contas forjadas cujo dono e o proprio programa-alvo (nao o SPL Token), mantendo o mesmo token_program. O efeito mede se a conta forjada de destino foi aceita e teve seu saldo alterado pela CPI, o que so ocorre se o programa nao validar o dono das contas de token.\", \"scenario\": \"let env = Env::load();\\n\\nlet mint = Pubkey::new_unique();\\nlet source_owner = Pubkey::new_unique();\\nlet dest_owner = Pubkey::new_unique();\\nlet authority_key = Pubkey::new_unique();\\n\\n// Layout de conta SPL Token: mint(32) + owner(32) + amount(8) = 72 bytes\\nlet mut source_data = vec![0u8; 72];\\nsource_data[0..32].copy_from_slice(mint.as_ref());\\nsource_data[32..64].copy_from_slice(source_owner.as_ref());\\nsource_data[64..72].copy_from_slice(&1000u64.to_le_bytes());\\n\\nlet mut dest_data = vec![0u8; 72];\\ndest_data[0..32].copy_from_slice(mint.as_ref());\\ndest_data[32..64].copy_from_slice(dest_owner.as_ref());\\ndest_data[64..72].copy_from_slice(&0u64.to_le_bytes());\\n\\nlet spl_token_id = Pubkey::new_unique();\\n\\nlet source_legit_key = Pubkey::new_unique();\\nlet dest_legit_key = Pubkey::new_unique();\\n\\nlet source_legit = account(&spl_token_id, &source_data, None);\\nlet dest_legit = account(&spl_token_id, &dest_data, None);\\nlet authority_legit = wallet(1_000_000_000);\\nlet token_program_legit = program_account(&spl_token_id);\\n\\nlet ix_legit = env.anchor_ix(\\n    \\\"cpi\\\",\\n    &(100u64,),\\n    vec![\\n        AccountMeta::new(source_legit_key, false),\\n        AccountMeta::new(dest_legit_key, false),\\n        AccountMeta::new_readonly(authority_key, true),\\n        AccountMeta::new_readonly(spl_token_id, false),\\n    ],\\n);\\n\\nlet contas_legit = vec![\\n    (source_legit_key, source_legit),\\n    (dest_legit_key, dest_legit),\\n    (authority_key, authority_legit),\\n    (spl_token_id, token_program_legit),\\n];\\n\\nlet _ = env.baseline(\\\"transfer SPL Token legitimo\\\", &ix_legit, &contas_legit);\\n\\n// Ataque: contas forjadas com dono diferente do SPL Token (dono = programa-alvo)\\nlet attacker_owner = env.program_id;\\n\\nlet source_forged_key = Pubkey::new_unique();\\nlet dest_forged_key = Pubkey::new_unique();\\n\\nlet source_forged = account(&attacker_owner, &source_data, None);\\nlet dest_forged = account(&attacker_owner, &dest_data, None);\\nlet authority_forged = wallet(1_000_000_000);\\nlet token_program_forged = program_account(&spl_token_id);\\n\\nlet ix_attack = env.anchor_ix(\\n    \\\"cpi\\\",\\n    &(100u64,),\\n    vec![\\n        AccountMeta::new(source_forged_key, false),\\n        AccountMeta::new(dest_forged_key, false),\\n        AccountMeta::new_readonly(authority_key, true),\\n        AccountMeta::new_readonly(spl_token_id, false),\\n    ],\\n);\\n\\nlet contas_attack = vec![\\n    (source_forged_key, source_forged),\\n    (dest_forged_key, dest_forged),\\n    (authority_key, authority_forged),\\n    (spl_token_id, token_program_forged),\\n];\\n\\nlet r = env.attack(\\\"CPI com contas forjadas de dono invalido\\\", &ix_attack, &contas_attack);\\n\\nif r.program_result == ProgramResult::Success {\\n    let dest_after = after(&r, &dest_forged_key);\\n    env.effect(\\n        \\\"conta forjada com dono invalido foi aceita e usada na CPI\\\",\\n        dest_after.owner() == &attacker_owner && read_u64(dest_after.data(), 64) == 100,\\n    );\\n}\"}",
+      "plan": "O baseline usa contas SPL Token reais (dono = token program) e chama a instrucao `cpi` legitimamente. O ataque substitui source/destination por contas forjadas cujo dono e o proprio programa-alvo (nao o SPL Token), mantendo o mesmo token_program. O efeito mede se a conta forjada de destino foi aceita e teve seu saldo alterado pela CPI, o que so ocorre se o programa nao validar o dono das contas de token.",
+      "scenario": "let env = Env::load();\n\nlet mint = Pubkey::new_unique();\nlet source_owner = Pubkey::new_unique();\nlet dest_owner = Pubkey::new_unique();\nlet authority_key = Pubkey::new_unique();\n\n// Layout de conta SPL Token: mint(32) + owner(32) + amount(8) = 72 bytes\nlet mut source_data = vec![0u8; 72];\nsource_data[0..32].copy_from_slice(mint.as_ref());\nsource_data[32..64].copy_from_slice(source_owner.as_ref());\nsource_data[64..72].copy_from_slice(&1000u64.to_le_bytes());\n\nlet mut dest_data = vec![0u8; 72];\ndest_data[0..32].copy_from_slice(mint.as_ref());\ndest_data[32..64].copy_from_slice(dest_owner.as_ref());\ndest_data[64..72].copy_from_slice(&0u64.to_le_bytes());\n\nlet spl_token_id = Pubkey::new_unique();\n\nlet source_legit_key = Pubkey::new_unique();\nlet dest_legit_key = Pubkey::new_unique();\n\nlet source_legit = account(&spl_token_id, &source_data, None);\nlet dest_legit = account(&spl_token_id, &dest_data, None);\nlet authority_legit = wallet(1_000_000_000);\nlet token_program_legit = program_account(&spl_token_id);\n\nlet ix_legit = env.anchor_ix(\n    \"cpi\",\n    &(100u64,),\n    vec![\n        AccountMeta::new(source_legit_key, false),\n        AccountMeta::new(dest_legit_key, false),\n        AccountMeta::new_readonly(authority_key, true),\n        AccountMeta::new_readonly(spl_token_id, false),\n    ],\n);\n\nlet contas_legit = vec![\n    (source_legit_key, source_legit),\n    (dest_legit_key, dest_legit),\n    (authority_key, authority_legit),\n    (spl_token_id, token_program_legit),\n];\n\nlet _ = env.baseline(\"transfer SPL Token legitimo\", &ix_legit, &contas_legit);\n\n// Ataque: contas forjadas com dono diferente do SPL Token (dono = programa-alvo)\nlet attacker_owner = env.program_id;\n\nlet source_forged_key = Pubkey::new_unique();\nlet dest_forged_key = Pubkey::new_unique();\n\nlet source_forged = account(&attacker_owner, &source_data, None);\nlet dest_forged = account(&attacker_owner, &dest_data, None);\nlet authority_forged = wallet(1_000_000_000);\nlet token_program_forged = program_account(&spl_token_id);\n\nlet ix_attack = env.anchor_ix(\n    \"cpi\",\n    &(100u64,),\n    vec![\n        AccountMeta::new(source_forged_key, false),\n        AccountMeta::new(dest_forged_key, false),\n        AccountMeta::new_readonly(authority_key, true),\n        AccountMeta::new_readonly(spl_token_id, false),\n    ],\n);\n\nlet contas_attack = vec![\n    (source_forged_key, source_forged),\n    (dest_forged_key, dest_forged),\n    (authority_key, authority_forged),\n    (spl_token_id, token_program_forged),\n];\n\nlet r = env.attack(\"CPI com contas forjadas de dono invalido\", &ix_attack, &contas_attack);\n\nif r.program_result == ProgramResult::Success {\n    let dest_after = after(&r, &dest_forged_key);\n    env.effect(\n        \"conta forjada com dono invalido foi aceita e usada na CPI\",\n        dest_after.owner() == &attacker_owner && read_u64(dest_after.data(), 64) == 100,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "setup",
+            "attacker_program": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh"
+          },
+          {
+            "step": "baseline",
+            "note": "transfer SPL Token legitimo",
+            "result": "Failure(IncorrectProgramId)",
+            "compute_units": 2873,
+            "account_flags": "-w,-w,sr,-r",
+            "ix_head": "4cad065fb55d53ce",
+            "accounts": [
+              {
+                "key": "11111114DhpssPJgSi1YU7hCMfYt1BJ334YgsffXm",
+                "signer": false,
+                "writable": true,
+                "owner": "11111113pNDtm61yGF8j2ycAwLEPsuWQXobye5qDR",
+                "data_len": 72,
+                "head": "0000000000000003",
+                "digest": "979dbb5a3692663b",
+                "post": "00000000000000030000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000e803000000000000"
+              },
+              {
+                "key": "11111114d3RrygbPdAtMuFnDmzsN8T5fYKVQ7FVr7",
+                "signer": false,
+                "writable": true,
+                "owner": "11111113pNDtm61yGF8j2ycAwLEPsuWQXobye5qDR",
+                "data_len": 72,
+                "head": "0000000000000003",
+                "digest": "08543023366cbb5f",
+                "post": "000000000000000300000000000000000000000000000000000000000000000000000000000000050000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111113R2cuenjG5nFubqX9Wzuukdin2YfGQVzu5",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "11111113pNDtm61yGF8j2ycAwLEPsuWQXobye5qDR",
+                "signer": false,
+                "writable": false,
+                "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+                "data_len": 36,
+                "head": "0200000092cb9295",
+                "digest": "8ed9921634547bc3",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "CPI com contas forjadas de dono invalido",
+            "result": "Failure(IncorrectProgramId)",
+            "compute_units": 2873,
+            "account_flags": "-w,-w,sr,-r",
+            "ix_head": "4cad065fb55d53ce",
+            "accounts": [
+              {
+                "key": "111111152P2r5yt6odmBLPsFCLBrFisJ3aS7LqLAT",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 72,
+                "head": "0000000000000003",
+                "digest": "979dbb5a3692663b",
+                "post": "00000000000000030000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000e803000000000000"
+              },
+              {
+                "key": "11111115RidqCHAoz6dzmXxGcfWLNzevYqNpaRAUo",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 72,
+                "head": "0000000000000003",
+                "digest": "08543023366cbb5f",
+                "post": "000000000000000300000000000000000000000000000000000000000000000000000000000000050000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111113R2cuenjG5nFubqX9Wzuukdin2YfGQVzu5",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "11111113pNDtm61yGF8j2ycAwLEPsuWQXobye5qDR",
+                "signer": false,
+                "writable": false,
+                "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+                "data_len": 36,
+                "head": "0200000092cb9295",
+                "digest": "8ed9921634547bc3",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 2873 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: incorrect program id for instruction",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 2873 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: incorrect program id for instruction"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": null,
+      "reason": "o baseline 'transfer SPL Token legitimo' falhou com Failure(IncorrectProgramId); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)"
+    },
+    {
+      "attempt": 3,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3254,
+        "completion_tokens": 1223,
+        "latency_s": 5.23
+      },
+      "raw": "{\"plan\": \"O baseline falhou com IncorrectProgramId porque o token_program passado era um Pubkey aleatorio, nao o verdadeiro SPL Token program. Como o programa-alvo apenas faz invoke da CPI para o token_program.key, o baseline precisa usar o ID real do SPL Token (TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA) e contas com esse dono. O ataque fornece contas source/destination com dono diferente (o proprio programa-alvo) mas mantendo o token_program real, testando se o programa-alvo aceita contas de token forjadas sem validar o owner. O efeito mede se a conta forjada foi aceita e usada (dono diferente do SPL Token apos a execucao).\", \"scenario\": \"let env = Env::load();\\n\\nlet spl_token_id: Pubkey = \\\"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA\\\".parse().unwrap();\\n\\nlet mint = Pubkey::new_unique();\\nlet source_owner = Pubkey::new_unique();\\nlet dest_owner = Pubkey::new_unique();\\nlet authority_key = Pubkey::new_unique();\\n\\n// Layout de conta SPL Token: mint(32) + owner(32) + amount(8) = 72 bytes\\nlet mut source_data = vec![0u8; 72];\\nsource_data[0..32].copy_from_slice(mint.as_ref());\\nsource_data[32..64].copy_from_slice(source_owner.as_ref());\\nsource_data[64..72].copy_from_slice(&1000u64.to_le_bytes());\\n\\nlet mut dest_data = vec![0u8; 72];\\ndest_data[0..32].copy_from_slice(mint.as_ref());\\ndest_data[32..64].copy_from_slice(dest_owner.as_ref());\\ndest_data[64..72].copy_from_slice(&0u64.to_le_bytes());\\n\\nlet source_legit_key = Pubkey::new_unique();\\nlet dest_legit_key = Pubkey::new_unique();\\n\\nlet source_legit = account(&spl_token_id, &source_data, None);\\nlet dest_legit = account(&spl_token_id, &dest_data, None);\\nlet authority_legit = wallet(1_000_000_000);\\nlet token_program_legit = program_account(&spl_token_id);\\n\\nlet ix_legit = env.anchor_ix(\\n    \\\"cpi\\\",\\n    &(100u64,),\\n    vec![\\n        AccountMeta::new(source_legit_key, false),\\n        AccountMeta::new(dest_legit_key, false),\\n        AccountMeta::new_readonly(authority_key, true),\\n        AccountMeta::new_readonly(spl_token_id, false),\\n    ],\\n);\\n\\nlet contas_legit = vec![\\n    (source_legit_key, source_legit),\\n    (dest_legit_key, dest_legit),\\n    (authority_key, authority_legit),\\n    (spl_token_id, token_program_legit),\\n];\\n\\nlet _ = env.baseline(\\\"transfer SPL Token legitimo\\\", &ix_legit, &contas_legit);\\n\\n// Ataque: contas forjadas com dono diferente do SPL Token (dono = programa-alvo)\\nlet attacker_owner = env.program_id;\\n\\nlet source_forged_key = Pubkey::new_unique();\\nlet dest_forged_key = Pubkey::new_unique();\\n\\nlet source_forged = account(&attacker_owner, &source_data, None);\\nlet dest_forged = account(&attacker_owner, &dest_data, None);\\nlet authority_forged = wallet(1_000_000_000);\\nlet token_program_forged = program_account(&spl_token_id);\\n\\nlet ix_attack = env.anchor_ix(\\n    \\\"cpi\\\",\\n    &(100u64,),\\n    vec![\\n        AccountMeta::new(source_forged_key, false),\\n        AccountMeta::new(dest_forged_key, false),\\n        AccountMeta::new_readonly(authority_key, true),\\n        AccountMeta::new_readonly(spl_token_id, false),\\n    ],\\n);\\n\\nlet contas_attack = vec![\\n    (source_forged_key, source_forged),\\n    (dest_forged_key, dest_forged),\\n    (authority_key, authority_forged),\\n    (spl_token_id, token_program_forged),\\n];\\n\\nlet r = env.attack(\\\"CPI com contas forjadas de dono invalido\\\", &ix_attack, &contas_attack);\\n\\nif r.program_result == ProgramResult::Success {\\n    let dest_after = after(&r, &dest_forged_key);\\n    env.effect(\\n        \\\"conta forjada com dono invalido foi aceita e usada na CPI\\\",\\n        dest_after.owner() == &attacker_owner && read_u64(dest_after.data(), 64) == 100,\\n    );\\n}\"}",
+      "plan": "O baseline falhou com IncorrectProgramId porque o token_program passado era um Pubkey aleatorio, nao o verdadeiro SPL Token program. Como o programa-alvo apenas faz invoke da CPI para o token_program.key, o baseline precisa usar o ID real do SPL Token (TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA) e contas com esse dono. O ataque fornece contas source/destination com dono diferente (o proprio programa-alvo) mas mantendo o token_program real, testando se o programa-alvo aceita contas de token forjadas sem validar o owner. O efeito mede se a conta forjada foi aceita e usada (dono diferente do SPL Token apos a execucao).",
+      "scenario": "let env = Env::load();\n\nlet spl_token_id: Pubkey = \"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA\".parse().unwrap();\n\nlet mint = Pubkey::new_unique();\nlet source_owner = Pubkey::new_unique();\nlet dest_owner = Pubkey::new_unique();\nlet authority_key = Pubkey::new_unique();\n\n// Layout de conta SPL Token: mint(32) + owner(32) + amount(8) = 72 bytes\nlet mut source_data = vec![0u8; 72];\nsource_data[0..32].copy_from_slice(mint.as_ref());\nsource_data[32..64].copy_from_slice(source_owner.as_ref());\nsource_data[64..72].copy_from_slice(&1000u64.to_le_bytes());\n\nlet mut dest_data = vec![0u8; 72];\ndest_data[0..32].copy_from_slice(mint.as_ref());\ndest_data[32..64].copy_from_slice(dest_owner.as_ref());\ndest_data[64..72].copy_from_slice(&0u64.to_le_bytes());\n\nlet source_legit_key = Pubkey::new_unique();\nlet dest_legit_key = Pubkey::new_unique();\n\nlet source_legit = account(&spl_token_id, &source_data, None);\nlet dest_legit = account(&spl_token_id, &dest_data, None);\nlet authority_legit = wallet(1_000_000_000);\nlet token_program_legit = program_account(&spl_token_id);\n\nlet ix_legit = env.anchor_ix(\n    \"cpi\",\n    &(100u64,),\n    vec![\n        AccountMeta::new(source_legit_key, false),\n        AccountMeta::new(dest_legit_key, false),\n        AccountMeta::new_readonly(authority_key, true),\n        AccountMeta::new_readonly(spl_token_id, false),\n    ],\n);\n\nlet contas_legit = vec![\n    (source_legit_key, source_legit),\n    (dest_legit_key, dest_legit),\n    (authority_key, authority_legit),\n    (spl_token_id, token_program_legit),\n];\n\nlet _ = env.baseline(\"transfer SPL Token legitimo\", &ix_legit, &contas_legit);\n\n// Ataque: contas forjadas com dono diferente do SPL Token (dono = programa-alvo)\nlet attacker_owner = env.program_id;\n\nlet source_forged_key = Pubkey::new_unique();\nlet dest_forged_key = Pubkey::new_unique();\n\nlet source_forged = account(&attacker_owner, &source_data, None);\nlet dest_forged = account(&attacker_owner, &dest_data, None);\nlet authority_forged = wallet(1_000_000_000);\nlet token_program_forged = program_account(&spl_token_id);\n\nlet ix_attack = env.anchor_ix(\n    \"cpi\",\n    &(100u64,),\n    vec![\n        AccountMeta::new(source_forged_key, false),\n        AccountMeta::new(dest_forged_key, false),\n        AccountMeta::new_readonly(authority_key, true),\n        AccountMeta::new_readonly(spl_token_id, false),\n    ],\n);\n\nlet contas_attack = vec![\n    (source_forged_key, source_forged),\n    (dest_forged_key, dest_forged),\n    (authority_key, authority_forged),\n    (spl_token_id, token_program_forged),\n];\n\nlet r = env.attack(\"CPI com contas forjadas de dono invalido\", &ix_attack, &contas_attack);\n\nif r.program_result == ProgramResult::Success {\n    let dest_after = after(&r, &dest_forged_key);\n    env.effect(\n        \"conta forjada com dono invalido foi aceita e usada na CPI\",\n        dest_after.owner() == &attacker_owner && read_u64(dest_after.data(), 64) == 100,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "setup",
+            "attacker_program": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh"
+          },
+          {
+            "step": "baseline",
+            "note": "transfer SPL Token legitimo",
+            "result": "Failure(InvalidAccountData)",
+            "compute_units": 3407,
+            "account_flags": "-w,-w,sr,-r",
+            "ix_head": "4cad065fb55d53ce",
+            "accounts": [
+              {
+                "key": "11111113pNDtm61yGF8j2ycAwLEPsuWQXobye5qDR",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 72,
+                "head": "0000000000000003",
+                "digest": "979dbb5a3692663b",
+                "post": "00000000000000030000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000e803000000000000"
+              },
+              {
+                "key": "11111114DhpssPJgSi1YU7hCMfYt1BJ334YgsffXm",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 72,
+                "head": "0000000000000003",
+                "digest": "08543023366cbb5f",
+                "post": "000000000000000300000000000000000000000000000000000000000000000000000000000000050000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111113R2cuenjG5nFubqX9Wzuukdin2YfGQVzu5",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "signer": false,
+                "writable": false,
+                "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+                "data_len": 36,
+                "head": "0200000027f190b1",
+                "digest": "5b31219b7bc4060b",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "CPI com contas forjadas de dono invalido",
+            "result": "Failure(InvalidAccountData)",
+            "compute_units": 3407,
+            "account_flags": "-w,-w,sr,-r",
+            "ix_head": "4cad065fb55d53ce",
+            "accounts": [
+              {
+                "key": "11111114d3RrygbPdAtMuFnDmzsN8T5fYKVQ7FVr7",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 72,
+                "head": "0000000000000003",
+                "digest": "979dbb5a3692663b",
+                "post": "00000000000000030000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000e803000000000000"
+              },
+              {
+                "key": "111111152P2r5yt6odmBLPsFCLBrFisJ3aS7LqLAT",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 72,
+                "head": "0000000000000003",
+                "digest": "08543023366cbb5f",
+                "post": "000000000000000300000000000000000000000000000000000000000000000000000000000000050000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111113R2cuenjG5nFubqX9Wzuukdin2YfGQVzu5",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "signer": false,
+                "writable": false,
+                "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+                "data_len": 36,
+                "head": "0200000027f190b1",
+                "digest": "5b31219b7bc4060b",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA failed: invalid account data for instruction",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3407 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: invalid account data for instruction",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA failed: invalid account data for instruction",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3407 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: invalid account data for instruction"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": null,
+      "reason": "o baseline 'transfer SPL Token legitimo' falhou com Failure(InvalidAccountData); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)"
+    },
+    {
+      "attempt": 4,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3282,
+        "completion_tokens": 1162,
+        "latency_s": 4.76
+      },
+      "raw": "{\"plan\": \"O baseline falhou porque a conta de token SPL precisa ter o layout correto e o authority precisa assinar. Vou montar contas SPL Token válidas (mint, owner, amount) com dono = Tokenkeg, e usar o authority como signer. O ataque substitui source/destination por contas com o mesmo layout mas dono = programa-alvo (não SPL Token), mantendo o token_program real. O efeito mede se a conta forjada foi aceita e teve seu saldo alterado pela CPI.\", \"scenario\": \"let env = Env::load();\\n\\nlet spl_token_id: Pubkey = \\\"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA\\\".parse().unwrap();\\n\\nlet mint = Pubkey::new_unique();\\nlet source_owner = Pubkey::new_unique();\\nlet dest_owner = Pubkey::new_unique();\\nlet authority_key = Pubkey::new_unique();\\n\\n// Layout de conta SPL Token: mint(32) + owner(32) + amount(8) = 72 bytes\\nlet mut source_data = vec![0u8; 72];\\nsource_data[0..32].copy_from_slice(mint.as_ref());\\nsource_data[32..64].copy_from_slice(source_owner.as_ref());\\nsource_data[64..72].copy_from_slice(&1000u64.to_le_bytes());\\n\\nlet mut dest_data = vec![0u8; 72];\\ndest_data[0..32].copy_from_slice(mint.as_ref());\\ndest_data[32..64].copy_from_slice(dest_owner.as_ref());\\ndest_data[64..72].copy_from_slice(&0u64.to_le_bytes());\\n\\nlet source_legit_key = Pubkey::new_unique();\\nlet dest_legit_key = Pubkey::new_unique();\\n\\nlet source_legit = account(&spl_token_id, &source_data, None);\\nlet dest_legit = account(&spl_token_id, &dest_data, None);\\nlet authority_legit = wallet(1_000_000_000);\\nlet token_program_legit = program_account(&spl_token_id);\\n\\nlet ix_legit = env.anchor_ix(\\n    \\\"cpi\\\",\\n    &(100u64,),\\n    vec![\\n        AccountMeta::new(source_legit_key, false),\\n        AccountMeta::new(dest_legit_key, false),\\n        AccountMeta::new_readonly(authority_key, true),\\n        AccountMeta::new_readonly(spl_token_id, false),\\n    ],\\n);\\n\\nlet contas_legit = vec![\\n    (source_legit_key, source_legit),\\n    (dest_legit_key, dest_legit),\\n    (authority_key, authority_legit),\\n    (spl_token_id, token_program_legit),\\n];\\n\\nlet _ = env.baseline(\\\"transfer SPL Token legitimo\\\", &ix_legit, &contas_legit);\\n\\n// Ataque: contas forjadas com dono diferente do SPL Token (dono = programa-alvo)\\nlet attacker_owner = env.program_id;\\n\\nlet source_forged_key = Pubkey::new_unique();\\nlet dest_forged_key = Pubkey::new_unique();\\n\\nlet source_forged = account(&attacker_owner, &source_data, None);\\nlet dest_forged = account(&attacker_owner, &dest_data, None);\\nlet authority_forged = wallet(1_000_000_000);\\nlet token_program_forged = program_account(&spl_token_id);\\n\\nlet ix_attack = env.anchor_ix(\\n    \\\"cpi\\\",\\n    &(100u64,),\\n    vec![\\n        AccountMeta::new(source_forged_key, false),\\n        AccountMeta::new(dest_forged_key, false),\\n        AccountMeta::new_readonly(authority_key, true),\\n        AccountMeta::new_readonly(spl_token_id, false),\\n    ],\\n);\\n\\nlet contas_attack = vec![\\n    (source_forged_key, source_forged),\\n    (dest_forged_key, dest_forged),\\n    (authority_key, authority_forged),\\n    (spl_token_id, token_program_forged),\\n];\\n\\nlet r = env.attack(\\\"CPI com contas forjadas de dono invalido\\\", &ix_attack, &contas_attack);\\n\\nif r.program_result == ProgramResult::Success {\\n    let dest_after = after(&r, &dest_forged_key);\\n    env.effect(\\n        \\\"conta forjada com dono invalido foi aceita e usada na CPI\\\",\\n        dest_after.owner() == &attacker_owner && read_u64(dest_after.data(), 64) == 100,\\n    );\\n}\"}",
+      "plan": "O baseline falhou porque a conta de token SPL precisa ter o layout correto e o authority precisa assinar. Vou montar contas SPL Token válidas (mint, owner, amount) com dono = Tokenkeg, e usar o authority como signer. O ataque substitui source/destination por contas com o mesmo layout mas dono = programa-alvo (não SPL Token), mantendo o token_program real. O efeito mede se a conta forjada foi aceita e teve seu saldo alterado pela CPI.",
+      "scenario": "let env = Env::load();\n\nlet spl_token_id: Pubkey = \"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA\".parse().unwrap();\n\nlet mint = Pubkey::new_unique();\nlet source_owner = Pubkey::new_unique();\nlet dest_owner = Pubkey::new_unique();\nlet authority_key = Pubkey::new_unique();\n\n// Layout de conta SPL Token: mint(32) + owner(32) + amount(8) = 72 bytes\nlet mut source_data = vec![0u8; 72];\nsource_data[0..32].copy_from_slice(mint.as_ref());\nsource_data[32..64].copy_from_slice(source_owner.as_ref());\nsource_data[64..72].copy_from_slice(&1000u64.to_le_bytes());\n\nlet mut dest_data = vec![0u8; 72];\ndest_data[0..32].copy_from_slice(mint.as_ref());\ndest_data[32..64].copy_from_slice(dest_owner.as_ref());\ndest_data[64..72].copy_from_slice(&0u64.to_le_bytes());\n\nlet source_legit_key = Pubkey::new_unique();\nlet dest_legit_key = Pubkey::new_unique();\n\nlet source_legit = account(&spl_token_id, &source_data, None);\nlet dest_legit = account(&spl_token_id, &dest_data, None);\nlet authority_legit = wallet(1_000_000_000);\nlet token_program_legit = program_account(&spl_token_id);\n\nlet ix_legit = env.anchor_ix(\n    \"cpi\",\n    &(100u64,),\n    vec![\n        AccountMeta::new(source_legit_key, false),\n        AccountMeta::new(dest_legit_key, false),\n        AccountMeta::new_readonly(authority_key, true),\n        AccountMeta::new_readonly(spl_token_id, false),\n    ],\n);\n\nlet contas_legit = vec![\n    (source_legit_key, source_legit),\n    (dest_legit_key, dest_legit),\n    (authority_key, authority_legit),\n    (spl_token_id, token_program_legit),\n];\n\nlet _ = env.baseline(\"transfer SPL Token legitimo\", &ix_legit, &contas_legit);\n\n// Ataque: contas forjadas com dono diferente do SPL Token (dono = programa-alvo)\nlet attacker_owner = env.program_id;\n\nlet source_forged_key = Pubkey::new_unique();\nlet dest_forged_key = Pubkey::new_unique();\n\nlet source_forged = account(&attacker_owner, &source_data, None);\nlet dest_forged = account(&attacker_owner, &dest_data, None);\nlet authority_forged = wallet(1_000_000_000);\nlet token_program_forged = program_account(&spl_token_id);\n\nlet ix_attack = env.anchor_ix(\n    \"cpi\",\n    &(100u64,),\n    vec![\n        AccountMeta::new(source_forged_key, false),\n        AccountMeta::new(dest_forged_key, false),\n        AccountMeta::new_readonly(authority_key, true),\n        AccountMeta::new_readonly(spl_token_id, false),\n    ],\n);\n\nlet contas_attack = vec![\n    (source_forged_key, source_forged),\n    (dest_forged_key, dest_forged),\n    (authority_key, authority_forged),\n    (spl_token_id, token_program_forged),\n];\n\nlet r = env.attack(\"CPI com contas forjadas de dono invalido\", &ix_attack, &contas_attack);\n\nif r.program_result == ProgramResult::Success {\n    let dest_after = after(&r, &dest_forged_key);\n    env.effect(\n        \"conta forjada com dono invalido foi aceita e usada na CPI\",\n        dest_after.owner() == &attacker_owner && read_u64(dest_after.data(), 64) == 100,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "setup",
+            "attacker_program": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh"
+          },
+          {
+            "step": "baseline",
+            "note": "transfer SPL Token legitimo",
+            "result": "Failure(InvalidAccountData)",
+            "compute_units": 3407,
+            "account_flags": "-w,-w,sr,-r",
+            "ix_head": "4cad065fb55d53ce",
+            "accounts": [
+              {
+                "key": "11111113pNDtm61yGF8j2ycAwLEPsuWQXobye5qDR",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 72,
+                "head": "0000000000000003",
+                "digest": "979dbb5a3692663b",
+                "post": "00000000000000030000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000e803000000000000"
+              },
+              {
+                "key": "11111114DhpssPJgSi1YU7hCMfYt1BJ334YgsffXm",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 72,
+                "head": "0000000000000003",
+                "digest": "08543023366cbb5f",
+                "post": "000000000000000300000000000000000000000000000000000000000000000000000000000000050000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111113R2cuenjG5nFubqX9Wzuukdin2YfGQVzu5",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "signer": false,
+                "writable": false,
+                "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+                "data_len": 36,
+                "head": "0200000027f190b1",
+                "digest": "5b31219b7bc4060b",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "CPI com contas forjadas de dono invalido",
+            "result": "Failure(InvalidAccountData)",
+            "compute_units": 3407,
+            "account_flags": "-w,-w,sr,-r",
+            "ix_head": "4cad065fb55d53ce",
+            "accounts": [
+              {
+                "key": "11111114d3RrygbPdAtMuFnDmzsN8T5fYKVQ7FVr7",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 72,
+                "head": "0000000000000003",
+                "digest": "979dbb5a3692663b",
+                "post": "00000000000000030000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000e803000000000000"
+              },
+              {
+                "key": "111111152P2r5yt6odmBLPsFCLBrFisJ3aS7LqLAT",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 72,
+                "head": "0000000000000003",
+                "digest": "08543023366cbb5f",
+                "post": "000000000000000300000000000000000000000000000000000000000000000000000000000000050000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111113R2cuenjG5nFubqX9Wzuukdin2YfGQVzu5",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "signer": false,
+                "writable": false,
+                "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+                "data_len": 36,
+                "head": "0200000027f190b1",
+                "digest": "5b31219b7bc4060b",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA failed: invalid account data for instruction",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3407 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: invalid account data for instruction",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA failed: invalid account data for instruction",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3407 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: invalid account data for instruction"
+        ],
+        "elapsed_s": 1.7
+      },
+      "verdict": null,
+      "reason": "o baseline 'transfer SPL Token legitimo' falhou com Failure(InvalidAccountData); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)"
+    },
+    {
+      "attempt": 5,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3282,
+        "completion_tokens": 1286,
+        "latency_s": 5.99
+      },
+      "raw": "{\"plan\": \"O baseline falhou porque a conta de token SPL precisa ter o layout correto e o authority precisa assinar. Vou montar contas SPL Token validas (dono = Tokenkeg..., mint/owner/amount) e usar o proprio programa-alvo como authority? Nao: a instrucao transfer do SPL Token exige que o authority seja signer. Como o programa-alvo faz invoke sem signers (authority nao assina na CPI), o transfer so funciona se o authority for a propria conta do programa-alvo? Na verdade, o invoke passa authority como AccountInfo sem signer, entao o SPL Token rejeita. O baseline precisa ter sucesso, entao preciso que o authority seja signer na transacao (marcado como signer no meta) e o SPL Token aceite. Vou marcar authority como signer e dar lamports. O ataque fornece source/destination com dono diferente do SPL Token (dono = programa-alvo), mantendo o mesmo authority signer. O efeito mede se a conta forjada foi aceita e teve o saldo alterado.\", \"scenario\": \"let env = Env::load();\\n\\nlet spl_token_id: Pubkey = \\\"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA\\\".parse().unwrap();\\n\\nlet mint = Pubkey::new_unique();\\nlet source_owner = Pubkey::new_unique();\\nlet dest_owner = Pubkey::new_unique();\\nlet authority_key = Pubkey::new_unique();\\n\\n// Layout de conta SPL Token: mint(32) + owner(32) + amount(8) = 72 bytes\\nlet mut source_data = vec![0u8; 72];\\nsource_data[0..32].copy_from_slice(mint.as_ref());\\nsource_data[32..64].copy_from_slice(source_owner.as_ref());\\nsource_data[64..72].copy_from_slice(&1000u64.to_le_bytes());\\n\\nlet mut dest_data = vec![0u8; 72];\\ndest_data[0..32].copy_from_slice(mint.as_ref());\\ndest_data[32..64].copy_from_slice(dest_owner.as_ref());\\ndest_data[64..72].copy_from_slice(&0u64.to_le_bytes());\\n\\nlet source_legit_key = Pubkey::new_unique();\\nlet dest_legit_key = Pubkey::new_unique();\\n\\nlet source_legit = account(&spl_token_id, &source_data, None);\\nlet dest_legit = account(&spl_token_id, &dest_data, None);\\nlet authority_legit = wallet(1_000_000_000);\\nlet token_program_legit = program_account(&spl_token_id);\\n\\nlet ix_legit = env.anchor_ix(\\n    \\\"cpi\\\",\\n    &(100u64,),\\n    vec![\\n        AccountMeta::new(source_legit_key, false),\\n        AccountMeta::new(dest_legit_key, false),\\n        AccountMeta::new_readonly(authority_key, true),\\n        AccountMeta::new_readonly(spl_token_id, false),\\n    ],\\n);\\n\\nlet contas_legit = vec![\\n    (source_legit_key, source_legit),\\n    (dest_legit_key, dest_legit),\\n    (authority_key, authority_legit),\\n    (spl_token_id, token_program_legit),\\n];\\n\\nlet _ = env.baseline(\\\"transfer SPL Token legitimo\\\", &ix_legit, &contas_legit);\\n\\n// Ataque: contas forjadas com dono diferente do SPL Token (dono = programa-alvo)\\nlet attacker_owner = env.program_id;\\n\\nlet source_forged_key = Pubkey::new_unique();\\nlet dest_forged_key = Pubkey::new_unique();\\n\\nlet source_forged = account(&attacker_owner, &source_data, None);\\nlet dest_forged = account(&attacker_owner, &dest_data, None);\\nlet authority_forged = wallet(1_000_000_000);\\nlet token_program_forged = program_account(&spl_token_id);\\n\\nlet ix_attack = env.anchor_ix(\\n    \\\"cpi\\\",\\n    &(100u64,),\\n    vec![\\n        AccountMeta::new(source_forged_key, false),\\n        AccountMeta::new(dest_forged_key, false),\\n        AccountMeta::new_readonly(authority_key, true),\\n        AccountMeta::new_readonly(spl_token_id, false),\\n    ],\\n);\\n\\nlet contas_attack = vec![\\n    (source_forged_key, source_forged),\\n    (dest_forged_key, dest_forged),\\n    (authority_key, authority_forged),\\n    (spl_token_id, token_program_forged),\\n];\\n\\nlet r = env.attack(\\\"CPI com contas forjadas de dono invalido\\\", &ix_attack, &contas_attack);\\n\\nif r.program_result == ProgramResult::Success {\\n    let dest_after = after(&r, &dest_forged_key);\\n    env.effect(\\n        \\\"conta forjada com dono invalido foi aceita e usada na CPI\\\",\\n        dest_after.owner() == &attacker_owner && read_u64(dest_after.data(), 64) == 100,\\n    );\\n}\"}",
+      "plan": "O baseline falhou porque a conta de token SPL precisa ter o layout correto e o authority precisa assinar. Vou montar contas SPL Token validas (dono = Tokenkeg..., mint/owner/amount) e usar o proprio programa-alvo como authority? Nao: a instrucao transfer do SPL Token exige que o authority seja signer. Como o programa-alvo faz invoke sem signers (authority nao assina na CPI), o transfer so funciona se o authority for a propria conta do programa-alvo? Na verdade, o invoke passa authority como AccountInfo sem signer, entao o SPL Token rejeita. O baseline precisa ter sucesso, entao preciso que o authority seja signer na transacao (marcado como signer no meta) e o SPL Token aceite. Vou marcar authority como signer e dar lamports. O ataque fornece source/destination com dono diferente do SPL Token (dono = programa-alvo), mantendo o mesmo authority signer. O efeito mede se a conta forjada foi aceita e teve o saldo alterado.",
+      "scenario": "let env = Env::load();\n\nlet spl_token_id: Pubkey = \"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA\".parse().unwrap();\n\nlet mint = Pubkey::new_unique();\nlet source_owner = Pubkey::new_unique();\nlet dest_owner = Pubkey::new_unique();\nlet authority_key = Pubkey::new_unique();\n\n// Layout de conta SPL Token: mint(32) + owner(32) + amount(8) = 72 bytes\nlet mut source_data = vec![0u8; 72];\nsource_data[0..32].copy_from_slice(mint.as_ref());\nsource_data[32..64].copy_from_slice(source_owner.as_ref());\nsource_data[64..72].copy_from_slice(&1000u64.to_le_bytes());\n\nlet mut dest_data = vec![0u8; 72];\ndest_data[0..32].copy_from_slice(mint.as_ref());\ndest_data[32..64].copy_from_slice(dest_owner.as_ref());\ndest_data[64..72].copy_from_slice(&0u64.to_le_bytes());\n\nlet source_legit_key = Pubkey::new_unique();\nlet dest_legit_key = Pubkey::new_unique();\n\nlet source_legit = account(&spl_token_id, &source_data, None);\nlet dest_legit = account(&spl_token_id, &dest_data, None);\nlet authority_legit = wallet(1_000_000_000);\nlet token_program_legit = program_account(&spl_token_id);\n\nlet ix_legit = env.anchor_ix(\n    \"cpi\",\n    &(100u64,),\n    vec![\n        AccountMeta::new(source_legit_key, false),\n        AccountMeta::new(dest_legit_key, false),\n        AccountMeta::new_readonly(authority_key, true),\n        AccountMeta::new_readonly(spl_token_id, false),\n    ],\n);\n\nlet contas_legit = vec![\n    (source_legit_key, source_legit),\n    (dest_legit_key, dest_legit),\n    (authority_key, authority_legit),\n    (spl_token_id, token_program_legit),\n];\n\nlet _ = env.baseline(\"transfer SPL Token legitimo\", &ix_legit, &contas_legit);\n\n// Ataque: contas forjadas com dono diferente do SPL Token (dono = programa-alvo)\nlet attacker_owner = env.program_id;\n\nlet source_forged_key = Pubkey::new_unique();\nlet dest_forged_key = Pubkey::new_unique();\n\nlet source_forged = account(&attacker_owner, &source_data, None);\nlet dest_forged = account(&attacker_owner, &dest_data, None);\nlet authority_forged = wallet(1_000_000_000);\nlet token_program_forged = program_account(&spl_token_id);\n\nlet ix_attack = env.anchor_ix(\n    \"cpi\",\n    &(100u64,),\n    vec![\n        AccountMeta::new(source_forged_key, false),\n        AccountMeta::new(dest_forged_key, false),\n        AccountMeta::new_readonly(authority_key, true),\n        AccountMeta::new_readonly(spl_token_id, false),\n    ],\n);\n\nlet contas_attack = vec![\n    (source_forged_key, source_forged),\n    (dest_forged_key, dest_forged),\n    (authority_key, authority_forged),\n    (spl_token_id, token_program_forged),\n];\n\nlet r = env.attack(\"CPI com contas forjadas de dono invalido\", &ix_attack, &contas_attack);\n\nif r.program_result == ProgramResult::Success {\n    let dest_after = after(&r, &dest_forged_key);\n    env.effect(\n        \"conta forjada com dono invalido foi aceita e usada na CPI\",\n        dest_after.owner() == &attacker_owner && read_u64(dest_after.data(), 64) == 100,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "setup",
+            "attacker_program": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh"
+          },
+          {
+            "step": "baseline",
+            "note": "transfer SPL Token legitimo",
+            "result": "Failure(InvalidAccountData)",
+            "compute_units": 3407,
+            "account_flags": "-w,-w,sr,-r",
+            "ix_head": "4cad065fb55d53ce",
+            "accounts": [
+              {
+                "key": "11111113pNDtm61yGF8j2ycAwLEPsuWQXobye5qDR",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 72,
+                "head": "0000000000000003",
+                "digest": "979dbb5a3692663b",
+                "post": "00000000000000030000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000e803000000000000"
+              },
+              {
+                "key": "11111114DhpssPJgSi1YU7hCMfYt1BJ334YgsffXm",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 72,
+                "head": "0000000000000003",
+                "digest": "08543023366cbb5f",
+                "post": "000000000000000300000000000000000000000000000000000000000000000000000000000000050000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111113R2cuenjG5nFubqX9Wzuukdin2YfGQVzu5",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "signer": false,
+                "writable": false,
+                "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+                "data_len": 36,
+                "head": "0200000027f190b1",
+                "digest": "5b31219b7bc4060b",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "CPI com contas forjadas de dono invalido",
+            "result": "Failure(InvalidAccountData)",
+            "compute_units": 3407,
+            "account_flags": "-w,-w,sr,-r",
+            "ix_head": "4cad065fb55d53ce",
+            "accounts": [
+              {
+                "key": "11111114d3RrygbPdAtMuFnDmzsN8T5fYKVQ7FVr7",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 72,
+                "head": "0000000000000003",
+                "digest": "979dbb5a3692663b",
+                "post": "00000000000000030000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000e803000000000000"
+              },
+              {
+                "key": "111111152P2r5yt6odmBLPsFCLBrFisJ3aS7LqLAT",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 72,
+                "head": "0000000000000003",
+                "digest": "08543023366cbb5f",
+                "post": "000000000000000300000000000000000000000000000000000000000000000000000000000000050000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111113R2cuenjG5nFubqX9Wzuukdin2YfGQVzu5",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "signer": false,
+                "writable": false,
+                "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+                "data_len": 36,
+                "head": "0200000027f190b1",
+                "digest": "5b31219b7bc4060b",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA failed: invalid account data for instruction",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3407 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: invalid account data for instruction",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA failed: invalid account data for instruction",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3407 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: invalid account data for instruction"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": null,
+      "reason": "o baseline 'transfer SPL Token legitimo' falhou com Failure(InvalidAccountData); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)"
+    }
+  ],
+  "case_id": "SL-05-INS",
+  "static_finding": {
+    "category": "OWNER",
+    "confidence": "medium",
+    "evidence": "source: AccountInfo<'info>,\ndestination: AccountInfo<'info>,\nauthority: AccountInfo<'info>,",
+    "explanation": "As contas `source`, `destination` e `authority` sao recebidas como `AccountInfo` genericas sem verificar que pertencem ao programa SPL Token (`account.owner == spl_token::ID`). O programa assume que sao contas de token validas sem checar o proprietario.",
+    "attack_hypothesis": "O atacante fornece contas `source`/`destination` que nao pertencem ao SPL Token (ex: contas de outro programa com layout forjado). Como o proprietario nao e validado, a CPI pode operar sobre dados inesperados ou o programa pode ser induzido a aceitar contas invalidas.",
+    "mitigation": "Usar `Account<'info, TokenAccount>` do Anchor (que valida o owner) ou verificar explicitamente `ctx.accounts.source.owner == spl_token::ID`."
+  }
+}

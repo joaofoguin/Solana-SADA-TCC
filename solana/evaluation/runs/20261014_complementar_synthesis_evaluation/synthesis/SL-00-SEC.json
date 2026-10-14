@@ -1,0 +1,11 @@
+{
+  "llm": null,
+  "raw": null,
+  "summary": "Nenhum achado da analise estatica.",
+  "findings": [],
+  "predicted": [],
+  "extra_categories": [],
+  "omitted": [],
+  "parse_error": null,
+  "case_id": "SL-00-SEC"
+}

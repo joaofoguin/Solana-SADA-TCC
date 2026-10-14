@@ -1,0 +1,34 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 999,
+    "completion_tokens": 362,
+    "latency_s": 2.81,
+    "attempts": 1
+  },
+  "raw": "{\n  \"summary\": \"A instrução `check_sysvar_address` apresenta uma falha de validação de endereço de Sysvar: a conta `rent` é recebida como `AccountInfo` genérico sem verificação de que seu endereço corresponde ao ID oficial do Sysvar Rent. A análise dinâmica confirmou que uma conta forjada com dados controlados pelo atacante é aceita no lugar do Sysvar, permitindo manipulação de lógica dependente do Rent. A postura de segurança é inadequada para operações que confiam em Sysvars.\",\n  \"findings\": [\n    {\n      \"category\": \"SYSVAR\",\n      \"decision\": \"report\",\n      \"severity\": \"alta\",\n      \"confidence\": \"alta\",\n      \"justification\": \"A análise estática identificou que a conta `rent` é recebida como `AccountInfo` sem validação de que seu endereço corresponde ao ID oficial do Sysvar Rent. A análise dinâmica confirmou o ataque: uma conta forjada com dados controlados pelo atacante foi aceita no lugar do Sysvar, demonstrando a falta de validação de endereço e o dano potencial (manipulação de lógica dependente do Rent).\",\n      \"recommendation\": \"Substituir o tipo `AccountInfo<'info>` por `Sysvar<'info, Rent>` ou validar explicitamente que `rent.key == &solana_program::sysvar::rent::ID` antes de usar os dados. Alternativamente, usar `Sysvar::from_account_info` para garantir a validação automática do endereço.\"\n    }\n  ]\n}",
+  "summary": "A instrução `check_sysvar_address` apresenta uma falha de validação de endereço de Sysvar: a conta `rent` é recebida como `AccountInfo` genérico sem verificação de que seu endereço corresponde ao ID oficial do Sysvar Rent. A análise dinâmica confirmou que uma conta forjada com dados controlados pelo atacante é aceita no lugar do Sysvar, permitindo manipulação de lógica dependente do Rent. A postura de segurança é inadequada para operações que confiam em Sysvars.",
+  "findings": [
+    {
+      "category": "SYSVAR",
+      "decision": "report",
+      "severity": "alta",
+      "confidence": "alta",
+      "justification": "A análise estática identificou que a conta `rent` é recebida como `AccountInfo` sem validação de que seu endereço corresponde ao ID oficial do Sysvar Rent. A análise dinâmica confirmou o ataque: uma conta forjada com dados controlados pelo atacante foi aceita no lugar do Sysvar, demonstrando a falta de validação de endereço e o dano potencial (manipulação de lógica dependente do Rent).",
+      "recommendation": "Substituir o tipo `AccountInfo<'info>` por `Sysvar<'info, Rent>` ou validar explicitamente que `rent.key == &solana_program::sysvar::rent::ID` antes de usar os dados. Alternativamente, usar `Sysvar::from_account_info` para garantir a validação automática do endereço."
+    }
+  ],
+  "predicted": [
+    "SYSVAR"
+  ],
+  "extra_categories": [],
+  "omitted": [],
+  "parse_error": null,
+  "inputs": [
+    {
+      "category": "SYSVAR",
+      "dynamic_verdict": "confirmed"
+    }
+  ],
+  "case_id": "SL-10-INS"
+}

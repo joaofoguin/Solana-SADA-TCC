@@ -1,0 +1,73 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2368,
+    "completion_tokens": 913,
+    "latency_s": 5.51,
+    "attempts": 1
+  },
+  "raw": "{\n  \"summary\": \"A instrução `set_value` apresenta falhas graves de validação de autoridade e de contas: não exige assinatura do usuário, aceita bumps não-canônicos de PDA e não valida o tipo/discriminador da conta de dados. As análises dinâmicas confirmaram explorações bem-sucedidas para SIGNER, PDA e COSPLAY, enquanto OWNER ficou inconclusiva por limitação do ambiente de simulação, mas permanece um risco real de projeto.\",\n  \"findings\": [\n    {\n      \"category\": \"SIGNER\",\n      \"decision\": \"report\",\n      \"severity\": \"critica\",\n      \"confidence\": \"alta\",\n      \"justification\": \"A análise estática mostra que a chave de `accounts[1]` é gravada como autoridade sem qualquer verificação de assinatura (`is_signer`/tipo `Signer`). A análise dinâmica confirmou o ataque: foi possível gravar a pubkey da vítima e o `value` do atacante no PDA da vítima sem que ela assinasse a transação, com sucesso e dano verificado no estado.\",\n      \"recommendation\": \"Exigir que a conta do usuário seja signatária, validando `user.is_signer` ou recebendo-a como `Signer` no contexto de contas, e rejeitar a instrução caso a assinatura esteja ausente.\"\n    },\n    {\n      \"category\": \"PDA\",\n      \"decision\": \"report\",\n      \"severity\": \"alta\",\n      \"confidence\": \"alta\",\n      \"justification\": \"O bump é fornecido pelo chamador e validado apenas com `create_program_address`, sem garantir que seja o bump canônico (`find_program_address`). A análise dinâmica confirmou que um bump não-canônico gera um PDA alternativo aceito pelo programa, permitindo gravar dados em um endereço diferente do PDA canônico esperado.\",\n      \"recommendation\": \"Derivar o PDA com `find_program_address` a partir das seeds lógicas e comparar com a conta recebida, ou validar explicitamente que o bump fornecido é o bump canônico retornado por `find_program_address`, rejeitando bumps alternativos.\"\n    },\n    {\n      \"category\": \"OWNER\",\n      \"decision\": \"report\",\n      \"severity\": \"alta\",\n      \"confidence\": \"media\",\n      \"justification\": \"A análise estática aponta ausência de verificação de que `data_account.owner == program_id` antes de ler/gravar seus dados. A análise dinâmica foi inconclusiva porque o runtime da Solana bloqueou a escrita em conta de outro owner (`ExternalAccountDataModified`), mas isso não invalida a falha: o programa aceitou a conta forjada e tentou operar sobre ela, e a ausência de checagem pode permitir decisões incorretas ou exploração em cenários onde a escrita não seja o único efeito.\",\n      \"recommendation\": \"Validar explicitamente que `data_account.owner == program_id` (e, se aplicável, que a conta é writable) antes de qualquer leitura ou escrita, rejeitando contas cujo owner não seja o programa.\"\n    },\n    {\n      \"category\": \"COSPLAY\",\n      \"decision\": \"report\",\n      \"severity\": \"alta\",\n      \"confidence\": \"alta\",\n      \"justification\": \"A análise estática mostra escrita direta por offsets fixos sem validar discriminador de tipo no início do buffer. A análise dinâmica confirmou o ataque: uma conta de outro tipo no mesmo endereço PDA foi aceita e teve os bytes 8..40 sobrescritos com a chave do usuário, corrompendo o layout alheio.\",\n      \"recommendation\": \"Adicionar um discriminador de tipo (ex.: magic/version) no início dos dados da conta e validá-lo antes de interpretar ou escrever os campos, rejeitando contas cujo layout não corresponda ao tipo esperado.\"\n    }\n  ]\n}",
+  "summary": "A instrução `set_value` apresenta falhas graves de validação de autoridade e de contas: não exige assinatura do usuário, aceita bumps não-canônicos de PDA e não valida o tipo/discriminador da conta de dados. As análises dinâmicas confirmaram explorações bem-sucedidas para SIGNER, PDA e COSPLAY, enquanto OWNER ficou inconclusiva por limitação do ambiente de simulação, mas permanece um risco real de projeto.",
+  "findings": [
+    {
+      "category": "SIGNER",
+      "decision": "report",
+      "severity": "critica",
+      "confidence": "alta",
+      "justification": "A análise estática mostra que a chave de `accounts[1]` é gravada como autoridade sem qualquer verificação de assinatura (`is_signer`/tipo `Signer`). A análise dinâmica confirmou o ataque: foi possível gravar a pubkey da vítima e o `value` do atacante no PDA da vítima sem que ela assinasse a transação, com sucesso e dano verificado no estado.",
+      "recommendation": "Exigir que a conta do usuário seja signatária, validando `user.is_signer` ou recebendo-a como `Signer` no contexto de contas, e rejeitar a instrução caso a assinatura esteja ausente."
+    },
+    {
+      "category": "PDA",
+      "decision": "report",
+      "severity": "alta",
+      "confidence": "alta",
+      "justification": "O bump é fornecido pelo chamador e validado apenas com `create_program_address`, sem garantir que seja o bump canônico (`find_program_address`). A análise dinâmica confirmou que um bump não-canônico gera um PDA alternativo aceito pelo programa, permitindo gravar dados em um endereço diferente do PDA canônico esperado.",
+      "recommendation": "Derivar o PDA com `find_program_address` a partir das seeds lógicas e comparar com a conta recebida, ou validar explicitamente que o bump fornecido é o bump canônico retornado por `find_program_address`, rejeitando bumps alternativos."
+    },
+    {
+      "category": "OWNER",
+      "decision": "report",
+      "severity": "alta",
+      "confidence": "media",
+      "justification": "A análise estática aponta ausência de verificação de que `data_account.owner == program_id` antes de ler/gravar seus dados. A análise dinâmica foi inconclusiva porque o runtime da Solana bloqueou a escrita em conta de outro owner (`ExternalAccountDataModified`), mas isso não invalida a falha: o programa aceitou a conta forjada e tentou operar sobre ela, e a ausência de checagem pode permitir decisões incorretas ou exploração em cenários onde a escrita não seja o único efeito.",
+      "recommendation": "Validar explicitamente que `data_account.owner == program_id` (e, se aplicável, que a conta é writable) antes de qualquer leitura ou escrita, rejeitando contas cujo owner não seja o programa."
+    },
+    {
+      "category": "COSPLAY",
+      "decision": "report",
+      "severity": "alta",
+      "confidence": "alta",
+      "justification": "A análise estática mostra escrita direta por offsets fixos sem validar discriminador de tipo no início do buffer. A análise dinâmica confirmou o ataque: uma conta de outro tipo no mesmo endereço PDA foi aceita e teve os bytes 8..40 sobrescritos com a chave do usuário, corrompendo o layout alheio.",
+      "recommendation": "Adicionar um discriminador de tipo (ex.: magic/version) no início dos dados da conta e validá-lo antes de interpretar ou escrever os campos, rejeitando contas cujo layout não corresponda ao tipo esperado."
+    }
+  ],
+  "predicted": [
+    "COSPLAY",
+    "OWNER",
+    "PDA",
+    "SIGNER"
+  ],
+  "extra_categories": [],
+  "omitted": [],
+  "parse_error": null,
+  "inputs": [
+    {
+      "category": "SIGNER",
+      "dynamic_verdict": "confirmed"
+    },
+    {
+      "category": "PDA",
+      "dynamic_verdict": "confirmed"
+    },
+    {
+      "category": "OWNER",
+      "dynamic_verdict": "inconclusive"
+    },
+    {
+      "category": "COSPLAY",
+      "dynamic_verdict": "confirmed"
+    }
+  ],
+  "case_id": "SSP-05-P-V"
+}

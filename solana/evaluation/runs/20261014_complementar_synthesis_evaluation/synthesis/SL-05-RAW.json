@@ -1,0 +1,46 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 1580,
+    "completion_tokens": 449,
+    "latency_s": 3.64,
+    "attempts": 1
+  },
+  "raw": "{\n  \"summary\": \"A instrução `cpi` apresenta uma vulnerabilidade crítica de CPI arbitrária, confirmada dinamicamente, permitindo a invocação de programas maliciosos. A ausência de verificação de signer na conta `authority` não é explorável devido à proteção do runtime do Solana, que rejeita a escalada de privilégio. A postura de segurança é fraca, exigindo correção imediata da validação do programa destino.\",\n  \"findings\": [\n    {\n      \"category\": \"CPI\",\n      \"decision\": \"report\",\n      \"severity\": \"critica\",\n      \"confidence\": \"alta\",\n      \"justification\": \"A análise estática identificou que a conta `token_program` é usada diretamente como `program_id` sem validação, permitindo CPI arbitrária. A análise dinâmica confirmou o ataque: um programa malicioso foi invocado com sucesso, demonstrando dano potencial. A evidência é consistente e a exploração é viável.\",\n      \"recommendation\": \"Validar que `token_program.key` corresponde ao endereço esperado do Token Program (ex.: `spl_token::id()`), usando `require_keys_eq!` ou tipagem `Program<'info, Token>`. Alternativamente, restringir a CPI a programas conhecidos e confiáveis.\"\n    },\n    {\n      \"category\": \"SIGNER\",\n      \"decision\": \"discard\",\n      \"severity\": null,\n      \"confidence\": \"alta\",\n      \"justification\": \"A análise estática apontou ausência de verificação `is_signer` na conta `authority`. No entanto, a análise dinâmica mostrou que o ataque foi rejeitado pelo runtime com `PrivilegeEscalation`, pois a CPI exige que a autoridade seja signer e o runtime impede a escalada. Portanto, a hipótese não é explorável no ambiente Solana.\",\n      \"recommendation\": null\n    }\n  ]\n}",
+  "summary": "A instrução `cpi` apresenta uma vulnerabilidade crítica de CPI arbitrária, confirmada dinamicamente, permitindo a invocação de programas maliciosos. A ausência de verificação de signer na conta `authority` não é explorável devido à proteção do runtime do Solana, que rejeita a escalada de privilégio. A postura de segurança é fraca, exigindo correção imediata da validação do programa destino.",
+  "findings": [
+    {
+      "category": "CPI",
+      "decision": "report",
+      "severity": "critica",
+      "confidence": "alta",
+      "justification": "A análise estática identificou que a conta `token_program` é usada diretamente como `program_id` sem validação, permitindo CPI arbitrária. A análise dinâmica confirmou o ataque: um programa malicioso foi invocado com sucesso, demonstrando dano potencial. A evidência é consistente e a exploração é viável.",
+      "recommendation": "Validar que `token_program.key` corresponde ao endereço esperado do Token Program (ex.: `spl_token::id()`), usando `require_keys_eq!` ou tipagem `Program<'info, Token>`. Alternativamente, restringir a CPI a programas conhecidos e confiáveis."
+    },
+    {
+      "category": "SIGNER",
+      "decision": "discard",
+      "severity": null,
+      "confidence": "alta",
+      "justification": "A análise estática apontou ausência de verificação `is_signer` na conta `authority`. No entanto, a análise dinâmica mostrou que o ataque foi rejeitado pelo runtime com `PrivilegeEscalation`, pois a CPI exige que a autoridade seja signer e o runtime impede a escalada. Portanto, a hipótese não é explorável no ambiente Solana.",
+      "recommendation": null
+    }
+  ],
+  "predicted": [
+    "CPI"
+  ],
+  "extra_categories": [],
+  "omitted": [],
+  "parse_error": null,
+  "inputs": [
+    {
+      "category": "CPI",
+      "dynamic_verdict": "confirmed"
+    },
+    {
+      "category": "SIGNER",
+      "dynamic_verdict": "not_confirmed"
+    }
+  ],
+  "case_id": "SL-05-RAW"
+}

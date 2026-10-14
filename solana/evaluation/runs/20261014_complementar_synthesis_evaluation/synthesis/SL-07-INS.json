@@ -1,0 +1,34 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 1204,
+    "completion_tokens": 313,
+    "latency_s": 2.7,
+    "attempts": 1
+  },
+  "raw": "{\n  \"summary\": \"A instrução `set_value` apresenta uma falha crítica de validação de PDA, permitindo que um atacante use um bump não canônico para sobrescrever o valor de uma conta controlada. A análise dinâmica confirmou que o ataque é bem-sucedido, resultando em dano verificado. A postura de segurança é inadequada, necessitando correção imediata.\",\n  \"findings\": [\n    {\n      \"category\": \"PDA\",\n      \"decision\": \"report\",\n      \"severity\": \"critica\",\n      \"confidence\": \"alta\",\n      \"justification\": \"A análise estática identificou o uso de `create_program_address` com bump fornecido pelo usuário, sem validar se é o bump canônico. A análise dinâmica confirmou que um atacante pode fornecer um bump não canônico e uma conta controlada nesse endereço alternativo, conseguindo alterar o valor da conta. O ataque foi aceito e o dano verificado, comprovando a vulnerabilidade.\",\n      \"recommendation\": \"Substituir a validação manual por `Pubkey::find_program_address` para derivar o bump canônico, ou utilizar a constraint `#[account(seeds = [...], bump)]` do Anchor, que automaticamente valida o bump canônico e a propriedade da conta.\"\n    }\n  ]\n}",
+  "summary": "A instrução `set_value` apresenta uma falha crítica de validação de PDA, permitindo que um atacante use um bump não canônico para sobrescrever o valor de uma conta controlada. A análise dinâmica confirmou que o ataque é bem-sucedido, resultando em dano verificado. A postura de segurança é inadequada, necessitando correção imediata.",
+  "findings": [
+    {
+      "category": "PDA",
+      "decision": "report",
+      "severity": "critica",
+      "confidence": "alta",
+      "justification": "A análise estática identificou o uso de `create_program_address` com bump fornecido pelo usuário, sem validar se é o bump canônico. A análise dinâmica confirmou que um atacante pode fornecer um bump não canônico e uma conta controlada nesse endereço alternativo, conseguindo alterar o valor da conta. O ataque foi aceito e o dano verificado, comprovando a vulnerabilidade.",
+      "recommendation": "Substituir a validação manual por `Pubkey::find_program_address` para derivar o bump canônico, ou utilizar a constraint `#[account(seeds = [...], bump)]` do Anchor, que automaticamente valida o bump canônico e a propriedade da conta."
+    }
+  ],
+  "predicted": [
+    "PDA"
+  ],
+  "extra_categories": [],
+  "omitted": [],
+  "parse_error": null,
+  "inputs": [
+    {
+      "category": "PDA",
+      "dynamic_verdict": "confirmed"
+    }
+  ],
+  "case_id": "SL-07-INS"
+}

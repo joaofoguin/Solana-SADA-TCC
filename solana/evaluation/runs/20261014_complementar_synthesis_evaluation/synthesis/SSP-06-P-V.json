@@ -1,0 +1,46 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 1589,
+    "completion_tokens": 476,
+    "latency_s": 3.65,
+    "attempts": 1
+  },
+  "raw": "{\n  \"summary\": \"A instrução `update_fee` apresenta falhas de validação de contas que permitem a escrita indevida em contas de terceiros. O achado de OWNER foi rejeitado na execução dinâmica, mas o de COSPLAY foi confirmado, indicando que a ausência de verificação de discriminador de tipo é explorável. A postura de segurança é fraca, necessitando de validações explícitas de owner e tipo de conta.\",\n  \"findings\": [\n    {\n      \"category\": \"OWNER\",\n      \"decision\": \"discard\",\n      \"severity\": null,\n      \"confidence\": \"alta\",\n      \"justification\": \"A análise estática apontou alta confiança na falta de verificação de owner, mas a análise dinâmica não confirmou o ataque: a tentativa resultou em erro Custom(6001), indicando que o programa rejeitou a exploração. O baseline funcionou, mas o ataque foi bloqueado, provavelmente por uma verificação implícita ou condição de erro não capturada na análise estática. Portanto, não há evidência de explorabilidade.\",\n      \"recommendation\": null\n    },\n    {\n      \"category\": \"COSPLAY\",\n      \"decision\": \"report\",\n      \"severity\": \"alta\",\n      \"confidence\": \"alta\",\n      \"justification\": \"A análise estática identificou confiança média na falta de validação de discriminador de tipo. A análise dinâmica confirmou o ataque: uma conta de tipo incorreto foi aceita e o fee foi escrito nela, demonstrando dano real. A exploração é viável e permite que um atacante altere o estado de contas que não deveriam ser modificadas.\",\n      \"recommendation\": \"Adicionar verificação explícita do discriminador de tipo da conta `config` antes de desserializar seus dados. Por exemplo, ler os primeiros 8 bytes e comparar com um valor constante esperado para o tipo de conta de configuração, rejeitando contas com discriminador inválido.\"\n    }\n  ]\n}",
+  "summary": "A instrução `update_fee` apresenta falhas de validação de contas que permitem a escrita indevida em contas de terceiros. O achado de OWNER foi rejeitado na execução dinâmica, mas o de COSPLAY foi confirmado, indicando que a ausência de verificação de discriminador de tipo é explorável. A postura de segurança é fraca, necessitando de validações explícitas de owner e tipo de conta.",
+  "findings": [
+    {
+      "category": "OWNER",
+      "decision": "discard",
+      "severity": null,
+      "confidence": "alta",
+      "justification": "A análise estática apontou alta confiança na falta de verificação de owner, mas a análise dinâmica não confirmou o ataque: a tentativa resultou em erro Custom(6001), indicando que o programa rejeitou a exploração. O baseline funcionou, mas o ataque foi bloqueado, provavelmente por uma verificação implícita ou condição de erro não capturada na análise estática. Portanto, não há evidência de explorabilidade.",
+      "recommendation": null
+    },
+    {
+      "category": "COSPLAY",
+      "decision": "report",
+      "severity": "alta",
+      "confidence": "alta",
+      "justification": "A análise estática identificou confiança média na falta de validação de discriminador de tipo. A análise dinâmica confirmou o ataque: uma conta de tipo incorreto foi aceita e o fee foi escrito nela, demonstrando dano real. A exploração é viável e permite que um atacante altere o estado de contas que não deveriam ser modificadas.",
+      "recommendation": "Adicionar verificação explícita do discriminador de tipo da conta `config` antes de desserializar seus dados. Por exemplo, ler os primeiros 8 bytes e comparar com um valor constante esperado para o tipo de conta de configuração, rejeitando contas com discriminador inválido."
+    }
+  ],
+  "predicted": [
+    "COSPLAY"
+  ],
+  "extra_categories": [],
+  "omitted": [],
+  "parse_error": null,
+  "inputs": [
+    {
+      "category": "OWNER",
+      "dynamic_verdict": "not_confirmed"
+    },
+    {
+      "category": "COSPLAY",
+      "dynamic_verdict": "confirmed"
+    }
+  ],
+  "case_id": "SSP-06-P-V"
+}

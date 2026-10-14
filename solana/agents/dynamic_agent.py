@@ -38,7 +38,7 @@ from pathlib import Path
 
 from agents.llm import LLMResult, chat_json, parse_json
 
-PROMPT_VERSION = "dynamic-v5"
+PROMPT_VERSION = "dynamic-v5.1"
 MAX_ATTEMPTS = 5
 MAX_TOKENS = 4000
 HERE = Path(__file__).resolve().parents[1]  # ~/sada-tcc/solana
@@ -234,7 +234,9 @@ def _compile_errors(stderr: str, limit: int = 40) -> str:
 def execute_scenario(body: str, target: dict) -> dict:
     """Compila e roda o cenario. target: so_path, program_id, target_name, target_disc, attacker_so."""
     # normalizacao sintatica: `&[]` (lista vazia sem tipo) nao compila com a API generica; equivale a `&()`
-    body = re.sub(r"&\[\s*\]", "&()", body)
+    # (so nos argumentos de anchor_ix/raw_ix; em account(dono, &[], ..) a lista vazia ja e &[u8])
+    body = re.sub(r'(anchor_ix\(\s*"[^"]*"\s*,\s*)&\[\s*\]', r"\1&()", body)
+    body = re.sub(r"(raw_ix\(\s*)&\[\s*\]", r"\1&()", body)
     ATTEMPT_RS.parent.mkdir(parents=True, exist_ok=True)
     ATTEMPT_RS.write_text(TEST_FILE.format(body="\n".join("    " + ln for ln in body.splitlines())),
                           encoding="utf-8")

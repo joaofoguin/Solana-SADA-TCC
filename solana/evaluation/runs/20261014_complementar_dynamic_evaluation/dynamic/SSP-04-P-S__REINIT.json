@@ -1,0 +1,274 @@
+{
+  "category": "REINIT",
+  "verdict": "not_confirmed",
+  "exploit_successful": false,
+  "attack_result": "Failure(Custom(4001))",
+  "reason": "baseline ok; ataque rejeitado: Failure(Custom(4001))",
+  "attempts_used": 4,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2447,
+        "completion_tokens": 773,
+        "latency_s": 4.68
+      },
+      "raw": "{\"plan\": \"O programa `init` (Pinocchio) le a flag de inicializacao em data[40] sem verificar o owner da conta. Monto uma conta `config` com owner arbitrario (nao o program_id) e byte 40 zerado, e uma conta `authority`. O baseline chama a instrucao `init` legitimamente sobre essa conta, que deve ter sucesso e gravar a flag em data[40]=1. O ataque reexecuta `init` sobre a mesma conta ja inicializada (estado vindo do baseline), tentando sobrescrever a autoridade/saldo; se o programa nao checar owner, a reinit passa e o efeito mede que data[40] continua 1 e a autoridade foi sobrescrita por uma nova chave.\", \"scenario\": \"let config_key = Pubkey::new_unique();\\nlet authority_key = Pubkey::new_unique();\\nlet attacker_authority = Pubkey::new_unique();\\n\\n// Conta controlada pelo atacante: owner arbitrario, byte 40 zerado, 49 bytes\\nlet mut config_data = vec![0u8; 49];\\nconfig_data[40] = 0;\\nlet config = account(&Pubkey::new_unique(), &config_data, None);\\n\\nlet authority = wallet(1_000_000_000);\\n\\nlet metas = vec![\\n    AccountMeta::new(config_key, true),\\n    AccountMeta::new_readonly(authority_key, false),\\n];\\nlet ix = env.raw_ix(&[1u8], metas);\\n\\nlet contas = vec![\\n    (config_key, config.clone()),\\n    (authority_key, authority.clone()),\\n];\\n\\nlet r = env.baseline(\\\"init legitimo\\\", &ix, &contas);\\n\\nif r.program_result == ProgramResult::Success {\\n    let config_pos = after(&r, &config_key).clone();\\n    let authority_pos = after(&r, &authority_key).clone();\\n\\n    // Ataque: reexecuta init sobre a conta ja inicializada, com nova authority\\n    let metas_ataque = vec![\\n        AccountMeta::new(config_key, true),\\n        AccountMeta::new_readonly(attacker_authority, false),\\n    ];\\n    let ix_ataque = env.raw_ix(&[1u8], metas_ataque);\\n\\n    let contas_ataque = vec![\\n        (config_key, config_pos.clone()),\\n        (attacker_authority, wallet(1_000_000_000)),\\n    ];\\n\\n    let a = env.attack(\\\"reinit sobrescreve authority\\\", &ix_ataque, &contas_ataque);\\n\\n    if a.program_result == ProgramResult::Success {\\n        let config_depois = after(&a, &config_key);\\n        let authority_gravada = read_pubkey(config_depois.data(), 8);\\n        env.effect(\\n            \\\"authority sobrescrita pela chave do atacante\\\",\\n            authority_gravada == attacker_authority,\\n        );\\n        env.effect(\\n            \\\"flag de inicializacao permanece 1\\\",\\n            config_depois.data()[40] == 1,\\n        );\\n    }\\n}\"}",
+      "plan": "O programa `init` (Pinocchio) le a flag de inicializacao em data[40] sem verificar o owner da conta. Monto uma conta `config` com owner arbitrario (nao o program_id) e byte 40 zerado, e uma conta `authority`. O baseline chama a instrucao `init` legitimamente sobre essa conta, que deve ter sucesso e gravar a flag em data[40]=1. O ataque reexecuta `init` sobre a mesma conta ja inicializada (estado vindo do baseline), tentando sobrescrever a autoridade/saldo; se o programa nao checar owner, a reinit passa e o efeito mede que data[40] continua 1 e a autoridade foi sobrescrita por uma nova chave.",
+      "scenario": "let config_key = Pubkey::new_unique();\nlet authority_key = Pubkey::new_unique();\nlet attacker_authority = Pubkey::new_unique();\n\n// Conta controlada pelo atacante: owner arbitrario, byte 40 zerado, 49 bytes\nlet mut config_data = vec![0u8; 49];\nconfig_data[40] = 0;\nlet config = account(&Pubkey::new_unique(), &config_data, None);\n\nlet authority = wallet(1_000_000_000);\n\nlet metas = vec![\n    AccountMeta::new(config_key, true),\n    AccountMeta::new_readonly(authority_key, false),\n];\nlet ix = env.raw_ix(&[1u8], metas);\n\nlet contas = vec![\n    (config_key, config.clone()),\n    (authority_key, authority.clone()),\n];\n\nlet r = env.baseline(\"init legitimo\", &ix, &contas);\n\nif r.program_result == ProgramResult::Success {\n    let config_pos = after(&r, &config_key).clone();\n    let authority_pos = after(&r, &authority_key).clone();\n\n    // Ataque: reexecuta init sobre a conta ja inicializada, com nova authority\n    let metas_ataque = vec![\n        AccountMeta::new(config_key, true),\n        AccountMeta::new_readonly(attacker_authority, false),\n    ];\n    let ix_ataque = env.raw_ix(&[1u8], metas_ataque);\n\n    let contas_ataque = vec![\n        (config_key, config_pos.clone()),\n        (attacker_authority, wallet(1_000_000_000)),\n    ];\n\n    let a = env.attack(\"reinit sobrescreve authority\", &ix_ataque, &contas_ataque);\n\n    if a.program_result == ProgramResult::Success {\n        let config_depois = after(&a, &config_key);\n        let authority_gravada = read_pubkey(config_depois.data(), 8);\n        env.effect(\n            \"authority sobrescrita pela chave do atacante\",\n            authority_gravada == attacker_authority,\n        );\n        env.effect(\n            \"flag de inicializacao permanece 1\",\n            config_depois.data()[40] == 1,\n        );\n    }\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "init legitimo",
+            "result": "UnknownError(ExternalAccountDataModified)",
+            "compute_units": 149,
+            "account_flags": "sw,-r",
+            "ix_head": "01",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": true,
+                "owner": "111111131h1vYVSYuKP6AhS86fbRdMw9XHiZAvAaj",
+                "data_len": 49,
+                "head": "0000000000000000",
+                "digest": "78877fa898f0b4c4",
+                "post": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 149 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: instruction modified data of an account it does not own"
+        ],
+        "elapsed_s": 1.7
+      },
+      "verdict": null,
+      "reason": "o baseline 'init legitimo' falhou com UnknownError(ExternalAccountDataModified); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3056,
+        "completion_tokens": 847,
+        "latency_s": 4.73
+      },
+      "raw": "{\"plan\": \"O baseline falhou com ExternalAccountDataModified porque a conta `config` foi passada com owner diferente do programa-alvo, e o runtime do Mollusk rejeita modificacoes de dados em contas cujo owner nao e o programa executado. Para o uso legitimo, a conta `config` precisa ter owner = env.program_id. O ataque explora exatamente a ausencia de checagem de owner: apos o baseline inicializar a conta (byte 40 = 1), o atacante fornece a mesma conta ja inicializada, mas agora com owner arbitrario (atacante), e reexecuta `init` com uma nova authority. Como o programa nao valida o owner, ele sobrescreve a authority gravada em data[8..40] com a chave do atacante, demonstrando o dano.\", \"scenario\": \"let config_key = Pubkey::new_unique();\\nlet authority_key = Pubkey::new_unique();\\nlet attacker_authority = Pubkey::new_unique();\\n\\n// Conta config com owner = program_id (necessario para o baseline poder gravar)\\nlet mut config_data = vec![0u8; 49];\\nconfig_data[40] = 0;\\nlet config = account(&env.program_id, &config_data, None);\\n\\nlet authority = wallet(1_000_000_000);\\n\\nlet metas = vec![\\n    AccountMeta::new(config_key, true),\\n    AccountMeta::new_readonly(authority_key, false),\\n];\\nlet ix = env.raw_ix(&[1u8], metas);\\n\\nlet contas = vec![\\n    (config_key, config.clone()),\\n    (authority_key, authority.clone()),\\n];\\n\\nlet r = env.baseline(\\\"init legitimo\\\", &ix, &contas);\\n\\nif r.program_result == ProgramResult::Success {\\n    let config_pos = after(&r, &config_key).clone();\\n\\n    // Ataque: reexecuta init sobre a conta ja inicializada, mas agora com owner\\n    // arbitrario (atacante) e nova authority. O programa nao checa owner.\\n    let mut config_ataque_data = config_pos.data().to_vec();\\n    // byte 40 ja e 1 (inicializado) apos o baseline\\n    let config_ataque = account(&Pubkey::new_unique(), &config_ataque_data, None);\\n\\n    let metas_ataque = vec![\\n        AccountMeta::new(config_key, true),\\n        AccountMeta::new_readonly(attacker_authority, false),\\n    ];\\n    let ix_ataque = env.raw_ix(&[1u8], metas_ataque);\\n\\n    let contas_ataque = vec![\\n        (config_key, config_ataque),\\n        (attacker_authority, wallet(1_000_000_000)),\\n    ];\\n\\n    let a = env.attack(\\\"reinit sobrescreve authority\\\", &ix_ataque, &contas_ataque);\\n\\n    if a.program_result == ProgramResult::Success {\\n        let config_depois = after(&a, &config_key);\\n        let authority_gravada = read_pubkey(config_depois.data(), 8);\\n        env.effect(\\n            \\\"authority sobrescrita pela chave do atacante\\\",\\n            authority_gravada == attacker_authority,\\n        );\\n        env.effect(\\n            \\\"flag de inicializacao permanece 1\\\",\\n            config_depois.data()[40] == 1,\\n        );\\n    }\\n}\"}",
+      "plan": "O baseline falhou com ExternalAccountDataModified porque a conta `config` foi passada com owner diferente do programa-alvo, e o runtime do Mollusk rejeita modificacoes de dados em contas cujo owner nao e o programa executado. Para o uso legitimo, a conta `config` precisa ter owner = env.program_id. O ataque explora exatamente a ausencia de checagem de owner: apos o baseline inicializar a conta (byte 40 = 1), o atacante fornece a mesma conta ja inicializada, mas agora com owner arbitrario (atacante), e reexecuta `init` com uma nova authority. Como o programa nao valida o owner, ele sobrescreve a authority gravada em data[8..40] com a chave do atacante, demonstrando o dano.",
+      "scenario": "let config_key = Pubkey::new_unique();\nlet authority_key = Pubkey::new_unique();\nlet attacker_authority = Pubkey::new_unique();\n\n// Conta config com owner = program_id (necessario para o baseline poder gravar)\nlet mut config_data = vec![0u8; 49];\nconfig_data[40] = 0;\nlet config = account(&env.program_id, &config_data, None);\n\nlet authority = wallet(1_000_000_000);\n\nlet metas = vec![\n    AccountMeta::new(config_key, true),\n    AccountMeta::new_readonly(authority_key, false),\n];\nlet ix = env.raw_ix(&[1u8], metas);\n\nlet contas = vec![\n    (config_key, config.clone()),\n    (authority_key, authority.clone()),\n];\n\nlet r = env.baseline(\"init legitimo\", &ix, &contas);\n\nif r.program_result == ProgramResult::Success {\n    let config_pos = after(&r, &config_key).clone();\n\n    // Ataque: reexecuta init sobre a conta ja inicializada, mas agora com owner\n    // arbitrario (atacante) e nova authority. O programa nao checa owner.\n    let mut config_ataque_data = config_pos.data().to_vec();\n    // byte 40 ja e 1 (inicializado) apos o baseline\n    let config_ataque = account(&Pubkey::new_unique(), &config_ataque_data, None);\n\n    let metas_ataque = vec![\n        AccountMeta::new(config_key, true),\n        AccountMeta::new_readonly(attacker_authority, false),\n    ];\n    let ix_ataque = env.raw_ix(&[1u8], metas_ataque);\n\n    let contas_ataque = vec![\n        (config_key, config_ataque),\n        (attacker_authority, wallet(1_000_000_000)),\n    ];\n\n    let a = env.attack(\"reinit sobrescreve authority\", &ix_ataque, &contas_ataque);\n\n    if a.program_result == ProgramResult::Success {\n        let config_depois = after(&a, &config_key);\n        let authority_gravada = read_pubkey(config_depois.data(), 8);\n        env.effect(\n            \"authority sobrescrita pela chave do atacante\",\n            authority_gravada == attacker_authority,\n        );\n        env.effect(\n            \"flag de inicializacao permanece 1\",\n            config_depois.data()[40] == 1,\n        );\n    }\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "init legitimo",
+            "result": "Success",
+            "compute_units": 276,
+            "account_flags": "sw,-r",
+            "ix_head": "01",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 49,
+                "head": "0000000000000000",
+                "digest": "78877fa898f0b4c4",
+                "post": "01020304050607080000000000000003000000000000000000000000000000000000000000000000010000000000000000"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "reinit sobrescreve authority",
+            "result": "Failure(Custom(4001))",
+            "compute_units": 272,
+            "account_flags": "sw,-r",
+            "ix_head": "01",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": true,
+                "owner": "111111131h1vYVSYuKP6AhS86fbRdMw9XHiZAvAaj",
+                "data_len": 49,
+                "head": "0102030405060708",
+                "digest": "412cbced4c5e67d7",
+                "post": "01020304050607080000000000000003000000000000000000000000000000000000000000000000010000000000000000"
+              },
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 276 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 272 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: custom program error: 0xfa1"
+        ],
+        "elapsed_s": 1.7
+      },
+      "verdict": "not_confirmed",
+      "reason": "baseline ok; ataque rejeitado: Failure(Custom(4001))"
+    },
+    {
+      "attempt": 3,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3085,
+        "completion_tokens": 769,
+        "latency_s": 3.92
+      },
+      "raw": "{\"plan\": \"O baseline inicializa uma conta config com owner = program_id e byte 40 = 0, gravando a authority legitima. O ataque tenta reexecutar init sobre a mesma conta ja inicializada (byte 40 = 1), mas com owner arbitrario do atacante, para verificar se a ausencia de checagem de owner permite sobrescrever a authority. O efeito medido e se a authority gravada passa a ser a do atacante apos o ataque.\", \"scenario\": \"let config_key = Pubkey::new_unique();\\nlet authority_key = Pubkey::new_unique();\\nlet attacker_authority = Pubkey::new_unique();\\n\\n// Conta config com owner = program_id (necessario para o baseline poder gravar)\\nlet mut config_data = vec![0u8; 49];\\nconfig_data[40] = 0;\\nlet config = account(&env.program_id, &config_data, None);\\n\\nlet authority = wallet(1_000_000_000);\\n\\nlet metas = vec![\\n    AccountMeta::new(config_key, true),\\n    AccountMeta::new_readonly(authority_key, false),\\n];\\nlet ix = env.raw_ix(&[1u8], metas);\\n\\nlet contas = vec![\\n    (config_key, config.clone()),\\n    (authority_key, authority.clone()),\\n];\\n\\nlet r = env.baseline(\\\"init legitimo\\\", &ix, &contas);\\n\\nif r.program_result == ProgramResult::Success {\\n    let config_pos = after(&r, &config_key).clone();\\n\\n    // Ataque: reexecuta init sobre a conta ja inicializada, mas agora com owner\\n    // arbitrario (atacante) e nova authority. O programa nao checa owner.\\n    let config_ataque_data = config_pos.data().to_vec();\\n    // byte 40 ja e 1 (inicializado) apos o baseline\\n    let config_ataque = account(&Pubkey::new_unique(), &config_ataque_data, None);\\n\\n    let metas_ataque = vec![\\n        AccountMeta::new(config_key, true),\\n        AccountMeta::new_readonly(attacker_authority, false),\\n    ];\\n    let ix_ataque = env.raw_ix(&[1u8], metas_ataque);\\n\\n    let contas_ataque = vec![\\n        (config_key, config_ataque),\\n        (attacker_authority, wallet(1_000_000_000)),\\n    ];\\n\\n    let a = env.attack(\\\"reinit sobrescreve authority\\\", &ix_ataque, &contas_ataque);\\n\\n    if a.program_result == ProgramResult::Success {\\n        let config_depois = after(&a, &config_key);\\n        let authority_gravada = read_pubkey(config_depois.data(), 8);\\n        env.effect(\\n            \\\"authority sobrescrita pela chave do atacante\\\",\\n            authority_gravada == attacker_authority,\\n        );\\n        env.effect(\\n            \\\"flag de inicializacao permanece 1\\\",\\n            config_depois.data()[40] == 1,\\n        );\\n    }\\n}\"}",
+      "plan": "O baseline inicializa uma conta config com owner = program_id e byte 40 = 0, gravando a authority legitima. O ataque tenta reexecutar init sobre a mesma conta ja inicializada (byte 40 = 1), mas com owner arbitrario do atacante, para verificar se a ausencia de checagem de owner permite sobrescrever a authority. O efeito medido e se a authority gravada passa a ser a do atacante apos o ataque.",
+      "scenario": "let config_key = Pubkey::new_unique();\nlet authority_key = Pubkey::new_unique();\nlet attacker_authority = Pubkey::new_unique();\n\n// Conta config com owner = program_id (necessario para o baseline poder gravar)\nlet mut config_data = vec![0u8; 49];\nconfig_data[40] = 0;\nlet config = account(&env.program_id, &config_data, None);\n\nlet authority = wallet(1_000_000_000);\n\nlet metas = vec![\n    AccountMeta::new(config_key, true),\n    AccountMeta::new_readonly(authority_key, false),\n];\nlet ix = env.raw_ix(&[1u8], metas);\n\nlet contas = vec![\n    (config_key, config.clone()),\n    (authority_key, authority.clone()),\n];\n\nlet r = env.baseline(\"init legitimo\", &ix, &contas);\n\nif r.program_result == ProgramResult::Success {\n    let config_pos = after(&r, &config_key).clone();\n\n    // Ataque: reexecuta init sobre a conta ja inicializada, mas agora com owner\n    // arbitrario (atacante) e nova authority. O programa nao checa owner.\n    let config_ataque_data = config_pos.data().to_vec();\n    // byte 40 ja e 1 (inicializado) apos o baseline\n    let config_ataque = account(&Pubkey::new_unique(), &config_ataque_data, None);\n\n    let metas_ataque = vec![\n        AccountMeta::new(config_key, true),\n        AccountMeta::new_readonly(attacker_authority, false),\n    ];\n    let ix_ataque = env.raw_ix(&[1u8], metas_ataque);\n\n    let contas_ataque = vec![\n        (config_key, config_ataque),\n        (attacker_authority, wallet(1_000_000_000)),\n    ];\n\n    let a = env.attack(\"reinit sobrescreve authority\", &ix_ataque, &contas_ataque);\n\n    if a.program_result == ProgramResult::Success {\n        let config_depois = after(&a, &config_key);\n        let authority_gravada = read_pubkey(config_depois.data(), 8);\n        env.effect(\n            \"authority sobrescrita pela chave do atacante\",\n            authority_gravada == attacker_authority,\n        );\n        env.effect(\n            \"flag de inicializacao permanece 1\",\n            config_depois.data()[40] == 1,\n        );\n    }\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "init legitimo",
+            "result": "Success",
+            "compute_units": 276,
+            "account_flags": "sw,-r",
+            "ix_head": "01",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 49,
+                "head": "0000000000000000",
+                "digest": "78877fa898f0b4c4",
+                "post": "01020304050607080000000000000003000000000000000000000000000000000000000000000000010000000000000000"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "reinit sobrescreve authority",
+            "result": "Failure(Custom(4001))",
+            "compute_units": 272,
+            "account_flags": "sw,-r",
+            "ix_head": "01",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": true,
+                "owner": "111111131h1vYVSYuKP6AhS86fbRdMw9XHiZAvAaj",
+                "data_len": 49,
+                "head": "0102030405060708",
+                "digest": "412cbced4c5e67d7",
+                "post": "01020304050607080000000000000003000000000000000000000000000000000000000000000000010000000000000000"
+              },
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 276 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 272 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: custom program error: 0xfa1"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "not_confirmed",
+      "reason": "baseline ok; ataque rejeitado: Failure(Custom(4001))"
+    },
+    {
+      "attempt": 4,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3084,
+        "completion_tokens": 147,
+        "latency_s": 1.92
+      },
+      "raw": "{\"plan\": \"O baseline inicializa uma conta config com owner = program_id e byte 40 = 0, gravando a authority legitima. O ataque tenta reexecutar init sobre a mesma conta ja inicializada (byte 40 = 1), mas o programa rejeita com ERR_ALREADY_INITIALIZED. A hipotese do Static Agent era que a ausencia de checagem de owner permitiria reinit; o teste mostra que a flag de inicializacao em data[40] bloqueia a reexecucao independentemente do owner. Portanto, a vulnerabilidade de REINIT nao se confirma.\", \"conclusion\": \"blocked\"}",
+      "plan": "O baseline inicializa uma conta config com owner = program_id e byte 40 = 0, gravando a authority legitima. O ataque tenta reexecutar init sobre a mesma conta ja inicializada (byte 40 = 1), mas o programa rejeita com ERR_ALREADY_INITIALIZED. A hipotese do Static Agent era que a ausencia de checagem de owner permitiria reinit; o teste mostra que a flag de inicializacao em data[40] bloqueia a reexecucao independentemente do owner. Portanto, a vulnerabilidade de REINIT nao se confirma.",
+      "verdict": "not_confirmed",
+      "reason": "LLM concluiu que o programa bloqueia o ataque"
+    }
+  ],
+  "case_id": "SSP-04-P-S",
+  "static_finding": {
+    "category": "REINIT",
+    "confidence": "medium",
+    "evidence": "let is_initialized = data[40] != 0;\n\nif is_initialized {\n    return Err(ProgramError::Custom(ERR_ALREADY_INITIALIZED));\n}",
+    "explanation": "A flag de inicializacao e lida de `data[40]` sem validar que a conta foi criada por este programa (sem `init` do Anchor nem verificacao de owner). Como o owner nao e checado, um atacante pode fornecer uma conta cujo byte 40 seja 0 e reexecutar a inicializacao, sobrescrevendo autoridade e saldo. A mitigacao de reinit depende da checagem de owner ausente.",
+    "attack_hypothesis": "Um atacante fornece uma conta controlada por ele (owner arbitrario) com o byte 40 zerado como `accounts[0]`, fazendo o programa reexecutar a inicializacao e sobrescrever a autoridade/saldo de uma conta que ele controla ou de uma conta forjada."
+  }
+}

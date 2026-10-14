@@ -1,0 +1,15 @@
+# Relatorio consolidado: SSP-06-P-S (`update_fee`)
+
+## Resumo
+
+A instrução `update_fee` depende exclusivamente de um discriminador de 8 bytes nos dados da conta `config` para autorizar a atualização, sem verificar se a conta pertence ao programa. A análise dinâmica não conseguiu confirmar a exploração por limitações do ambiente de teste, mas a evidência estática é forte e a hipótese de ataque é plausível. Portanto, a vulnerabilidade deve ser reportada com severidade alta e confiança média.
+
+## Vulnerabilidades reportadas
+
+### Improper Owner Check (OWNER)
+
+- **Origem:** Estatica (execucao: inconclusive)
+- **Severidade:** alta
+- **Confianca:** media
+- **Justificativa:** A análise estática mostra que a conta `config` é usada sem verificação de `owner`, permitindo que um atacante crie uma conta com o discriminador correto e a pubkey do admin forjada. A análise dinâmica foi inconclusiva porque o ataque não conseguiu manter a diferença de owner exigida pela hipótese, mas o resultado 'Success' com bloqueio do runtime indica que a lógica de autorização é baseada apenas nos dados, o que é insuficiente. A evidência estática é alta e a dinâmica não a refuta, apenas não a confirma devido a restrições do teste.
+- **Recomendacao:** Adicione uma verificação explícita de que `config.owner == program_id` antes de ler ou modificar os dados da conta. Alternativamente, use uma conta derivada (PDA) com seeds conhecidas e verifique seu endereço, garantindo que apenas contas legítimas do programa sejam aceitas.

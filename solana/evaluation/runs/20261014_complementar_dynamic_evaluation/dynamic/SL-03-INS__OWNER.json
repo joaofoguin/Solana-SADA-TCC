@@ -1,0 +1,309 @@
+{
+  "category": "OWNER",
+  "verdict": "not_confirmed",
+  "exploit_successful": false,
+  "attack_result": "Failure(IllegalOwner)",
+  "reason": "baseline ok; ataque rejeitado: Failure(IllegalOwner)",
+  "attempts_used": 4,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2381,
+        "completion_tokens": 665,
+        "latency_s": 4.33
+      },
+      "raw": "{\n  \"plan\": \"O cenário monta uma conta `user` legítima pertencente ao programa com dados `User` cujo authority é a carteira do atacante, e uma conta forjada `Metadata` (mesmo tamanho de 32 bytes) com owner diferente do programa. O baseline chama `update_user` com a conta legítima e deve ter sucesso. O ataque chama `update_user` com a conta forjada no lugar da conta `user`, mantendo a mesma authority. O efeito mede se a conta forjada foi aceita e usada, verificando que o owner da conta resultante é diferente do program_id e que os dados permanecem os da conta forjada.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet user_key = Pubkey::new_unique();\\nlet forged_key = Pubkey::new_unique();\\n\\nlet legit_user_data = anchor_account_data(\\\"User\\\", &(authority,));\\nlet legit_user = account(&env.program_id, &legit_user_data, None);\\n\\nlet forged_data = anchor_account_data(\\\"Metadata\\\", &(authority,));\\nlet forged_owner = Pubkey::new_unique();\\nlet forged_user = account(&forged_owner, &forged_data, None);\\n\\nlet authority_account = wallet(1_000_000_000);\\n\\nlet metas = vec![\\n    AccountMeta::new(user_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n];\\nlet ix = env.anchor_ix(\\\"update_user\\\", &(), metas);\\n\\nlet contas = vec![\\n    (user_key, legit_user.clone()),\\n    (authority, authority_account.clone()),\\n];\\nlet baseline = env.baseline(\\\"update_user legitimo com conta User do programa\\\", &ix, &contas);\\n\\nlet attack_metas = vec![\\n    AccountMeta::new(forged_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n];\\nlet attack_ix = env.anchor_ix(\\\"update_user\\\", &(), attack_metas);\\n\\nlet attack_contas = vec![\\n    (forged_key, forged_user.clone()),\\n    (authority, authority_account.clone()),\\n];\\nlet r = env.attack(\\\"update_user com conta forjada Metadata de owner diferente\\\", &attack_ix, &attack_contas);\\n\\nif r.program_result == ProgramResult::Success {\\n    let after_forged = after(&r, &forged_key);\\n    env.effect(\\\"conta forjada aceita com owner diferente do programa\\\", after_forged.owner() != &env.program_id);\\n    env.effect(\\\"dados da conta forjada permanecem os do atacante\\\", after_forged.data() == forged_data.as_slice());\\n}\"\n}",
+      "plan": "O cenário monta uma conta `user` legítima pertencente ao programa com dados `User` cujo authority é a carteira do atacante, e uma conta forjada `Metadata` (mesmo tamanho de 32 bytes) com owner diferente do programa. O baseline chama `update_user` com a conta legítima e deve ter sucesso. O ataque chama `update_user` com a conta forjada no lugar da conta `user`, mantendo a mesma authority. O efeito mede se a conta forjada foi aceita e usada, verificando que o owner da conta resultante é diferente do program_id e que os dados permanecem os da conta forjada.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet user_key = Pubkey::new_unique();\nlet forged_key = Pubkey::new_unique();\n\nlet legit_user_data = anchor_account_data(\"User\", &(authority,));\nlet legit_user = account(&env.program_id, &legit_user_data, None);\n\nlet forged_data = anchor_account_data(\"Metadata\", &(authority,));\nlet forged_owner = Pubkey::new_unique();\nlet forged_user = account(&forged_owner, &forged_data, None);\n\nlet authority_account = wallet(1_000_000_000);\n\nlet metas = vec![\n    AccountMeta::new(user_key, false),\n    AccountMeta::new_readonly(authority, true),\n];\nlet ix = env.anchor_ix(\"update_user\", &(), metas);\n\nlet contas = vec![\n    (user_key, legit_user.clone()),\n    (authority, authority_account.clone()),\n];\nlet baseline = env.baseline(\"update_user legitimo com conta User do programa\", &ix, &contas);\n\nlet attack_metas = vec![\n    AccountMeta::new(forged_key, false),\n    AccountMeta::new_readonly(authority, true),\n];\nlet attack_ix = env.anchor_ix(\"update_user\", &(), attack_metas);\n\nlet attack_contas = vec![\n    (forged_key, forged_user.clone()),\n    (authority, authority_account.clone()),\n];\nlet r = env.attack(\"update_user com conta forjada Metadata de owner diferente\", &attack_ix, &attack_contas);\n\nif r.program_result == ProgramResult::Success {\n    let after_forged = after(&r, &forged_key);\n    env.effect(\"conta forjada aceita com owner diferente do programa\", after_forged.owner() != &env.program_id);\n    env.effect(\"dados da conta forjada permanecem os do atacante\", after_forged.data() == forged_data.as_slice());\n}",
+      "run": {
+        "kind": "panic",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "update_user legitimo com conta User do programa",
+            "result": "UnknownError(ProgramFailedToComplete)",
+            "compute_units": 3247,
+            "account_flags": "-w,sr",
+            "ix_head": "0902a0a9760ccf54",
+            "accounts": [
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 40,
+                "head": "9f755fe3ef973aec",
+                "digest": "cc83b2d6cc3fbaaa",
+                "post": "9f755fe3ef973aec0000000000000002000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "update_user com conta forjada Metadata de owner diferente",
+            "result": "UnknownError(ProgramFailedToComplete)",
+            "compute_units": 3247,
+            "account_flags": "-w,sr",
+            "ix_head": "0902a0a9760ccf54",
+            "accounts": [
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": true,
+                "owner": "111111131h1vYVSYuKP6AhS86fbRdMw9XHiZAvAaj",
+                "data_len": 40,
+                "head": "480b791a6fb5555d",
+                "digest": "5a9402890723470f",
+                "post": "480b791a6fb5555d0000000000000002000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "detail": "[2026-10-14T00:09:23.776202752Z DEBUG solana_runtime::message_processor::stable_log] Program log: panicked at sealevel/sl_03_ins/src/lib.rs:10:75:     called `Result::unwrap()` on an `Err` value: Custom { kind: InvalidData, error: \"Not all bytes read\" }",
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3247 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: SBF program panicked",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3247 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: SBF program panicked"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": null,
+      "reason": "o baseline 'update_user legitimo com conta User do programa' falhou com UnknownError(ProgramFailedToComplete); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2913,
+        "completion_tokens": 690,
+        "latency_s": 4.26
+      },
+      "raw": "{\n  \"plan\": \"O baseline falhou porque a conta `user` foi passada como `AccountInfo` sem ser marcada como gravavel e, mais importante, o `anchor_ix` provavelmente nao encontrou a instrucao `update_user` (o programa nao tem `#[derive(Accounts)]` com `#[account(mut)]`). Vou montar o cenario com uma conta `User` valida (dono = program_id, dados = authority) e uma conta `Metadata` forjada com dono diferente, ambas passadas como writable para satisfazer o `AccountInfo`. O baseline usa a conta legitima; o ataque usa a conta forjada. O efeito mede se a conta forjada foi aceita (owner diferente do programa) e se os dados permaneceram os do atacante.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet user_key = Pubkey::new_unique();\\nlet forged_key = Pubkey::new_unique();\\n\\nlet legit_user_data = anchor_account_data(\\\"User\\\", &(authority,));\\nlet legit_user = account(&env.program_id, &legit_user_data, None);\\n\\nlet forged_data = anchor_account_data(\\\"Metadata\\\", &(authority,));\\nlet forged_owner = Pubkey::new_unique();\\nlet forged_user = account(&forged_owner, &forged_data, None);\\n\\nlet authority_account = wallet(1_000_000_000);\\n\\nlet metas = vec![\\n    AccountMeta::new(user_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n];\\nlet ix = env.anchor_ix(\\\"update_user\\\", &(), metas);\\n\\nlet contas = vec![\\n    (user_key, legit_user.clone()),\\n    (authority, authority_account.clone()),\\n];\\nlet baseline = env.baseline(\\\"update_user legitimo com conta User do programa\\\", &ix, &contas);\\n\\nlet attack_metas = vec![\\n    AccountMeta::new(forged_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n];\\nlet attack_ix = env.anchor_ix(\\\"update_user\\\", &(), attack_metas);\\n\\nlet attack_contas = vec![\\n    (forged_key, forged_user.clone()),\\n    (authority, authority_account.clone()),\\n];\\nlet r = env.attack(\\\"update_user com conta forjada Metadata de owner diferente\\\", &attack_ix, &attack_contas);\\n\\nif r.program_result == ProgramResult::Success {\\n    let after_forged = after(&r, &forged_key);\\n    env.effect(\\\"conta forjada aceita com owner diferente do programa\\\", after_forged.owner() != &env.program_id);\\n    env.effect(\\\"dados da conta forjada permanecem os do atacante\\\", after_forged.data() == forged_data.as_slice());\\n}\"\n}",
+      "plan": "O baseline falhou porque a conta `user` foi passada como `AccountInfo` sem ser marcada como gravavel e, mais importante, o `anchor_ix` provavelmente nao encontrou a instrucao `update_user` (o programa nao tem `#[derive(Accounts)]` com `#[account(mut)]`). Vou montar o cenario com uma conta `User` valida (dono = program_id, dados = authority) e uma conta `Metadata` forjada com dono diferente, ambas passadas como writable para satisfazer o `AccountInfo`. O baseline usa a conta legitima; o ataque usa a conta forjada. O efeito mede se a conta forjada foi aceita (owner diferente do programa) e se os dados permaneceram os do atacante.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet user_key = Pubkey::new_unique();\nlet forged_key = Pubkey::new_unique();\n\nlet legit_user_data = anchor_account_data(\"User\", &(authority,));\nlet legit_user = account(&env.program_id, &legit_user_data, None);\n\nlet forged_data = anchor_account_data(\"Metadata\", &(authority,));\nlet forged_owner = Pubkey::new_unique();\nlet forged_user = account(&forged_owner, &forged_data, None);\n\nlet authority_account = wallet(1_000_000_000);\n\nlet metas = vec![\n    AccountMeta::new(user_key, false),\n    AccountMeta::new_readonly(authority, true),\n];\nlet ix = env.anchor_ix(\"update_user\", &(), metas);\n\nlet contas = vec![\n    (user_key, legit_user.clone()),\n    (authority, authority_account.clone()),\n];\nlet baseline = env.baseline(\"update_user legitimo com conta User do programa\", &ix, &contas);\n\nlet attack_metas = vec![\n    AccountMeta::new(forged_key, false),\n    AccountMeta::new_readonly(authority, true),\n];\nlet attack_ix = env.anchor_ix(\"update_user\", &(), attack_metas);\n\nlet attack_contas = vec![\n    (forged_key, forged_user.clone()),\n    (authority, authority_account.clone()),\n];\nlet r = env.attack(\"update_user com conta forjada Metadata de owner diferente\", &attack_ix, &attack_contas);\n\nif r.program_result == ProgramResult::Success {\n    let after_forged = after(&r, &forged_key);\n    env.effect(\"conta forjada aceita com owner diferente do programa\", after_forged.owner() != &env.program_id);\n    env.effect(\"dados da conta forjada permanecem os do atacante\", after_forged.data() == forged_data.as_slice());\n}",
+      "run": {
+        "kind": "panic",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "update_user legitimo com conta User do programa",
+            "result": "UnknownError(ProgramFailedToComplete)",
+            "compute_units": 3247,
+            "account_flags": "-w,sr",
+            "ix_head": "0902a0a9760ccf54",
+            "accounts": [
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 40,
+                "head": "9f755fe3ef973aec",
+                "digest": "cc83b2d6cc3fbaaa",
+                "post": "9f755fe3ef973aec0000000000000002000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "update_user com conta forjada Metadata de owner diferente",
+            "result": "UnknownError(ProgramFailedToComplete)",
+            "compute_units": 3247,
+            "account_flags": "-w,sr",
+            "ix_head": "0902a0a9760ccf54",
+            "accounts": [
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": true,
+                "owner": "111111131h1vYVSYuKP6AhS86fbRdMw9XHiZAvAaj",
+                "data_len": 40,
+                "head": "480b791a6fb5555d",
+                "digest": "5a9402890723470f",
+                "post": "480b791a6fb5555d0000000000000002000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "detail": "[2026-10-14T00:09:29.686473255Z DEBUG solana_runtime::message_processor::stable_log] Program log: panicked at sealevel/sl_03_ins/src/lib.rs:10:75:     called `Result::unwrap()` on an `Err` value: Custom { kind: InvalidData, error: \"Not all bytes read\" }",
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3247 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: SBF program panicked",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 3247 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: SBF program panicked"
+        ],
+        "elapsed_s": 1.6
+      },
+      "verdict": null,
+      "reason": "o baseline 'update_user legitimo com conta User do programa' falhou com UnknownError(ProgramFailedToComplete); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)"
+    },
+    {
+      "attempt": 3,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2913,
+        "completion_tokens": 665,
+        "latency_s": 4.04
+      },
+      "raw": "{\n  \"plan\": \"O baseline falhou porque a conta `user` foi passada como `AccountInfo` sem o discriminador Anchor esperado pelo `try_from_slice`; o programa tenta desserializar os dados brutos como `User` (32 bytes) e o `anchor_account_data` adiciona 8 bytes de discriminador, fazendo a desserializacao falhar. Vou montar a conta `user` com exatamente 32 bytes (apenas a Pubkey authority) e dono igual ao program_id, e a authority como signer. O ataque usa uma conta forjada com os mesmos 32 bytes, mas dono diferente do programa, para testar se a desserializacao ocorre antes da checagem de owner. O efeito mede se a conta forjada foi aceita com owner diferente do programa.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet user_key = Pubkey::new_unique();\\nlet forged_key = Pubkey::new_unique();\\n\\nlet legit_user_data = authority.bytes();\\nlet legit_user = account(&env.program_id, &legit_user_data, None);\\n\\nlet forged_owner = Pubkey::new_unique();\\nlet forged_user = account(&forged_owner, &legit_user_data, None);\\n\\nlet authority_account = wallet(1_000_000_000);\\n\\nlet metas = vec![\\n    AccountMeta::new(user_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n];\\nlet ix = env.anchor_ix(\\\"update_user\\\", &(), metas);\\n\\nlet contas = vec![\\n    (user_key, legit_user.clone()),\\n    (authority, authority_account.clone()),\\n];\\nlet baseline = env.baseline(\\\"update_user legitimo com conta User do programa\\\", &ix, &contas);\\n\\nlet attack_metas = vec![\\n    AccountMeta::new(forged_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n];\\nlet attack_ix = env.anchor_ix(\\\"update_user\\\", &(), attack_metas);\\n\\nlet attack_contas = vec![\\n    (forged_key, forged_user.clone()),\\n    (authority, authority_account.clone()),\\n];\\nlet r = env.attack(\\\"update_user com conta forjada de owner diferente\\\", &attack_ix, &attack_contas);\\n\\nif r.program_result == ProgramResult::Success {\\n    let after_forged = after(&r, &forged_key);\\n    env.effect(\\\"conta forjada aceita com owner diferente do programa\\\", after_forged.owner() != &env.program_id);\\n    env.effect(\\\"dados da conta forjada permanecem os do atacante\\\", after_forged.data() == legit_user_data.as_slice());\\n}\"\n}",
+      "plan": "O baseline falhou porque a conta `user` foi passada como `AccountInfo` sem o discriminador Anchor esperado pelo `try_from_slice`; o programa tenta desserializar os dados brutos como `User` (32 bytes) e o `anchor_account_data` adiciona 8 bytes de discriminador, fazendo a desserializacao falhar. Vou montar a conta `user` com exatamente 32 bytes (apenas a Pubkey authority) e dono igual ao program_id, e a authority como signer. O ataque usa uma conta forjada com os mesmos 32 bytes, mas dono diferente do programa, para testar se a desserializacao ocorre antes da checagem de owner. O efeito mede se a conta forjada foi aceita com owner diferente do programa.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet user_key = Pubkey::new_unique();\nlet forged_key = Pubkey::new_unique();\n\nlet legit_user_data = authority.bytes();\nlet legit_user = account(&env.program_id, &legit_user_data, None);\n\nlet forged_owner = Pubkey::new_unique();\nlet forged_user = account(&forged_owner, &legit_user_data, None);\n\nlet authority_account = wallet(1_000_000_000);\n\nlet metas = vec![\n    AccountMeta::new(user_key, false),\n    AccountMeta::new_readonly(authority, true),\n];\nlet ix = env.anchor_ix(\"update_user\", &(), metas);\n\nlet contas = vec![\n    (user_key, legit_user.clone()),\n    (authority, authority_account.clone()),\n];\nlet baseline = env.baseline(\"update_user legitimo com conta User do programa\", &ix, &contas);\n\nlet attack_metas = vec![\n    AccountMeta::new(forged_key, false),\n    AccountMeta::new_readonly(authority, true),\n];\nlet attack_ix = env.anchor_ix(\"update_user\", &(), attack_metas);\n\nlet attack_contas = vec![\n    (forged_key, forged_user.clone()),\n    (authority, authority_account.clone()),\n];\nlet r = env.attack(\"update_user com conta forjada de owner diferente\", &attack_ix, &attack_contas);\n\nif r.program_result == ProgramResult::Success {\n    let after_forged = after(&r, &forged_key);\n    env.effect(\"conta forjada aceita com owner diferente do programa\", after_forged.owner() != &env.program_id);\n    env.effect(\"dados da conta forjada permanecem os do atacante\", after_forged.data() == legit_user_data.as_slice());\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "update_user legitimo com conta User do programa",
+            "result": "Success",
+            "compute_units": 7957,
+            "account_flags": "-w,sr",
+            "ix_head": "0902a0a9760ccf54",
+            "accounts": [
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 32,
+                "head": "0000000000000002",
+                "digest": "1af94aa75bdb9b97",
+                "post": "0000000000000002000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "update_user com conta forjada de owner diferente",
+            "result": "Failure(IllegalOwner)",
+            "compute_units": 1940,
+            "account_flags": "-w,sr",
+            "ix_head": "0902a0a9760ccf54",
+            "accounts": [
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": true,
+                "owner": "111111131h1vYVSYuKP6AhS86fbRdMw9XHiZAvAaj",
+                "data_len": 32,
+                "head": "0000000000000002",
+                "digest": "1af94aa75bdb9b97",
+                "post": "0000000000000002000000000000000000000000000000000000000000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 7957 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 1940 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: Provided owner is not allowed"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "not_confirmed",
+      "reason": "baseline ok; ataque rejeitado: Failure(IllegalOwner)"
+    },
+    {
+      "attempt": 4,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2852,
+        "completion_tokens": 150,
+        "latency_s": 2.1
+      },
+      "raw": "{\"plan\": \"O baseline usa uma conta User legítima (dono = program_id) com authority correta, o que deve ter sucesso. O ataque substitui a conta user por uma conta forjada com dono diferente (forged_owner) mas com os mesmos dados de 32 bytes, mantendo a authority signer. A tentativa anterior mostrou que o programa rejeita com IllegalOwner, confirmando que a checagem de owner bloqueia a hipótese. Como o ataque é rejeitado de forma consistente e a checagem de owner é a barreira efetiva, a hipótese está bloqueada.\", \"conclusion\": \"blocked\"}",
+      "plan": "O baseline usa uma conta User legítima (dono = program_id) com authority correta, o que deve ter sucesso. O ataque substitui a conta user por uma conta forjada com dono diferente (forged_owner) mas com os mesmos dados de 32 bytes, mantendo a authority signer. A tentativa anterior mostrou que o programa rejeita com IllegalOwner, confirmando que a checagem de owner bloqueia a hipótese. Como o ataque é rejeitado de forma consistente e a checagem de owner é a barreira efetiva, a hipótese está bloqueada.",
+      "verdict": "not_confirmed",
+      "reason": "LLM concluiu que o programa bloqueia o ataque"
+    }
+  ],
+  "case_id": "SL-03-INS",
+  "static_finding": {
+    "category": "OWNER",
+    "confidence": "low",
+    "evidence": "let user = User::try_from_slice(&ctx.accounts.user.data.borrow()).unwrap();\nif ctx.accounts.user.owner != ctx.program_id {\n    return Err(ProgramError::IllegalOwner.into());\n}",
+    "explanation": "A conta `user` e recebida como `AccountInfo` e seus dados sao desserializados ANTES da verificacao de proprietario. Embora haja uma checagem de owner logo em seguida, a desserializacao ocorre primeiro, o que pode ser explorado com uma conta forjada cujo layout de dados seja compativel com `User` (por exemplo, a struct `Metadata` definida no proprio arquivo, que tem o mesmo tamanho de 32 bytes). A verificacao de owner e feita, mas apos o uso dos dados, e o uso de `unwrap()` pode causar panic se a desserializacao falhar.",
+    "attack_hypothesis": "Um atacante forneceria uma conta `user` que nao pertence ao programa (por exemplo, uma conta `Metadata` com dados controlados) para que a desserializacao seja bem-sucedida e a comparacao `user.authority != ctx.accounts.authority.key()` possa ser manipulada, embora a checagem de owner subsequente rejeite a transacao. O risco e limitado pela checagem de owner, mas a ordem de operacoes e incorreta."
+  }
+}

