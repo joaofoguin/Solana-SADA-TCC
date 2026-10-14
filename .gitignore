@@ -6,3 +6,6 @@ __pycache__/
 solana/dataset/programs/deploy/
 solana/dataset/programs/logs/
 *.so
+solana/dynamic/harness/tests/attempt.rs
+.env
+venv/
